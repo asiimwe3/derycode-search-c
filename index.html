@@ -118,6 +118,21 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .code-title:active{text-decoration:underline}
 .code-desc{color:#999;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
+/* Video Results */
+.video-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.video-card{display:flex;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer}
+.video-card:active{transform:scale(0.98);border-color:rgba(212,175,55,0.2)}
+.video-thumb{position:relative;width:140px;min-width:140px;height:80px;background:var(--bg4);overflow:hidden}
+.video-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vid-duration{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.8);padding:2px 5px;border-radius:3px;font-size:10px;color:#fff;font-weight:600}
+.video-info{flex:1;padding:8px 10px;min-width:0}
+.video-title{color:var(--text);font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.video-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.video-channel{color:var(--gold);font-size:11px;font-weight:600}
+.video-views{color:#666;font-size:11px}
+.video-date{color:#555;font-size:11px}
+.image-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text3);font-size:24px}
+
 .word-counter{position:absolute;right:50px;top:-18px;font-size:10px;color:#555;pointer-events:none}
 .word-warn{color:#e85d3a !important}
 
@@ -170,6 +185,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 <button class="mode-btn" id="mode-images" onclick="setMode('images')"><span class="mi">🖼️</span> Images</button>
 <button class="mode-btn" id="mode-news" onclick="setMode('news')"><span class="mi">📰</span> News</button>
 <button class="mode-btn" id="mode-code" onclick="setMode('code')"><span class="mi">⚡</span> Code</button>
+<button class="mode-btn" id="mode-videos" onclick="setMode('videos')"><span class="mi">📺</span> Videos</button>
 </div>
 
 <div class="chat-container" id="chat">
@@ -177,7 +193,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
 <div class="welcome-sub" id="welcomeSub">Your AI search assistant. Ask anything.</div>
 <div class="welcome-features">
-<span class="welcome-feature"><span>5</span> Modes</span>
+<span class="welcome-feature"><span>6</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
 <span class="welcome-feature">Pure C Core</span>
 <span class="welcome-feature">No Tracking</span>
@@ -218,7 +234,7 @@ suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe 
 te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'5 Modes - Aki 6 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
-var modeNames=['ai','search','images','news','code'];
+var modeNames=['ai','search','images','news','code','videos'];
 
 inputEl.focus();
 inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
@@ -231,7 +247,7 @@ function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeh
 
 function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.ai,search:lb.search,images:lb.images,news:lb.news,code:lb.code};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
-function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.placeholder,search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...'};inputEl.placeholder=labels[m];inputEl.focus()}
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.placeholder,search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m];inputEl.focus()}
 
 function quickAsk(q){inputEl.value=q;send()}
 
@@ -249,6 +265,7 @@ else if(mode==='search'){searchWeb(q)}
 else if(mode==='images'){searchImages(q)}
 else if(mode==='news'){searchNews(q)}
 else if(mode==='code'){searchCode(q)}
+else if(mode==='videos'){searchVideos(q)}
 }
 
 function askAI(q){
@@ -305,12 +322,22 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 .catch(function(e){messages.push({role:'assistant',content:'Code search failed.',mode:'code'});renderMessages();busy=false;sendBtn.disabled=false})
 }
 
+function searchVideos(q){
+fetch('/api/videos?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:'assistant',content:'',videos:data.videos||[],mode:'videos'});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Video search failed.',mode:'videos'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
 function renderMessages(){
 var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-var modeIcon={ai:'💬',search:'🔍',images:'🖼️',news:'📰',code:'⚡'}[m.mode||'ai']||'💬';
+var modeIcon={ai:'💬',search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[m.mode||'ai']||'💬';
 html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
 html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div>';
@@ -379,6 +406,32 @@ html+='</div>'
 });
 }else{
 html+='<div class="ai-content">No code results found.</div>'
+}
+
+// Videos mode
+if(m.mode==='videos'){
+if(m.videos&&m.videos.length>0){
+html+='<div class="video-list">';
+m.videos.forEach(function(v){
+var thumb=v.thumbnail||'';
+var dur=v.duration?'<span class="vid-duration">'+esc(v.duration)+'</span>':'';
+html+='<a href="'+v.url+'" target="_blank" class="video-card">';
+html+='<div class="video-thumb">';
+if(thumb)html+='<img src="'+thumb+'" loading="lazy" alt="'+esc(v.title)+'" onerror="this.style.display=\'none\'">';
+else html+='<div class="image-placeholder">📺</div>';
+html+=dur;
+html+='</div>';
+html+='<div class="video-info"><div class="video-title">'+esc(v.title)+'</div>';
+html+='<div class="video-meta">';
+if(v.channel)html+='<span class="video-channel">'+esc(v.channel)+'</span>';
+if(v.views)html+='<span class="video-views">'+esc(v.views)+'</span>';
+if(v.published)html+='<span class="video-date">'+esc(v.published)+'</span>';
+html+='</div></div></a>'
+});
+html+='</div>';
+}else{
+html+='<div class="ai-content">No videos found. Try different keywords.</div>'
+}
 }
 }
 
