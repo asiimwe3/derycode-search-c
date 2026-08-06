@@ -19,8 +19,9 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 :root{--gold:#d4af37;--gold-dark:#b8941f;--bg:#0f0f14;--bg2:#13131a;--bg3:#1a1a24;--bg4:#22222e;--text:#e8e8e8;--text2:#c8c8c8;--text3:#888;--border:rgba(255,255,255,0.06)}
 .safe-top{padding-top:env(safe-area-inset-top,0)}
 .safe-bottom{padding-bottom:env(safe-area-inset-bottom,0)}
+
 /* Header */
-.header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;min-height:52px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;min-height:52px}
 .header-left{display:flex;align-items:center;gap:6px;cursor:pointer}
 .header-logo{font-size:17px;font-weight:800;white-space:nowrap}
 .header-logo .d{color:var(--gold)}.header-logo .a{color:var(--text)}
@@ -28,15 +29,21 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .header-right{display:flex;gap:6px;align-items:center}
 .lang-select{background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text3);font-size:12px;padding:5px 8px;border-radius:6px;cursor:pointer;outline:none}
 .lang-select:active{border-color:var(--gold)}
-.mode-btn{padding:5px 10px;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:var(--text3);font-size:12px;cursor:pointer;transition:all 0.15s}
+
+/* Mode Bar */
+.mode-bar{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);border-bottom:1px solid var(--border);scrollbar-width:none}
+.mode-bar::-webkit-scrollbar{display:none}
+.mode-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;background:var(--bg4);border:1px solid rgba(255,255,255,0.06);border-radius:20px;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0}
+.mode-btn .mi{font-size:14px}
 .mode-btn.active{background:rgba(212,175,55,0.15);color:var(--gold);border-color:rgba(212,175,55,0.3)}
 .mode-btn:active{transform:scale(0.95)}
+
 /* Chat */
 .chat-container{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;max-width:680px;width:100%;margin:0 auto;scrollbar-width:thin}
-.welcome{text-align:center;padding:48px 16px}
+.welcome{text-align:center;padding:36px 16px}
 .welcome-logo{font-size:28px;font-weight:800;margin-bottom:8px}
 .welcome-logo .d{color:var(--gold)}.welcome-logo .a{color:var(--text)}
-.welcome-sub{color:var(--text3);font-size:14px;margin-bottom:24px}
+.welcome-sub{color:var(--text3);font-size:14px;margin-bottom:20px}
 .welcome-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px}
 .welcome-feature{padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;color:var(--text3);font-size:12px}
 .welcome-feature span{color:var(--gold);font-weight:600}
@@ -45,6 +52,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .suggest-card:active{transform:scale(0.97);background:var(--bg4)}
 .suggest-card-icon{font-size:18px;margin-bottom:6px}
 .suggest-card-text{color:var(--text2);font-size:13px;line-height:1.4}
+
 /* Messages */
 .msg{margin-bottom:16px;animation:fadeIn 0.25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -66,6 +74,8 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .typing span:nth-child(2){animation-delay:0.2s}
 .typing span:nth-child(3){animation-delay:0.4s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* Web Results */
 .search-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
 .search-section-title{font-size:12px;color:#666;margin-bottom:10px}
 .result-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
@@ -76,8 +86,41 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .result-title{display:block;color:var(--gold);font-size:14px;font-weight:600;margin-bottom:3px}
 .result-title:active{text-decoration:underline}
 .result-content{color:#999;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Image Results */
+.image-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+@media(min-width:480px){.image-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:640px){.image-grid{grid-template-columns:repeat(4,1fr)}}
+.image-card{position:relative;border-radius:10px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);aspect-ratio:1;cursor:pointer}
+.image-card:active{transform:scale(0.97)}
+.image-card img{width:100%;height:100%;object-fit:cover;display:block}
+.image-card .img-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.8));padding:20px 8px 6px;font-size:10px;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.image-card .img-source{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);padding:2px 6px;border-radius:4px;font-size:9px;color:var(--gold)}
+.image-placeholder{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text3);font-size:24px}
+
+/* News Results */
+.news-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.news-card:active{border-color:rgba(212,175,55,0.2)}
+.news-source{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.news-source-name{color:var(--gold);font-size:12px;font-weight:600}
+.news-date{color:#666;font-size:11px}
+.news-title{color:var(--text);font-size:15px;font-weight:600;line-height:1.4;margin-bottom:4px}
+.news-title:active{color:var(--gold)}
+.news-desc{color:#999;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Code Results */
+.code-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.code-card:active{border-color:rgba(212,175,55,0.2)}
+.code-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.code-lang{padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(212,175,55,0.15);color:var(--gold)}
+.code-stars{color:#e8a627;font-size:11px}
+.code-title{color:var(--gold);font-size:14px;font-weight:600;margin-bottom:3px;display:block}
+.code-title:active{text-decoration:underline}
+.code-desc{color:#999;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 .word-counter{position:absolute;right:50px;top:-18px;font-size:10px;color:#555;pointer-events:none}
 .word-warn{color:#e85d3a !important}
+
 /* Input */
 .input-area{padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0));border-top:1px solid var(--border);background:var(--bg2)}
 .input-wrapper{max-width:680px;margin:0 auto;display:flex;gap:8px;align-items:center}
@@ -98,21 +141,16 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .msg-user .bubble{max-width:92%}
 .ai-avatar{width:28px;height:28px;font-size:11px}
 .ai-content{font-size:13px}
-}
-@media(min-width:381px) and (max-width:480px){
-.suggest-cards{grid-template-columns:1fr 1fr}
-}
-@media(min-width:481px){
-.suggest-cards{grid-template-columns:1fr 1fr}
-.msg-user .bubble{max-width:80%}
+.image-grid{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
 <body>
+
 <div class="header safe-top">
 <div class="header-left" onclick="location.reload()">
-<span class="header-logo"><span class="d">DeryCode</span> <span class="a">AI</span></span>
-<span class="header-badge">C</span>
+<span class="header-logo"><span class="d">Dery</span><span class="a">Code</span></span>
+<span class="header-badge">AI</span>
 </div>
 <div class="header-right">
 <select class="lang-select" id="langSelect" onchange="changeLang(this.value)">
@@ -123,49 +161,42 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 <option value="luo">Dholuo</option>
 <option value="te">Ateso</option>
 </select>
-<button class="mode-btn active" id="mode-ai" onclick="setMode('ai')">AI</button>
-<button class="mode-btn" id="mode-search" onclick="setMode('search')">Search</button>
 </div>
 </div>
+
+<div class="mode-bar" id="modeBar">
+<button class="mode-btn active" id="mode-ai" onclick="setMode('ai')"><span class="mi">💬</span> AI</button>
+<button class="mode-btn" id="mode-search" onclick="setMode('search')"><span class="mi">🔍</span> Web</button>
+<button class="mode-btn" id="mode-images" onclick="setMode('images')"><span class="mi">🖼️</span> Images</button>
+<button class="mode-btn" id="mode-news" onclick="setMode('news')"><span class="mi">📰</span> News</button>
+<button class="mode-btn" id="mode-code" onclick="setMode('code')"><span class="mi">⚡</span> Code</button>
+</div>
+
 <div class="chat-container" id="chat">
 <div class="welcome" id="welcome">
-<div class="welcome-logo"><span class="d">DeryCode</span> <span class="a">AI</span></div>
+<div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
 <div class="welcome-sub" id="welcomeSub">Your AI search assistant. Ask anything.</div>
 <div class="welcome-features">
-<div class="welcome-feature"><span>AI</span> Answers</div>
-<div class="welcome-feature"><span>C</span> Pure C</div>
-<div class="welcome-feature"><span>6</span> Languages</div>
-<div class="welcome-feature"><span>FREE</span> No ads</div>
+<span class="welcome-feature"><span>5</span> Modes</span>
+<span class="welcome-feature"><span>6</span> Languages</span>
+<span class="welcome-feature">Pure C Core</span>
+<span class="welcome-feature">No Tracking</span>
 </div>
-<div class="suggest-cards" id="suggestCards">
-<div class="suggest-card" onclick="quickAsk('What is Uganda known for?')">
-<div class="suggest-card-icon">🌍</div><div class="suggest-card-text">What is Uganda known for?</div>
-</div>
-<div class="suggest-card" onclick="quickAsk('How does mobile money work in Africa?')">
-<div class="suggest-card-icon">📱</div><div class="suggest-card-text">How does mobile money work in Africa?</div>
-</div>
-<div class="suggest-card" onclick="quickAsk('Best programming languages in 2026')">
-<div class="suggest-card-icon">💻</div><div class="suggest-card-text">Best programming languages in 2026?</div>
-</div>
-<div class="suggest-card" onclick="quickAsk('Tell me about DeryCode Tech')">
-<div class="suggest-card-icon">🔧</div><div class="suggest-card-text">Tell me about DeryCode Tech</div>
+<div class="suggest-cards" id="suggestCards"></div>
 </div>
 </div>
-</div>
-</div>
+
 <div class="input-area safe-bottom">
 <div class="input-wrapper">
 <div class="input-box">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:#888;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type="text" id="input" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="500">
-<button class="voice-btn" onclick="startVoice()" title="Voice">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-</button>
+<input type="text" id="input" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocapitalize="off" spellcheck="false">
+<button class="voice-btn" onclick="startVoice()" aria-label="Voice search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
 </div>
 <button class="send-btn" id="send" onclick="send()">Send</button>
 </div>
-<div class="input-hint" id="inputHint">DeryCode AI - Pure C - 6 languages - No tracking - Built in Uganda</div>
+<div class="input-hint" id="inputHint">DeryCode AI - Pure C - 6 languages - No tracking</div>
 </div>
+
 <script>
 var mode='ai';var messages=[];var busy=false;
 var lang='en';var maxWords=30;
@@ -174,39 +205,63 @@ var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'Your AI search assistant. Ask anything.',hint:'DeryCode AI - Pure C - 6 languages - No tracking',send:'Send',search:'Search',ai:'AI'},
-sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'DeryCode AI - C safi - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta',ai:'AI'},
-lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna.',hint:'DeryCode AI - C yonza - Enimi 6 - Tewali kwekalaba',send:'Tuma',search:'Noonya',ai:'AI'},
-rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'DeryCode AI - C rawe - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora',ai:'AI'},
-luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'DeryCode AI - C malitne - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye',ai:'AI'},
-te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'DeryCode AI - C nesi - Aki 6 - Pe itoria',send:'Rukor',search:'Loka',ai:'AI'}
+en:{placeholder:'Ask DeryCode AI anything...',sub:'Your AI search assistant. Ask anything.',hint:'5 Modes - 6 Languages - No tracking',send:'Send',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
+suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
+sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'5 Modes - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
+suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
+lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna.',hint:'5 Modes - Enimi 6 - Tewali kwekalaba',send:'Tuma',search:'Noonya ku mtandao',images:'Noonya ebiwanvu',news:'Amawulire',code:'Noonya code',ai:'AI',
+suggests:[{icon:'💼',text:'DeryCode ebalwa ki?'},{icon:'👤',text:'Asiimwe Derick ali ani?'},{icon:'💰',text:'Tovuti egula ssente mmeka?'},{icon:'🌍',text:'Gamba ku Uganda'}]},
+rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'5 Modes - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora ku mtandao',images:'Rondora ebiishushani',news:'Amakuru',code:'Rondora code',ai:'AI',
+suggests:[{icon:'💼',text:'DeryCode erimu ki?'},{icon:'👤',text:'Asiimwe Derick naiwe?'},{icon:'💰',text:'Webusaiti erimu nkaingana?'},{icon:'🌍',text:'Nkora kuganya ku Uganda'}]},
+luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'5 Modes - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
+suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe Derick en ngani?'},{icon:'💰',text:'Website ni wachne naka?'},{icon:'🌍',text:'Lok kwomi Uganda'}]},
+te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'5 Modes - Aki 6 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
+suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
+var modeNames=['ai','search','images','news','code'];
+
 inputEl.focus();
 inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
 inputEl.addEventListener('input',checkWordCount);
-function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;inputEl.focus()}
-function setMode(m){mode=m;document.getElementById('mode-ai').className='mode-btn'+(m==='ai'?' active':'');document.getElementById('mode-search').className='mode-btn'+(m==='search'?' active':'');var lb=langLabels[lang]||langLabels.en;inputEl.placeholder=mode==='ai'?lb.placeholder:lb.search+'...'}
+renderSuggests();
+
+function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
+
+function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
+
+function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.ai,search:lb.search,images:lb.images,news:lb.news,code:lb.code};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
+
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.placeholder,search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...'};inputEl.placeholder=labels[m];inputEl.focus()}
+
 function quickAsk(q){inputEl.value=q;send()}
-function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){var lb=langLabels[lang]||langLabels.en;inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
+
+function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
+
 function send(){
 if(busy)return;var q=inputEl.value.trim();if(!q)return;
 var w=q.split(/\s+/).filter(function(x){return x.length>0}).length;
-if(w>maxWords){var lb=langLabels[lang]||langLabels.en;alert('Maximum '+maxWords+' words. You used '+w+'.');return}
+if(w>maxWords){alert('Maximum '+maxWords+' words. You used '+w+'.');return}
 busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';
-messages.push({role:'user',content:q});
+messages.push({role:'user',content:q,mode:mode});
 renderMessages();inputEl.value='';showTyping();
-if(mode==='ai'){askAI(q)}else{searchWeb(q)}
+if(mode==='ai'){askAI(q)}
+else if(mode==='search'){searchWeb(q)}
+else if(mode==='images'){searchImages(q)}
+else if(mode==='news'){searchNews(q)}
+else if(mode==='code'){searchCode(q)}
 }
+
 function askAI(q){
 fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:messages.slice(0,-1),lang:lang})})
 .then(function(r){return r.json()})
 .then(function(data){
-if(data.error){messages.push({role:'assistant',content:data.error})}else{
-messages.push({role:'assistant',content:data.answer,sources:data.sources,followups:data.followups,results:data.results})}
+if(data.error){messages.push({role:'assistant',content:data.error,mode:'ai'})}else{
+messages.push({role:'assistant',content:data.answer,sources:data.sources,followups:data.followups,results:data.results,mode:'ai'})}
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
-.catch(function(e){messages.push({role:'assistant',content:'Error. Please try again.'});renderMessages();busy=false;sendBtn.disabled=false})
+.catch(function(e){messages.push({role:'assistant',content:'Error. Please try again.',mode:'ai'});renderMessages();busy=false;sendBtn.disabled=false})
 }
+
 function searchWeb(q){
 fetch('/api/search?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
@@ -214,47 +269,131 @@ fetch('/api/search?q='+encodeURIComponent(q))
 var answer=data.knowledgePanel?data.knowledgePanel.extract:'';
 if(data.aiSummary)answer=data.aiSummary;
 if(!answer&&data.results&&data.results.length>0)answer=data.results[0].content;
-messages.push({role:'assistant',content:answer||'No results found.',sources:(data.results||[]).slice(0,5).map(function(r){return{title:r.title,url:r.url}}),results:data.results||[]});
+messages.push({role:'assistant',content:answer||'No results found.',sources:(data.results||[]).slice(0,5).map(function(r){return{title:r.title,url:r.url}}),results:data.results||[],mode:'search'});
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
-.catch(function(e){messages.push({role:'assistant',content:'Search failed.'});renderMessages();busy=false;sendBtn.disabled=false})
+.catch(function(e){messages.push({role:'assistant',content:'Search failed.',mode:'search'});renderMessages();busy=false;sendBtn.disabled=false})
 }
+
+function searchImages(q){
+fetch('/api/images?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:'assistant',content:'',images:data.images||[],mode:'images'});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Image search failed.',mode:'images'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
+function searchNews(q){
+fetch('/api/news?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:'assistant',content:'',articles:data.articles||[],mode:'news'});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'News search failed.',mode:'news'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
+function searchCode(q){
+fetch('/api/code?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:'assistant',content:'',codeResults:data.results||[],mode:'code'});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Code search failed.',mode:'code'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
 function renderMessages(){
 var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-html+='<div class="msg msg-user"><div class="bubble">'+esc(m.content)+'</div></div>'
+var modeIcon={ai:'💬',search:'🔍',images:'🖼️',news:'📰',code:'⚡'}[m.mode||'ai']||'💬';
+html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
 html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div>';
-html+='<div class="ai-content">'+esc(m.content)+'</div>';
-if(m.sources&&m.sources.length>0){
-html+='<div class="ai-sources">';
-m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});
-html+='</div>'
+
+// AI mode
+if(m.mode==='ai'||!m.mode){
+if(m.content)html+='<div class="ai-content">'+esc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});html+='</div>'}
+if(m.followups&&m.followups.length>0){html+='<div class="ai-followups">';m.followups.forEach(function(f){html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,4).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,120))+'</p>';html+='</div>'});html+='</div>'}
 }
-if(m.followups&&m.followups.length>0){
-html+='<div class="ai-followups">';
-m.followups.forEach(function(f){html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>'});
-html+='</div>'
+
+// Web search mode
+if(m.mode==='search'){
+if(m.content)html+='<div class="ai-content">'+esc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,6).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
 }
-if(m.results&&m.results.length>0){
-html+='<div class="search-section"><div class="search-section-title">Web results</div>';
-m.results.slice(0,4).forEach(function(r){
+
+// Images mode
+if(m.mode==='images'){
+if(m.images&&m.images.length>0){
+html+='<div class="image-grid">';
+m.images.forEach(function(img){
+html+='<a href="'+(img.image||img.url||img.thumbnail)+'" target="_blank" class="image-card">';
+if(img.thumbnail)html+='<img src="'+img.thumbnail+'" loading="lazy" alt="'+esc(img.title||'')+'" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.image-placeholder\').style.display=\'flex\'"><div class="image-placeholder" style="display:none">🖼️</div>';
+else html+='<div class="image-placeholder">🖼️</div>';
+if(img.source)html+='<div class="img-source">'+esc(img.source)+'</div>';
+html+='<div class="img-overlay">'+esc((img.title||'').substring(0,40))+'</div></a>'
+});
+html+='</div>';
+var lb=langLabels[lang]||langLabels.en;
+html+='<div class="ai-followups" style="margin-top:10px"><button class="ai-followup" onclick="quickAsk(\''+esc(m.content||messages[messages.length-2]?.content||'')+'\')">🔄 '+lb.search+'</button></div>';
+}else{
+html+='<div class="ai-content">No images found. Try different keywords.</div>'
+}
+}
+
+// News mode
+if(m.mode==='news'){
+if(m.articles&&m.articles.length>0){
+m.articles.forEach(function(a){
+html+='<div class="news-card"><div class="news-source"><span class="news-source-name">'+esc(a.source||'News')+'</span>';
+if(a.date)html+='<span class="news-date">'+esc(formatDate(a.date))+'</span>';
+html+='</div><a href="'+a.url+'" target="_blank" class="news-title">'+esc(a.title)+'</a>';
+if(a.content)html+='<p class="news-desc">'+esc(a.content)+'</p>';
+html+='</div>'
+});
+}else{
+html+='<div class="ai-content">No news found. Try different keywords.</div>'
+}
+}
+
+// Code mode
+if(m.mode==='code'){
+if(m.codeResults&&m.codeResults.length>0){
+m.codeResults.forEach(function(r){
 var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';
 var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;
-html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';
-if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,120))+'</p>';
-html+='</div>'});
-html+='</div>'}
+html+='<div class="code-card"><div class="code-header"><span class="engine-badge" style="background:'+c+'">'+l+'</span>';
+if(r.language)html+='<span class="code-lang">'+esc(r.language)+'</span>';
+if(r.stars)html+='<span class="code-stars">⭐ '+r.stars+'</span>';
+html+='</div><a href="'+r.url+'" target="_blank" class="code-title">'+esc(r.title)+'</a>';
+if(r.content)html+='<p class="code-desc">'+esc(r.content)+'</p>';
+html+='</div>'
+});
+}else{
+html+='<div class="ai-content">No code results found.</div>'
+}
+}
+
 html+='</div></div>'}}
 chatEl.innerHTML=html;
 requestAnimationFrame(function(){chatEl.scrollTop=chatEl.scrollHeight})
 }
+
 function showTyping(){var t=document.createElement('div');t.className='msg msg-ai';t.id='typing';t.innerHTML='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div><div class="typing"><span></span><span></span><span></span></div></div>';chatEl.appendChild(t);chatEl.scrollTop=chatEl.scrollHeight;setTimeout(function(){var tp=document.getElementById('typing');if(tp)tp.remove()},80)}
+
 function startVoice(){try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported');return}var rec=new SR();rec.lang=lang==='sw'?'sw-KE':lang==='lg'?'lg-UG':'en-US';rec.continuous=false;rec.interimResults=false;rec.onresult=function(e){inputEl.value=e.results[0][0].transcript;send()};rec.start()}catch(e){}}
+
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
+function formatDate(d){try{var dt=new Date(d);return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}catch(e){return d}}
 </script>
 </body>
 </html>
