@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>DeryCode AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{background:#0f0f14;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;-webkit-appearance:none;appearance:none}
+input{font-family:inherit;-webkit-appearance:none;appearance:none}
+:root{--gold:#d4af37;--gold-dark:#b8941f;--bg:#0f0f14;--bg2:#13131a;--bg3:#1a1a24;--bg4:#22222e;--text:#e8e8e8;--text2:#c8c8c8;--text3:#888;--border:rgba(255,255,255,0.06)}
+.safe-top{padding-top:env(safe-area-inset-top,0)}
+.safe-bottom{padding-bottom:env(safe-area-inset-bottom,0)}
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;min-height:52px}
+.header-left{display:flex;align-items:center;gap:6px;cursor:pointer}
+.header-logo{font-size:17px;font-weight:800;white-space:nowrap}
+.header-logo .d{color:var(--gold)}.header-logo .a{color:var(--text)}
+.header-badge{font-size:9px;font-weight:700;padding:2px 6px;background:rgba(212,175,55,0.15);color:var(--gold);border-radius:3px}
+.header-right{display:flex;gap:6px;align-items:center}
+.lang-select{background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text3);font-size:12px;padding:5px 8px;border-radius:6px;cursor:pointer;outline:none}
+.lang-select:active{border-color:var(--gold)}
+.mode-btn{padding:5px 10px;background:var(--bg4);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:var(--text3);font-size:12px;cursor:pointer;transition:all 0.15s}
+.mode-btn.active{background:rgba(212,175,55,0.15);color:var(--gold);border-color:rgba(212,175,55,0.3)}
+.mode-btn:active{transform:scale(0.95)}
+/* Chat */
+.chat-container{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;max-width:680px;width:100%;margin:0 auto;scrollbar-width:thin}
+.welcome{text-align:center;padding:48px 16px}
+.welcome-logo{font-size:28px;font-weight:800;margin-bottom:8px}
+.welcome-logo .d{color:var(--gold)}.welcome-logo .a{color:var(--text)}
+.welcome-sub{color:var(--text3);font-size:14px;margin-bottom:24px}
+.welcome-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px}
+.welcome-feature{padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;color:var(--text3);font-size:12px}
+.welcome-feature span{color:var(--gold);font-weight:600}
+.suggest-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;max-width:520px;margin:0 auto}
+.suggest-card{padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all 0.15s;text-align:left}
+.suggest-card:active{transform:scale(0.97);background:var(--bg4)}
+.suggest-card-icon{font-size:18px;margin-bottom:6px}
+.suggest-card-text{color:var(--text2);font-size:13px;line-height:1.4}
+/* Messages */
+.msg{margin-bottom:16px;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.2);border-radius:14px 14px 4px 14px;padding:12px 16px;max-width:85%;color:var(--text);font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word}
+.msg-ai{display:flex;gap:10px;align-items:flex-start}
+.ai-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-dark));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--bg);flex-shrink:0}
+.ai-bubble{flex:1;min-width:0}
+.ai-name{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px}
+.ai-content{color:#d0d0d0;font-size:14px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word}
+.ai-sources{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+.ai-source{padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ai-source:active{background:var(--bg4);color:var(--gold)}
+.ai-followups{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.ai-followup{padding:8px 12px;background:var(--bg3);border:1px solid rgba(212,175,55,0.12);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;transition:all 0.15s;text-align:left}
+.ai-followup:active{background:var(--bg4);color:var(--gold);transform:scale(0.98)}
+.typing{display:inline-flex;gap:4px;padding:6px 0}
+.typing span{width:7px;height:7px;background:var(--gold);border-radius:50%;animation:bounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:0.2s}
+.typing span:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-6px);opacity:1}}
+.search-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+.search-section-title{font-size:12px;color:#666;margin-bottom:10px}
+.result-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.result-card:active{border-color:rgba(212,175,55,0.2)}
+.result-meta{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.engine-badge{padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;color:#fff;text-transform:uppercase}
+.result-url{color:#666;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.result-title{display:block;color:var(--gold);font-size:14px;font-weight:600;margin-bottom:3px}
+.result-title:active{text-decoration:underline}
+.result-content{color:#999;font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.word-counter{position:absolute;right:50px;top:-18px;font-size:10px;color:#555;pointer-events:none}
+.word-warn{color:#e85d3a !important}
+/* Input */
+.input-area{padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0));border-top:1px solid var(--border);background:var(--bg2)}
+.input-wrapper{max-width:680px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.input-box{flex:1;display:flex;align-items:center;background:var(--bg4);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:8px 12px;gap:6px;transition:border-color 0.15s;position:relative}
+.input-box:focus-within{border-color:rgba(212,175,55,0.5)}
+.input-box input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:16px;min-width:0}
+.input-box input::placeholder{color:#555560}
+.voice-btn{background:transparent;border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:5px;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.voice-btn:active{background:rgba(212,175,55,0.1)}
+.send-btn{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);border:none;padding:9px 16px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;transition:opacity 0.15s}
+.send-btn:active{opacity:0.8}
+.send-btn:disabled{opacity:0.4}
+.input-hint{text-align:center;color:#555;font-size:10px;margin-top:6px}
+@media(max-width:380px){
+.header-logo{font-size:15px}
+.header-badge{display:none}
+.suggest-cards{grid-template-columns:1fr}
+.msg-user .bubble{max-width:92%}
+.ai-avatar{width:28px;height:28px;font-size:11px}
+.ai-content{font-size:13px}
+}
+@media(min-width:381px) and (max-width:480px){
+.suggest-cards{grid-template-columns:1fr 1fr}
+}
+@media(min-width:481px){
+.suggest-cards{grid-template-columns:1fr 1fr}
+.msg-user .bubble{max-width:80%}
+}
+</style>
+</head>
+<body>
+<div class="header safe-top">
+<div class="header-left" onclick="location.reload()">
+<span class="header-logo"><span class="d">DeryCode</span> <span class="a">AI</span></span>
+<span class="header-badge">C</span>
+</div>
+<div class="header-right">
+<select class="lang-select" id="langSelect" onchange="changeLang(this.value)">
+<option value="en">English</option>
+<option value="sw">Kiswahili</option>
+<option value="lg">Luganda</option>
+<option value="rn">Runyoro</option>
+<option value="luo">Dholuo</option>
+<option value="te">Ateso</option>
+</select>
+<button class="mode-btn active" id="mode-ai" onclick="setMode('ai')">AI</button>
+<button class="mode-btn" id="mode-search" onclick="setMode('search')">Search</button>
+</div>
+</div>
+<div class="chat-container" id="chat">
+<div class="welcome" id="welcome">
+<div class="welcome-logo"><span class="d">DeryCode</span> <span class="a">AI</span></div>
+<div class="welcome-sub" id="welcomeSub">Your AI search assistant. Ask anything.</div>
+<div class="welcome-features">
+<div class="welcome-feature"><span>AI</span> Answers</div>
+<div class="welcome-feature"><span>C</span> Pure C</div>
+<div class="welcome-feature"><span>6</span> Languages</div>
+<div class="welcome-feature"><span>FREE</span> No ads</div>
+</div>
+<div class="suggest-cards" id="suggestCards">
+<div class="suggest-card" onclick="quickAsk('What is Uganda known for?')">
+<div class="suggest-card-icon">🌍</div><div class="suggest-card-text">What is Uganda known for?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('How does mobile money work in Africa?')">
+<div class="suggest-card-icon">📱</div><div class="suggest-card-text">How does mobile money work in Africa?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('Best programming languages in 2026')">
+<div class="suggest-card-icon">💻</div><div class="suggest-card-text">Best programming languages in 2026?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('Tell me about DeryCode Tech')">
+<div class="suggest-card-icon">🔧</div><div class="suggest-card-text">Tell me about DeryCode Tech</div>
+</div>
+</div>
+</div>
+</div>
+<div class="input-area safe-bottom">
+<div class="input-wrapper">
+<div class="input-box">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:#888;flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type="text" id="input" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="500">
+<button class="voice-btn" onclick="startVoice()" title="Voice">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+</button>
+</div>
+<button class="send-btn" id="send" onclick="send()">Send</button>
+</div>
+<div class="input-hint" id="inputHint">DeryCode AI - Pure C - 6 languages - No tracking - Built in Uganda</div>
+</div>
+<script>
+var mode='ai';var messages=[];var busy=false;
+var lang='en';var maxWords=30;
+var inputEl=document.getElementById('input');
+var sendBtn=document.getElementById('send');
+var chatEl=document.getElementById('chat');
+var welcomeEl=document.getElementById('welcome');
+var langLabels={
+en:{placeholder:'Ask DeryCode AI anything...',sub:'Your AI search assistant. Ask anything.',hint:'DeryCode AI - Pure C - 6 languages - No tracking',send:'Send',search:'Search',ai:'AI'},
+sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'DeryCode AI - C safi - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta',ai:'AI'},
+lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna.',hint:'DeryCode AI - C yonza - Enimi 6 - Tewali kwekalaba',send:'Tuma',search:'Noonya',ai:'AI'},
+rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'DeryCode AI - C rawe - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora',ai:'AI'},
+luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'DeryCode AI - C malitne - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye',ai:'AI'},
+te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'DeryCode AI - C nesi - Aki 6 - Pe itoria',send:'Rukor',search:'Loka',ai:'AI'}
+};
+inputEl.focus();
+inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
+inputEl.addEventListener('input',checkWordCount);
+function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;inputEl.focus()}
+function setMode(m){mode=m;document.getElementById('mode-ai').className='mode-btn'+(m==='ai'?' active':'');document.getElementById('mode-search').className='mode-btn'+(m==='search'?' active':'');var lb=langLabels[lang]||langLabels.en;inputEl.placeholder=mode==='ai'?lb.placeholder:lb.search+'...'}
+function quickAsk(q){inputEl.value=q;send()}
+function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){var lb=langLabels[lang]||langLabels.en;inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
+function send(){
+if(busy)return;var q=inputEl.value.trim();if(!q)return;
+var w=q.split(/\s+/).filter(function(x){return x.length>0}).length;
+if(w>maxWords){var lb=langLabels[lang]||langLabels.en;alert('Maximum '+maxWords+' words. You used '+w+'.');return}
+busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';
+messages.push({role:'user',content:q});
+renderMessages();inputEl.value='';showTyping();
+if(mode==='ai'){askAI(q)}else{searchWeb(q)}
+}
+function askAI(q){
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:messages.slice(0,-1),lang:lang})})
+.then(function(r){return r.json()})
+.then(function(data){
+if(data.error){messages.push({role:'assistant',content:data.error})}else{
+messages.push({role:'assistant',content:data.answer,sources:data.sources,followups:data.followups,results:data.results})}
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Error. Please try again.'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+function searchWeb(q){
+fetch('/api/search?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+var answer=data.knowledgePanel?data.knowledgePanel.extract:'';
+if(data.aiSummary)answer=data.aiSummary;
+if(!answer&&data.results&&data.results.length>0)answer=data.results[0].content;
+messages.push({role:'assistant',content:answer||'No results found.',sources:(data.results||[]).slice(0,5).map(function(r){return{title:r.title,url:r.url}}),results:data.results||[]});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Search failed.'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+function renderMessages(){
+var html='';
+for(var i=0;i<messages.length;i++){
+var m=messages[i];
+if(m.role==='user'){
+html+='<div class="msg msg-user"><div class="bubble">'+esc(m.content)+'</div></div>'
+}else{
+html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div>';
+html+='<div class="ai-content">'+esc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){
+html+='<div class="ai-sources">';
+m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});
+html+='</div>'
+}
+if(m.followups&&m.followups.length>0){
+html+='<div class="ai-followups">';
+m.followups.forEach(function(f){html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>'});
+html+='</div>'
+}
+if(m.results&&m.results.length>0){
+html+='<div class="search-section"><div class="search-section-title">Web results</div>';
+m.results.slice(0,4).forEach(function(r){
+var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';
+var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;
+html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';
+if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,120))+'</p>';
+html+='</div>'});
+html+='</div>'}
+html+='</div></div>'}}
+chatEl.innerHTML=html;
+requestAnimationFrame(function(){chatEl.scrollTop=chatEl.scrollHeight})
+}
+function showTyping(){var t=document.createElement('div');t.className='msg msg-ai';t.id='typing';t.innerHTML='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div><div class="typing"><span></span><span></span><span></span></div></div>';chatEl.appendChild(t);chatEl.scrollTop=chatEl.scrollHeight;setTimeout(function(){var tp=document.getElementById('typing');if(tp)tp.remove()},80)}
+function startVoice(){try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported');return}var rec=new SR();rec.lang=lang==='sw'?'sw-KE':lang==='lg'?'lg-UG':'en-US';rec.continuous=false;rec.interimResults=false;rec.onresult=function(e){inputEl.value=e.results[0][0].transcript;send()};rec.start()}catch(e){}}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
+</script>
+</body>
+</html>
