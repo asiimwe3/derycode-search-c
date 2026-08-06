@@ -19,6 +19,7 @@
 #include "json.h"
 #include "search.h"
 #include "languages.h"
+#include "knowledge.h"
 
 #define PORT 8080
 #define MAX_REQUEST 65536

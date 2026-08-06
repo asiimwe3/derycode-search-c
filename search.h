@@ -432,6 +432,8 @@ typedef struct {
     int source_count;
 } AiResponse;
 
+#include "knowledge.h"
+
 /* Extract the most relevant sentences from text */
 static void extract_key_sentences(const char *text, char *output, int max_len) {
     if (!text || !*text) { output[0] = 0; return; }
@@ -472,6 +474,28 @@ static void extract_key_sentences(const char *text, char *output, int max_len) {
 /* Generate AI-style answer from search results */
 static AiResponse *generate_ai_answer(const char *question, SearchResponse *search, AiMessage *history, int history_count) {
     AiResponse *resp = calloc(1, sizeof(AiResponse));
+    
+    /* Check DeryCode knowledge base first */
+    if (is_derycode_query(question)) {
+        const char *knowledge = get_derycode_knowledge(question);
+        if (knowledge) {
+            char truncated[4096];
+            truncate_words(knowledge, truncated, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
+            strncpy(resp->answer, truncated, 4095);
+            resp->has_answer = 1;
+            
+            /* Add DeryCode sources */
+            add_derycode_sources(resp);
+            
+            /* Generate follow-ups */
+            snprintf(resp->followups[0], 255, "What services does DeryCode offer?");
+            snprintf(resp->followups[1], 255, "How much does a website cost at DeryCode?");
+            snprintf(resp->followups[2], 255, "How can I contact DeryCode?");
+            
+            printf("[AI] Answered from DeryCode knowledge base\n");
+            return resp;
+        }
+    }
     
     char answer[4096] = "";
     int pos = 0;

@@ -1,6 +1,8 @@
 // DeryCode AI API - Vercel Serverless
 // Gemini-style AI chat with conversation support
 
+import { isDeryCodeQuery, getDeryCodeKnowledge } from './derycode-knowledge.js';
+
 const MAX_QUERY_WORDS = 30;
 const MAX_ANSWER_WORDS = 200;
 const MAX_ANSWER_CHARS = 1200;
@@ -23,6 +25,21 @@ export default async function handler(req, res) {
       error: `Query too long. Maximum ${MAX_QUERY_WORDS} words. You used ${words}.`,
       max_words: MAX_QUERY_WORDS,
       used_words: words
+    });
+  }
+  
+  // Check DeryCode knowledge base first
+  if (isDeryCodeQuery(question)) {
+    const kb = getDeryCodeKnowledge(question);
+    const truncated = truncateWords(kb.answer, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
+    return res.status(200).json({
+      question,
+      answer: truncated,
+      sources: kb.sources,
+      followups: kb.followups,
+      results: [],
+      model: 'DeryCode-AI-KnowledgeBase-v1',
+      lang
     });
   }
   
