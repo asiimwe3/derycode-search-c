@@ -1,6 +1,6 @@
 /*
  * DeryCode Search - C HTTP Server with AI
- * A premium search engine with Gemini-style AI answers
+ * Multi-language, mobile-optimized, word-limited
  * Built in pure C by DeryCode Tech, Uganda
  */
 
@@ -18,6 +18,7 @@
 
 #include "json.h"
 #include "search.h"
+#include "languages.h"
 
 #define PORT 8080
 #define MAX_REQUEST 65536
@@ -32,8 +33,6 @@ void handle_signal(int sig) {
     printf("\nShutting down DeryCode Search...\n");
     exit(0);
 }
-
-/* json_escape is defined in search.h */
 
 /* URL-encode */
 static char *url_encode_local(const char *str) {
@@ -101,14 +100,12 @@ static char *get_param(const char *path, const char *param) {
 
 /* Parse JSON body from POST request */
 static char *get_json_body(const char *request, int total_len) {
-    /* Find body after \r\n\r\n */
+    (void)total_len;
     const char *body_start = strstr(request, "\r\n\r\n");
     if (!body_start) return NULL;
     body_start += 4;
     
-    /* Find Content-Length */
     const char *cl = strcasestr(request, "Content-Length:");
-    if (!cl) cl = strcasestr(request, "content-length:");
     if (!cl) return strdup(body_start);
     
     int content_length = atoi(cl + 15);
@@ -125,8 +122,10 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
     char *json = malloc(MAX_RESPONSE);
     int offset = 0;
     
+    char q_esc[1024];
+    json_escape(q_esc, query, 1024);
     offset += sprintf(json + offset, "{\"query\":\"%s\",\"count\":%d,\"time\":\"%.2f\"", 
-                      query, resp->result_count, resp->elapsed);
+                      q_esc, resp->result_count, resp->elapsed);
     
     if (resp->kp.has_data) {
         char title[512], extract[4096], thumb[1024], url[1024];
@@ -186,6 +185,10 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
         encoded, encoded, encoded, encoded);
     free(encoded);
     
+    /* Add word limit info */
+    offset += sprintf(json + offset, ",\"limits\":{\"maxQueryWords\":%d,\"maxAnswerWords\":%d}", 
+                      MAX_QUERY_WORDS, MAX_ANSWER_WORDS);
+    
     offset += sprintf(json + offset, "}");
     return json;
 }
@@ -239,7 +242,19 @@ static void serve_search(int client_fd, const char *path) {
         return;
     }
     
-    printf("[SEARCH] %s\n", query);
+    /* Check word limit */
+    int words = count_words(query);
+    if (words > MAX_QUERY_WORDS) {
+        char err[256];
+        snprintf(err, sizeof(err), 
+            "{\"error\":\"Query too long. Maximum %d words. You used %d.\",\"max_words\":%d,\"used_words\":%d}",
+            MAX_QUERY_WORDS, words, MAX_QUERY_WORDS, words);
+        send_json(client_fd, err, 400);
+        free(query);
+        return;
+    }
+    
+    printf("[SEARCH] %s (%d words)\n", query, words);
     
     SearchResponse *resp = perform_search(query);
     char *json = build_search_json(resp, query);
@@ -250,15 +265,14 @@ static void serve_search(int client_fd, const char *path) {
     free(query);
 }
 
-/* Serve AI API (Gemini-style chat) */
+/* Serve AI API (Gemini-style chat with language support) */
 static void serve_ai(int client_fd, const char *request, int total_len, const char *path) {
     char *query = NULL;
     AiMessage history[20];
     int history_count = 0;
+    char lang_code[8] = "en";
     
-    /* Check if it's a GET request (simple) or POST (with conversation) */
     if (strncmp(request, "POST", 4) == 0) {
-        /* Parse JSON body for question and history */
         char *body = get_json_body(request, total_len);
         if (body) {
             JsonValue *json = json_parse(body);
@@ -268,7 +282,9 @@ static void serve_ai(int client_fd, const char *request, int total_len, const ch
                 const char *q = json_get_string(json, "question");
                 if (q) query = strdup(q);
                 
-                /* Parse history */
+                const char *lang = json_get_string(json, "lang");
+                if (lang) strncpy(lang_code, lang, 7);
+                
                 JsonValue *hist = json_get_array(json, "history");
                 if (hist && hist->type == JSON_ARR) {
                     int len = json_array_len(hist);
@@ -290,8 +306,9 @@ static void serve_ai(int client_fd, const char *request, int total_len, const ch
             }
         }
     } else {
-        /* GET request - simple question from query param */
         query = get_param(path, "q");
+        char *lp = get_param(path, "lang");
+        if (lp) { strncpy(lang_code, lp, 7); free(lp); }
     }
     
     if (!query || strlen(query) == 0) {
@@ -300,7 +317,20 @@ static void serve_ai(int client_fd, const char *request, int total_len, const ch
         return;
     }
     
-    printf("[AI] %s (history: %d messages)\n", query, history_count);
+    /* Check word limit */
+    int words = count_words(query);
+    if (words > MAX_QUERY_WORDS) {
+        char err[256];
+        snprintf(err, sizeof(err), 
+            "{\"error\":\"Query too long. Maximum %d words. You used %d.\",\"max_words\":%d,\"used_words\":%d}",
+            MAX_QUERY_WORDS, words, MAX_QUERY_WORDS, words);
+        send_json(client_fd, err, 400);
+        free(query);
+        return;
+    }
+    
+    const Language *lang = get_language(lang_code);
+    printf("[AI] %s (lang: %s, words: %d, history: %d)\n", query, lang_code, words, history_count);
     
     /* Perform search to get context */
     SearchResponse *search = perform_search(query);
@@ -325,6 +355,13 @@ static void serve_suggest(int client_fd, const char *path) {
     if (!query || strlen(query) < 2) {
         send_json(client_fd, "[]", 200);
         if (query) free(query);
+        return;
+    }
+    
+    /* Enforce word limit */
+    if (count_words(query) > MAX_QUERY_WORDS) {
+        send_json(client_fd, "[]", 200);
+        free(query);
         return;
     }
     
@@ -376,6 +413,22 @@ static void serve_suggest(int client_fd, const char *path) {
     free(query);
 }
 
+/* Serve languages list */
+static void serve_languages(int client_fd) {
+    char *json = malloc(8192);
+    int off = 0;
+    off += sprintf(json + off, "[");
+    for (int i = 0; i < LANGUAGE_COUNT; i++) {
+        if (i > 0) off += sprintf(json + off, ",");
+        off += sprintf(json + off, 
+            "{\"code\":\"%s\",\"name\":\"%s\",\"native\":\"%s\"}",
+            languages[i].code, languages[i].name, languages[i].native);
+    }
+    off += sprintf(json + off, "]");
+    send_json(client_fd, json, 200);
+    free(json);
+}
+
 /* Handle a single HTTP request */
 static void handle_request(int client_fd) {
     char request[MAX_REQUEST];
@@ -383,7 +436,6 @@ static void handle_request(int client_fd) {
     if (bytes <= 0) { close(client_fd); return; }
     request[bytes] = 0;
     
-    /* Parse method and path */
     char method[8], path[2048];
     sscanf(request, "%s %s", method, path);
     
@@ -393,10 +445,12 @@ static void handle_request(int client_fd) {
         serve_search(client_fd, path);
     } else if (strncmp(path, "/api/suggest", 12) == 0) {
         serve_suggest(client_fd, path);
+    } else if (strncmp(path, "/api/languages", 14) == 0) {
+        serve_languages(client_fd);
     } else if (strcmp(path, "/") == 0 || strcmp(path, "/index.html") == 0) {
         serve_html(client_fd);
     } else if (strcmp(path, "/health") == 0) {
-        send_json(client_fd, "{\"status\":\"healthy\",\"lang\":\"c\",\"ai\":true}", 200);
+        send_json(client_fd, "{\"status\":\"healthy\",\"lang\":\"c\",\"ai\":true,\"languages\":6}", 200);
     } else {
         const char *err = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         write(client_fd, err, strlen(err));
@@ -432,8 +486,8 @@ int main(int argc, char *argv[]) {
     
     printf("DeryCode Search - C Edition with AI\n");
     printf("Listening on port %d\n", port);
-    printf("AI chat endpoint: /api/ai\n");
-    printf("Premium search engine for Africa\n");
+    printf("AI chat: /api/ai | Search: /api/search | Languages: /api/languages\n");
+    printf("6 African languages | Word limit: %d query, %d answer\n", MAX_QUERY_WORDS, MAX_ANSWER_WORDS);
     printf("Built with pure C - no frameworks, no dependencies\n\n");
     fflush(stdout);
     

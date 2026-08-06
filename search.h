@@ -1,3 +1,4 @@
+#include "languages.h"
 /* Search aggregation module for DeryCode Search */
 #ifndef DC_SEARCH_H
 #define DC_SEARCH_H
@@ -612,7 +613,10 @@ static AiResponse *generate_ai_answer(const char *question, SearchResponse *sear
         cleaned[ci++] = answer[i];
     }
     cleaned[ci] = 0;
-    strncpy(resp->answer, cleaned, 4095);
+    /* Enforce word/char limit on AI answer */
+    char truncated[4096];
+    truncate_words(cleaned, truncated, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
+    strncpy(resp->answer, truncated, 4095);
     resp->has_answer = 1;
     
     /* Generate smart follow-up suggestions */
