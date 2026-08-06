@@ -8,7 +8,26 @@
 typedef struct {
     char *data;
     size_t size;
+
 } HttpResponse;
+
+#define MAX_RESPONSE 1048576  /* 1MB */
+
+/* HTML-escape a string for JSON output */
+static void json_escape(char *out, const char *in, int max) {
+    int j = 0;
+    for (int i = 0; in[i] && j < max - 6; i++) {
+        if (in[i] == '"') { out[j++] = '\\'; out[j++] = '"'; }
+        else if (in[i] == '\\') { out[j++] = '\\'; out[j++] = '\\'; }
+        else if (in[i] == '\n') { out[j++] = '\\'; out[j++] = 'n'; }
+        else if (in[i] == '\r') { out[j++] = '\\'; out[j++] = 'r'; }
+        else if (in[i] == '\t') { out[j++] = '\\'; out[j++] = 't'; }
+        else if ((unsigned char)in[i] < 0x20) { continue; }
+        else out[j++] = in[i];
+    }
+    out[j] = 0;
+}
+
 
 /* Fetch a URL using curl binary via popen */
 static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
@@ -392,3 +411,311 @@ static SearchResponse *perform_search(const char *query) {
 }
 
 #endif
+
+/* ============ AI ANSWER SYNTHESIS (Gemini-style) ============ */
+
+/* AI conversation message */
+typedef struct {
+    char role[16];    /* "user" or "assistant" */
+    char content[2048];
+} AiMessage;
+
+/* AI response */
+typedef struct {
+    char answer[4096];
+    char followups[3][256];
+    int has_answer;
+    /* Source citations */
+    char source_titles[5][512];
+    char source_urls[5][1024];
+    int source_count;
+} AiResponse;
+
+/* Extract the most relevant sentences from text */
+static void extract_key_sentences(const char *text, char *output, int max_len) {
+    if (!text || !*text) { output[0] = 0; return; }
+    
+    /* Split into sentences */
+    const char *start = text;
+    int out_pos = 0;
+    int sentences_added = 0;
+    int max_sentences = 4;
+    
+    while (*start && out_pos < max_len - 1 && sentences_added < max_sentences) {
+        /* Find end of sentence */
+        const char *end = start;
+        while (*end && *end != '.' && *end != '!' && *end != '?') end++;
+        if (*end) end++; /* include the punctuation */
+        
+        int len = end - start;
+        if (len > 30 && len < 500) {
+            /* This looks like a real sentence */
+            if (out_pos > 0 && out_pos < max_len - 2) {
+                output[out_pos++] = ' ';
+            }
+            int copy_len = len;
+            if (out_pos + copy_len >= max_len - 1) {
+                copy_len = max_len - 1 - out_pos;
+            }
+            memcpy(output + out_pos, start, copy_len);
+            out_pos += copy_len;
+            sentences_added++;
+        }
+        
+        start = end;
+        while (*start == ' ' || *start == '\n' || *start == '\t') start++;
+    }
+    output[out_pos] = 0;
+}
+
+/* Generate AI-style answer from search results */
+static AiResponse *generate_ai_answer(const char *question, SearchResponse *search, AiMessage *history, int history_count) {
+    AiResponse *resp = calloc(1, sizeof(AiResponse));
+    
+    char answer[4096] = "";
+    int pos = 0;
+    
+    /* If we have conversation history, build a better search query */
+    char effective_query[1024];
+    strncpy(effective_query, question, 1023);
+    
+    if (history_count > 0) {
+        /* Find the main topic from previous conversation */
+        char main_topic[256] = "";
+        for (int i = history_count - 1; i >= 0; i--) {
+            if (strcmp(history[i].role, "user") == 0) {
+                /* Extract key noun from first user message */
+                if (i == 0 || strlen(main_topic) == 0) {
+                    strncpy(main_topic, history[i].content, 255);
+                    /* Try to extract just the topic (remove question words) */
+                    char *p = main_topic;
+                    /* Skip common question starters */
+                    const char *starters[] = {"what is ", "what is the ", "what is a ", "who is ", "who is the ",
+                                              "tell me about ", "explain ", "describe ", NULL};
+                    for (int s = 0; starters[s]; s++) {
+                        int slen = strlen(starters[s]);
+                        if (strncasecmp(p, starters[s], slen) == 0) {
+                            p += slen;
+                            break;
+                        }
+                    }
+                    if (p != main_topic) {
+                        memmove(main_topic, p, strlen(p) + 1);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        /* If the current question is a follow-up (short, references "it", "its", "this") */
+        int qlen = strlen(question);
+        if (qlen < 60 && strlen(main_topic) > 0) {
+            /* Check for follow-up indicators */
+            const char *followup_words[] = {"its ", "it ", "this ", "that ", "the ", "about ", "more ", NULL};
+            int is_followup = 0;
+            for (int w = 0; followup_words[w]; w++) {
+                if (strncasecmp(question, followup_words[w], strlen(followup_words[w])) == 0) {
+                    is_followup = 1; break;
+                }
+            }
+            if (is_followup || qlen < 25) {
+                /* Combine topic with question for better search */
+                snprintf(effective_query, sizeof(effective_query), "%s %s", main_topic, question);
+            }
+        }
+    }
+    
+    /* If we refined the query, re-search */
+    SearchResponse *effective_search = search;
+    SearchResponse *new_search = NULL;
+    if (strcmp(effective_query, question) != 0) {
+        printf("[AI] Refined query: %s -> %s\n", question, effective_query);
+        new_search = perform_search(effective_query);
+        if (new_search && new_search->result_count > 0) {
+            effective_search = new_search;
+        }
+    }
+    
+    /* Build the answer */
+    /* Start with knowledge panel if available */
+    if (effective_search->kp.has_data && strlen(effective_search->kp.extract) > 50) {
+        char key_text[2048];
+        extract_key_sentences(effective_search->kp.extract, key_text, sizeof(key_text));
+        if (strlen(key_text) > 30) {
+            pos += snprintf(answer + pos, sizeof(answer) - pos, "%s", key_text);
+            if (resp->source_count < 5) {
+                strncpy(resp->source_titles[resp->source_count], effective_search->kp.title, 511);
+                strncpy(resp->source_urls[resp->source_count], 
+                    strlen(effective_search->kp.url) > 0 ? effective_search->kp.url : "https://en.wikipedia.org", 1023);
+                resp->source_count++;
+            }
+        }
+    }
+    
+    /* Add featured DuckDuckGo result */
+    for (int i = 0; i < effective_search->result_count; i++) {
+        if (effective_search->results[i].featured && strlen(effective_search->results[i].content) > 30) {
+            if (pos > 0 && pos < (int)sizeof(answer) - 3) {
+                answer[pos++] = '\n'; answer[pos++] = '\n';
+            }
+            char key_text[2048];
+            extract_key_sentences(effective_search->results[i].content, key_text, sizeof(key_text));
+            pos += snprintf(answer + pos, sizeof(answer) - pos, "%s", key_text);
+            if (resp->source_count < 5) {
+                strncpy(resp->source_titles[resp->source_count], effective_search->results[i].title, 511);
+                strncpy(resp->source_urls[resp->source_count], effective_search->results[i].url, 1023);
+                resp->source_count++;
+            }
+            break;
+        }
+    }
+    
+    /* Add other relevant results */
+    int added = 0;
+    for (int i = 0; i < effective_search->result_count && added < 2; i++) {
+        if (effective_search->results[i].featured) continue;
+        if (strlen(effective_search->results[i].content) > 50) {
+            char key_text[1024];
+            extract_key_sentences(effective_search->results[i].content, key_text, sizeof(key_text));
+            if (strlen(key_text) > 30) {
+                if (pos > 0 && pos < (int)sizeof(answer) - 3) {
+                    answer[pos++] = '\n'; answer[pos++] = '\n';
+                }
+                pos += snprintf(answer + pos, sizeof(answer) - pos, "%s", key_text);
+                if (resp->source_count < 5) {
+                    strncpy(resp->source_titles[resp->source_count], effective_search->results[i].title, 511);
+                    strncpy(resp->source_urls[resp->source_count], effective_search->results[i].url, 1023);
+                    resp->source_count++;
+                }
+                added++;
+            }
+        }
+    }
+    
+    /* Clean up HTML entities in answer */
+    /* Replace &quot; with ", &amp; with &, &lt; with <, &gt; with >, &#39; with ' */
+    char cleaned[4096];
+    int ci = 0;
+    for (int i = 0; answer[i] && ci < 4095; i++) {
+        if (answer[i] == '&') {
+            if (strncmp(&answer[i], "&quot;", 6) == 0) { cleaned[ci++] = '\"'; i += 5; continue; }
+            if (strncmp(&answer[i], "&amp;", 5) == 0) { cleaned[ci++] = '&'; i += 4; continue; }
+            if (strncmp(&answer[i], "&lt;", 4) == 0) { cleaned[ci++] = '<'; i += 3; continue; }
+            if (strncmp(&answer[i], "&gt;", 4) == 0) { cleaned[ci++] = '>'; i += 3; continue; }
+            if (strncmp(&answer[i], "&#39;", 5) == 0) { cleaned[ci++] = '\''; i += 4; continue; }
+            if (strncmp(&answer[i], "&#", 2) == 0) {
+                /* Skip numeric entities */
+                char *end = strchr(&answer[i], ';');
+                if (end) { i = end - answer; continue; }
+            }
+        }
+        cleaned[ci++] = answer[i];
+    }
+    cleaned[ci] = 0;
+    strncpy(resp->answer, cleaned, 4095);
+    resp->has_answer = 1;
+    
+    /* Generate smart follow-up suggestions */
+    char words[10][64];
+    int word_count = 0;
+    const char *wstart = effective_query;
+    while (*wstart && word_count < 10) {
+        while (*wstart == ' ') wstart++;
+        const char *wend = wstart;
+        while (*wend && *wend != ' ') wend++;
+        int wlen = wend - wstart;
+        if (wlen > 0 && wlen < 64) {
+            memcpy(words[word_count], wstart, wlen);
+            words[word_count][wlen] = 0;
+            word_count++;
+        }
+        wstart = wend;
+    }
+    
+    /* Build a clean topic from the effective query */
+    char topic[128] = "";
+    for (int i = 0; i < word_count && i < 4; i++) {
+        /* Skip common question words */
+        if (strcasecmp(words[i], "what") == 0 || strcasecmp(words[i], "is") == 0 ||
+            strcasecmp(words[i], "the") == 0 || strcasecmp(words[i], "about") == 0 ||
+            strcasecmp(words[i], "its") == 0 || strcasecmp(words[i], "it") == 0 ||
+            strcasecmp(words[i], "tell") == 0 || strcasecmp(words[i], "me") == 0 ||
+            strcasecmp(words[i], "who") == 0 || strcasecmp(words[i], "a") == 0) continue;
+        if (strlen(topic) > 0) strncat(topic, " ", sizeof(topic) - strlen(topic) - 1);
+        strncat(topic, words[i], sizeof(topic) - strlen(topic) - 1);
+    }
+    
+    if (strlen(topic) > 0) {
+        snprintf(resp->followups[0], 255, "Tell me more about %s", topic);
+        snprintf(resp->followups[1], 255, "What are the latest news about %s?", topic);
+        snprintf(resp->followups[2], 255, "Can you explain %s in simple terms?", topic);
+    } else {
+        snprintf(resp->followups[0], 255, "Tell me more");
+        snprintf(resp->followups[1], 255, "What are the latest developments?");
+        snprintf(resp->followups[2], 255, "Can you explain in simpler terms?");
+    }
+    
+    /* Free new search if we created it */
+    if (new_search) free(new_search);
+    
+    return resp;
+}
+
+
+
+/* Free AI response */
+static void free_ai_response(AiResponse *resp) {
+    if (resp) free(resp);
+}
+
+/* Build AI JSON response */
+static char *build_ai_json(AiResponse *ai, SearchResponse *search, const char *question) {
+    char *json = malloc(MAX_RESPONSE);
+    int offset = 0;
+    
+    char answer[8192];
+    json_escape(answer, ai->answer, 8192);
+    
+    offset += sprintf(json + offset, "{\"question\":\"%s\",\"answer\":\"%s\",\"model\":\"DeryCode-AI-C-v1\"", 
+                      question, answer);
+    
+    /* Sources */
+    offset += sprintf(json + offset, ",\"sources\":[");
+    for (int i = 0; i < ai->source_count; i++) {
+        if (i > 0) offset += sprintf(json + offset, ",");
+        char title[1024], url[2048];
+        json_escape(title, ai->source_titles[i], 1024);
+        json_escape(url, ai->source_urls[i], 2048);
+        offset += sprintf(json + offset, "{\"title\":\"%s\",\"url\":\"%s\"}", title, url);
+    }
+    offset += sprintf(json + offset, "]");
+    
+    /* Follow-ups */
+    offset += sprintf(json + offset, ",\"followups\":[");
+    for (int i = 0; i < 3; i++) {
+        if (i > 0) offset += sprintf(json + offset, ",");
+        char fu[512];
+        json_escape(fu, ai->followups[i], 512);
+        offset += sprintf(json + offset, "\"%s\"", fu);
+    }
+    offset += sprintf(json + offset, "]");
+    
+    /* Include search results too */
+    offset += sprintf(json + offset, ",\"results\":[");
+    for (int i = 0; i < search->result_count; i++) {
+        if (i > 0) offset += sprintf(json + offset, ",");
+        char title[1024], url[2048], content[2048], engine[64];
+        json_escape(title, search->results[i].title, 1024);
+        json_escape(url, search->results[i].url, 2048);
+        json_escape(content, search->results[i].content, 2048);
+        json_escape(engine, search->results[i].engine, 64);
+        offset += sprintf(json + offset, 
+            "{\"title\":\"%s\",\"url\":\"%s\",\"content\":\"%s\",\"engine\":\"%s\"}",
+            title, url, content, engine);
+    }
+    offset += sprintf(json + offset, "]");
+    
+    offset += sprintf(json + offset, "}");
+    
+    return json;
+}

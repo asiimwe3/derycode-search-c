@@ -1,7 +1,7 @@
 /*
- * DeryCode Search - C HTTP Server
- * A premium search engine written in pure C
- * Built by DeryCode Tech, Uganda
+ * DeryCode Search - C HTTP Server with AI
+ * A premium search engine with Gemini-style AI answers
+ * Built in pure C by DeryCode Tech, Uganda
  */
 
 #include <stdio.h>
@@ -20,83 +20,104 @@
 #include "search.h"
 
 #define PORT 8080
-#define MAX_REQUEST 8192
-#define MAX_RESPONSE 1048576  /* 1MB */
+#define MAX_REQUEST 65536
+#define MAX_RESPONSE 1048576
+#define MAX_BODY 32768
 
 static volatile int running = 1;
 
 void handle_signal(int sig) {
+    (void)sig;
     running = 0;
     printf("\nShutting down DeryCode Search...\n");
     exit(0);
 }
 
-/* HTML-escape a string for JSON output */
-static void json_escape(char *out, const char *in, int max) {
+/* json_escape is defined in search.h */
+
+/* URL-encode */
+static char *url_encode_local(const char *str) {
+    char *encoded = malloc(strlen(str) * 3 + 1);
     int j = 0;
-    for (int i = 0; in[i] && j < max - 6; i++) {
-        if (in[i] == '"') { out[j++] = '\\'; out[j++] = '"'; }
-        else if (in[i] == '\\') { out[j++] = '\\'; out[j++] = '\\'; }
-        else if (in[i] == '\n') { out[j++] = '\\'; out[j++] = 'n'; }
-        else if (in[i] == '\r') { out[j++] = '\\'; out[j++] = 'r'; }
-        else if (in[i] == '\t') { out[j++] = '\\'; out[j++] = 't'; }
-        else if ((unsigned char)in[i] < 0x20) { continue; }
-        else out[j++] = in[i];
+    for (int i = 0; str[i]; i++) {
+        unsigned char c = str[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || 
+            (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~') {
+            encoded[j++] = c;
+        } else if (c == ' ') {
+            encoded[j++] = '+';
+        } else {
+            j += sprintf(encoded + j, "%%%02X", c);
+        }
     }
-    out[j] = 0;
+    encoded[j] = 0;
+    return encoded;
 }
 
-/* Extract query parameter from URL */
-static char *get_param(const char *url, const char *path_prefix, const char *param) {
-    /* Find the path */
-    const char *path = url;
-    if (strncmp(path, "GET ", 4) == 0) path += 4;
-    if (strncmp(path, "POST ", 5) == 0) path += 5;
-    
-    /* Check if path matches */
-    if (strncmp(path, path_prefix, strlen(path_prefix)) != 0) return NULL;
-    
-    /* Find query string */
+/* URL-decode in place */
+static void url_decode(char *str) {
+    char *dst = str;
+    while (*str) {
+        if (*str == '%' && str[1] && str[2]) {
+            char hex[3] = {str[1], str[2], 0};
+            *dst++ = (char)strtol(hex, NULL, 16);
+            str += 3;
+        } else if (*str == '+') {
+            *dst++ = ' ';
+            str++;
+        } else {
+            *dst++ = *str++;
+        }
+    }
+    *dst = 0;
+}
+
+/* Extract query parameter from URL path */
+static char *get_param(const char *path, const char *param) {
     const char *qmark = strchr(path, '?');
     if (!qmark) return NULL;
     
-    /* Find the parameter */
     const char *p = qmark + 1;
     int param_len = strlen(param);
     
     while (p && *p) {
         if (strncmp(p, param, param_len) == 0 && p[param_len] == '=') {
-            /* Found it - extract value */
             const char *start = p + param_len + 1;
             const char *end = strchr(start, '&');
-            if (!end) end = strchr(start, ' ');
             if (!end) end = start + strlen(start);
             
             int len = end - start;
             char *value = malloc(len + 1);
             memcpy(value, start, len);
             value[len] = 0;
-            
-            /* URL decode */
-            char *dst = value;
-            for (int i = 0; i < len; i++) {
-                if (value[i] == '%' && i + 2 < len) {
-                    char hex[3] = {value[i+1], value[i+2], 0};
-                    *dst++ = (char)strtol(hex, NULL, 16);
-                    i += 2;
-                } else if (value[i] == '+') {
-                    *dst++ = ' ';
-                } else {
-                    *dst++ = value[i];
-                }
-            }
-            *dst = 0;
+            url_decode(value);
             return value;
         }
         p = strchr(p, '&');
         if (p) p++;
     }
     return NULL;
+}
+
+/* Parse JSON body from POST request */
+static char *get_json_body(const char *request, int total_len) {
+    /* Find body after \r\n\r\n */
+    const char *body_start = strstr(request, "\r\n\r\n");
+    if (!body_start) return NULL;
+    body_start += 4;
+    
+    /* Find Content-Length */
+    const char *cl = strcasestr(request, "Content-Length:");
+    if (!cl) cl = strcasestr(request, "content-length:");
+    if (!cl) return strdup(body_start);
+    
+    int content_length = atoi(cl + 15);
+    if (content_length <= 0 || content_length > MAX_BODY) return NULL;
+    
+    char *body = malloc(content_length + 1);
+    memcpy(body, body_start, content_length);
+    body[content_length] = 0;
+    return body;
 }
 
 /* Build search JSON response */
@@ -107,7 +128,6 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
     offset += sprintf(json + offset, "{\"query\":\"%s\",\"count\":%d,\"time\":\"%.2f\"", 
                       query, resp->result_count, resp->elapsed);
     
-    /* Knowledge panel */
     if (resp->kp.has_data) {
         char title[512], extract[4096], thumb[1024], url[1024];
         json_escape(title, resp->kp.title, 512);
@@ -124,7 +144,6 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
         offset += sprintf(json + offset, ",\"knowledgePanel\":null");
     }
     
-    /* AI summary */
     if (resp->ai.has_data) {
         char summary[2048];
         json_escape(summary, resp->ai.text, 2048);
@@ -133,7 +152,6 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
         offset += sprintf(json + offset, ",\"aiSummary\":null");
     }
     
-    /* Results array */
     offset += sprintf(json + offset, ",\"results\":[");
     for (int i = 0; i < resp->result_count; i++) {
         if (i > 0) offset += sprintf(json + offset, ",");
@@ -150,7 +168,6 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
     }
     offset += sprintf(json + offset, "]");
     
-    /* Related searches */
     offset += sprintf(json + offset, ",\"related\":[");
     for (int i = 0; i < 6; i++) {
         if (i > 0) offset += sprintf(json + offset, ",");
@@ -160,8 +177,7 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
     }
     offset += sprintf(json + offset, "]");
     
-    /* External links */
-    char *encoded = url_encode(query);
+    char *encoded = url_encode_local(query);
     offset += sprintf(json + offset, 
         ",\"external\":{\"google\":\"https://www.google.com/search?q=%s\","
         "\"bing\":\"https://www.bing.com/search?q=%s\","
@@ -171,11 +187,10 @@ static char *build_search_json(SearchResponse *resp, const char *query) {
     free(encoded);
     
     offset += sprintf(json + offset, "}");
-    
     return json;
 }
 
-/* Serve static HTML frontend */
+/* Serve static HTML */
 static void serve_html(int client_fd) {
     FILE *f = fopen("public/index.html", "r");
     if (!f) {
@@ -203,13 +218,23 @@ static void serve_html(int client_fd) {
     free(html);
 }
 
+/* Send JSON response */
+static void send_json(int client_fd, const char *json, int status) {
+    int len = strlen(json);
+    char header[256];
+    snprintf(header, sizeof(header),
+        "HTTP/1.1 %d OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\n\r\n",
+        status, len);
+    write(client_fd, header, strlen(header));
+    write(client_fd, json, len);
+}
+
 /* Serve search API */
-static void serve_search(int client_fd, const char *request) {
-    char *query = get_param(request, "/api/search", "q");
+static void serve_search(int client_fd, const char *path) {
+    char *query = get_param(path, "q");
     
     if (!query || strlen(query) == 0) {
-        const char *err = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: 30\r\n\r\n{\"error\":\"Query is required\"}";
-        write(client_fd, err, strlen(err));
+        send_json(client_fd, "{\"error\":\"Query is required\"}", 400);
         if (query) free(query);
         return;
     }
@@ -218,33 +243,92 @@ static void serve_search(int client_fd, const char *request) {
     
     SearchResponse *resp = perform_search(query);
     char *json = build_search_json(resp, query);
-    int json_len = strlen(json);
-    
-    char header[256];
-    snprintf(header, sizeof(header),
-        "HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: %d\r\nCache-Control: s-maxage=60\r\nAccess-Control-Allow-Origin: *\r\n\r\n",
-        json_len);
-    
-    write(client_fd, header, strlen(header));
-    write(client_fd, json, json_len);
+    send_json(client_fd, json, 200);
     
     free(json);
     free(resp);
     free(query);
 }
 
-/* Serve autocomplete */
-static void serve_suggest(int client_fd, const char *request) {
-    char *query = get_param(request, "/api/suggest", "q");
+/* Serve AI API (Gemini-style chat) */
+static void serve_ai(int client_fd, const char *request, int total_len, const char *path) {
+    char *query = NULL;
+    AiMessage history[20];
+    int history_count = 0;
     
-    if (!query || strlen(query) < 2) {
-        const char *empty = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n[]";
-        write(client_fd, empty, strlen(empty));
+    /* Check if it's a GET request (simple) or POST (with conversation) */
+    if (strncmp(request, "POST", 4) == 0) {
+        /* Parse JSON body for question and history */
+        char *body = get_json_body(request, total_len);
+        if (body) {
+            JsonValue *json = json_parse(body);
+            free(body);
+            
+            if (json) {
+                const char *q = json_get_string(json, "question");
+                if (q) query = strdup(q);
+                
+                /* Parse history */
+                JsonValue *hist = json_get_array(json, "history");
+                if (hist && hist->type == JSON_ARR) {
+                    int len = json_array_len(hist);
+                    if (len > 20) len = 20;
+                    for (int i = 0; i < len; i++) {
+                        JsonValue *msg = json_array_at(hist, i);
+                        if (msg && msg->type == JSON_OBJ) {
+                            const char *role = json_get_string(msg, "role");
+                            const char *content = json_get_string(msg, "content");
+                            if (role && content) {
+                                strncpy(history[history_count].role, role, 15);
+                                strncpy(history[history_count].content, content, 2047);
+                                history_count++;
+                            }
+                        }
+                    }
+                }
+                json_free(json);
+            }
+        }
+    } else {
+        /* GET request - simple question from query param */
+        query = get_param(path, "q");
+    }
+    
+    if (!query || strlen(query) == 0) {
+        send_json(client_fd, "{\"error\":\"Question is required\"}", 400);
         if (query) free(query);
         return;
     }
     
-    char *encoded = url_encode(query);
+    printf("[AI] %s (history: %d messages)\n", query, history_count);
+    
+    /* Perform search to get context */
+    SearchResponse *search = perform_search(query);
+    
+    /* Generate AI answer */
+    AiResponse *ai = generate_ai_answer(query, search, history, history_count);
+    
+    /* Build and send response */
+    char *json = build_ai_json(ai, search, query);
+    send_json(client_fd, json, 200);
+    
+    free(json);
+    free_ai_response(ai);
+    free(search);
+    free(query);
+}
+
+/* Serve autocomplete */
+static void serve_suggest(int client_fd, const char *path) {
+    char *query = get_param(path, "q");
+    
+    if (!query || strlen(query) < 2) {
+        send_json(client_fd, "[]", 200);
+        if (query) free(query);
+        return;
+    }
+    
+    char *encoded = url_encode_local(query);
     char url[1024];
     snprintf(url, sizeof(url),
         "https://suggestqueries.google.com/complete/search?client=firefox&q=%s", encoded);
@@ -255,74 +339,64 @@ static void serve_suggest(int client_fd, const char *request) {
     char *json_out;
     if (raw) {
         JsonValue *json = json_parse(raw);
-        if (json) {
-            JsonValue *arr = json_get_array(json, NULL);
-            /* The response is [query, [suggestions]] */
-            if (json->type == JSON_ARR && json_array_len(json) >= 2) {
-                JsonValue *suggestions = json_array_at(json, 1);
-                if (suggestions && suggestions->type == JSON_ARR) {
-                    int len = json_array_len(suggestions);
-                    if (len > 6) len = 6;
-                    
-                    char *buf = malloc(8192);
-                    int off = 0;
-                    off += sprintf(buf + off, "[");
-                    for (int i = 0; i < len; i++) {
-                        if (i > 0) off += sprintf(buf + off, ",");
-                        JsonValue *s = json_array_at(suggestions, i);
-                        if (s && s->type == JSON_STR) {
-                            char esc[256];
-                            json_escape(esc, s->string, 256);
-                            off += sprintf(buf + off, "\"%s\"", esc);
-                        }
+        if (json && json->type == JSON_ARR && json_array_len(json) >= 2) {
+            JsonValue *suggestions = json_array_at(json, 1);
+            if (suggestions && suggestions->type == JSON_ARR) {
+                int len = json_array_len(suggestions);
+                if (len > 6) len = 6;
+                
+                char *buf = malloc(8192);
+                int off = 0;
+                off += sprintf(buf + off, "[");
+                for (int i = 0; i < len; i++) {
+                    if (i > 0) off += sprintf(buf + off, ",");
+                    JsonValue *s = json_array_at(suggestions, i);
+                    if (s && s->type == JSON_STR) {
+                        char esc[256];
+                        json_escape(esc, s->string, 256);
+                        off += sprintf(buf + off, "\"%s\"", esc);
                     }
-                    off += sprintf(buf + off, "]");
-                    json_out = buf;
-                } else {
-                    json_out = strdup("[]");
                 }
+                off += sprintf(buf + off, "]");
+                json_out = buf;
             } else {
                 json_out = strdup("[]");
             }
-            json_free(json);
         } else {
             json_out = strdup("[]");
         }
+        if (json) json_free(json);
         free(raw);
     } else {
         json_out = strdup("[]");
     }
     
-    int len = strlen(json_out);
-    char header[256];
-    snprintf(header, sizeof(header),
-        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n", len);
-    write(client_fd, header, strlen(header));
-    write(client_fd, json_out, len);
+    send_json(client_fd, json_out, 200);
     free(json_out);
     free(query);
 }
 
 /* Handle a single HTTP request */
-static void handle_request(int client_fd, struct sockaddr_in *client_addr) {
+static void handle_request(int client_fd) {
     char request[MAX_REQUEST];
     int bytes = recv(client_fd, request, MAX_REQUEST - 1, 0);
     if (bytes <= 0) { close(client_fd); return; }
     request[bytes] = 0;
     
-    /* Parse the request method and path */
-    char method[8], path[1024];
+    /* Parse method and path */
+    char method[8], path[2048];
     sscanf(request, "%s %s", method, path);
     
-    if (strncmp(path, "/api/search", 11) == 0) {
-        serve_search(client_fd, request);
+    if (strncmp(path, "/api/ai", 7) == 0) {
+        serve_ai(client_fd, request, bytes, path);
+    } else if (strncmp(path, "/api/search", 11) == 0) {
+        serve_search(client_fd, path);
     } else if (strncmp(path, "/api/suggest", 12) == 0) {
-        serve_suggest(client_fd, request);
+        serve_suggest(client_fd, path);
     } else if (strcmp(path, "/") == 0 || strcmp(path, "/index.html") == 0) {
         serve_html(client_fd);
     } else if (strcmp(path, "/health") == 0) {
-        const char *health = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 27\r\n\r\n{\"status\":\"healthy\",\"lang\":\"c\"}";
-        write(client_fd, health, strlen(health));
+        send_json(client_fd, "{\"status\":\"healthy\",\"lang\":\"c\",\"ai\":true}", 200);
     } else {
         const char *err = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         write(client_fd, err, strlen(err));
@@ -337,13 +411,10 @@ int main(int argc, char *argv[]) {
     
     signal(SIGINT, handle_signal);
     signal(SIGTERM, handle_signal);
-    signal(SIGCHLD, SIG_IGN); /* Reap child processes */
+    signal(SIGCHLD, SIG_IGN);
     
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("Socket creation failed");
-        return 1;
-    }
+    if (server_fd < 0) { perror("Socket creation failed"); return 1; }
     
     int opt = 1;
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -354,41 +425,31 @@ int main(int argc, char *argv[]) {
     addr.sin_port = htons(port);
     
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("Bind failed");
-        return 1;
+        perror("Bind failed"); return 1;
     }
     
-    if (listen(server_fd, 128) < 0) {
-        perror("Listen failed");
-        return 1;
-    }
+    if (listen(server_fd, 128) < 0) { perror("Listen failed"); return 1; }
     
-    printf("DeryCode Search - C Edition\n");
+    printf("DeryCode Search - C Edition with AI\n");
     printf("Listening on port %d\n", port);
+    printf("AI chat endpoint: /api/ai\n");
     printf("Premium search engine for Africa\n");
     printf("Built with pure C - no frameworks, no dependencies\n\n");
     fflush(stdout);
     
     while (running) {
-        struct sockaddr_in client_addr;
-        socklen_t client_len = sizeof(client_addr);
-        int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len);
-        
+        int client_fd = accept(server_fd, NULL, NULL);
         if (client_fd < 0) {
             if (errno == EINTR) continue;
-            perror("Accept failed");
             continue;
         }
         
-        /* Fork to handle request concurrently */
         pid_t pid = fork();
         if (pid == 0) {
-            /* Child process */
             close(server_fd);
-            handle_request(client_fd, &client_addr);
+            handle_request(client_fd);
             exit(0);
         } else {
-            /* Parent process */
             close(client_fd);
         }
     }

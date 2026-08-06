@@ -3,238 +3,271 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DeryCode Search - Premium C-Powered Search Engine for Africa</title>
-<meta name="description" content="DeryCode Search - A premium search engine built in C. AI summaries, knowledge panels, image search, news, voice search. No ads. No tracking.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/></svg>">
+<title>DeryCode AI - Gemini-style Search Assistant</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0f0f14;color:#e8e8e8;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-a{text-decoration:none}
-.container{max-width:720px;margin:0 auto;padding:20px;min-height:100vh;display:flex;flex-direction:column}
-.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
-.logo-area{text-align:center}
-.logo-text{font-size:42px;font-weight:800;letter-spacing:-1px}
-.logo-d{color:#d4af37}.logo-s{color:#e8e8e8}
-.tagline{color:#888896;font-size:15px;margin-top:8px}
-.premium-badge{display:inline-block;margin-top:10px;padding:3px 14px;background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;font-size:11px;font-weight:700;border-radius:4px;letter-spacing:1px}
-.c-badge{display:inline-block;margin-left:6px;padding:3px 10px;background:rgba(0,200,83,0.15);color:#00c853;font-size:11px;font-weight:700;border-radius:4px}
-.search-form{width:100%;max-width:600px;position:relative}
-.search-box{display:flex;align-items:center;background:#22222e;border:1px solid rgba(212,175,55,0.3);border-radius:14px;padding:12px 16px;width:100%;gap:10px;transition:border-color 0.2s}
-.search-box:focus-within{border-color:rgba(212,175,55,0.6);box-shadow:0 0 0 3px rgba(212,175,55,0.1)}
-.search-box-small{flex:1}
-.search-icon{width:20px;height:20px;color:#888896;flex-shrink:0}
-.search-input{flex:1;background:transparent;border:none;outline:none;color:#e8e8e8;font-size:16px;font-family:inherit}
-.search-input::placeholder{color:#555560}
-.voice-btn{background:transparent;border:1px solid rgba(212,175,55,0.3);border-radius:8px;padding:6px;color:#d4af37;display:flex;align-items:center;justify-content:center;transition:all 0.2s;cursor:pointer}
-.voice-btn:hover{background:rgba(212,175,55,0.1)}
-.search-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;border:none;padding:8px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;font-family:inherit}
-.search-btn:hover{opacity:0.9}
-.suggestions{position:absolute;top:100%;left:0;right:0;background:#22222e;border:1px solid rgba(212,175,55,0.2);border-top:none;border-radius:0 0 14px 14px;z-index:10;overflow:hidden}
-.suggestion{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;color:#c8c8c8;font-size:14px;transition:background 0.15s}
-.suggestion:hover{background:#2a2a38}
-.sug-icon{width:16px;height:16px;color:#666}
-.features{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-.feature{display:flex;align-items:center;gap:6px;color:#888896;font-size:13px}
-.feature-icon{display:inline-block;padding:2px 8px;background:rgba(212,175,55,0.15);color:#d4af37;font-size:10px;font-weight:700;border-radius:4px}
-.logo-link{color:#d4af37;font-weight:700;font-size:16px;white-space:nowrap}
-.results-header{padding-top:16px}
-.search-form-top{display:flex;align-items:center;gap:16px;margin-bottom:12px}
-.tabs{display:flex;gap:4px;margin-top:12px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.tab{padding:10px 20px;background:transparent;border:none;color:#888;font-size:14px;font-weight:500;border-bottom:2px solid transparent;transition:all 0.2s;cursor:pointer;font-family:inherit}
-.tab:hover{color:#c8c8c8}
-.tab.active{color:#d4af37;border-bottom-color:#d4af37}
-.loading,.result-count{color:#888896;font-size:13px;margin-top:12px;margin-bottom:16px}
-.ai-summary{background:linear-gradient(135deg,#1a1a24,#22222e);border:1px solid rgba(212,175,55,0.3);border-radius:14px;padding:18px 20px;margin-bottom:20px}
-.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.ai-icon{display:inline-block;padding:3px 10px;background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;font-size:11px;font-weight:700;border-radius:4px}
-.ai-label{color:#d4af37;font-size:14px;font-weight:600}
-.ai-text{color:#d0d0d0;font-size:14px;line-height:1.6}
-.knowledge-panel{background:#22222e;border:1px solid rgba(212,175,55,0.2);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center}
-.kp-image{width:120px;height:120px;object-fit:cover;border-radius:12px;margin-bottom:12px}
-.kp-title{color:#d4af37;font-size:18px;font-weight:700;margin-bottom:8px}
-.kp-extract{color:#c8c8c8;font-size:14px;line-height:1.5;margin-bottom:12px}
-.kp-link{color:#d4af37;font-size:13px;font-weight:500;cursor:pointer}
-.kp-link:hover{text-decoration:underline}
-.results-list{flex:1}
-.result-card{background:#22222e;border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:border-color 0.2s}
-.result-card:hover{border-color:rgba(212,175,55,0.3)}
-.result-meta{display:flex;align-items:center;margin-bottom:6px;gap:6px}
-.result-url{color:#888896;font-size:12px}
-.result-title{display:block;color:#d4af37;font-size:17px;font-weight:600;margin-bottom:8px;cursor:pointer}
+body{background:#0f0f14;color:#e8e8e8;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+a{text-decoration:none;color:inherit}
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);background:#13131a}
+.header-logo{font-size:18px;font-weight:800;cursor:pointer}
+.header-logo .d{color:#d4af37}.header-logo .a{color:#e8e8e8}
+.header-badge{font-size:10px;font-weight:700;padding:2px 8px;background:rgba(212,175,55,0.15);color:#d4af37;border-radius:4px;margin-left:6px}
+.header-right{display:flex;gap:8px;align-items:center}
+.mode-btn{padding:6px 14px;background:#22222e;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#888;font-size:13px;cursor:pointer;transition:all 0.2s;font-family:inherit}
+.mode-btn.active{background:rgba(212,175,55,0.15);color:#d4af37;border-color:rgba(212,175,55,0.3)}
+.mode-btn:hover{color:#c8c8c8}
+/* Chat area */
+.chat-container{flex:1;overflow-y:auto;padding:20px;max-width:760px;width:100%;margin:0 auto}
+.welcome{text-align:center;padding:80px 20px}
+.welcome-logo{font-size:36px;font-weight:800;margin-bottom:12px}
+.welcome-logo .d{color:#d4af37}.welcome-logo .a{color:#e8e8e8}
+.welcome-sub{color:#888;font-size:16px;margin-bottom:30px}
+.welcome-features{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:30px}
+.welcome-feature{padding:8px 16px;background:#1a1a24;border:1px solid rgba(255,255,255,0.06);border-radius:20px;color:#888;font-size:13px}
+.welcome-feature span{color:#d4af37;font-weight:600}
+.suggest-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:560px;margin:0 auto}
+.suggest-card{padding:16px;background:#1a1a24;border:1px solid rgba(255,255,255,0.06);border-radius:12px;cursor:pointer;transition:all 0.2s;text-align:left}
+.suggest-card:hover{background:#22222e;border-color:rgba(212,175,55,0.3)}
+.suggest-card-icon{font-size:20px;margin-bottom:8px}
+.suggest-card-text{color:#c8c8c8;font-size:14px;line-height:1.4}
+/* Messages */
+.msg{margin-bottom:20px;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg-user{display:flex;justify-content:flex-end}
+.msg-user .bubble{background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.2);border-radius:16px 16px 4px 16px;padding:14px 18px;max-width:80%;color:#e8e8e8;font-size:15px;line-height:1.5}
+.msg-ai{display:flex;gap:12px;align-items:flex-start}
+.ai-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4af37,#b8941f);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0f0f14;flex-shrink:0}
+.ai-bubble{flex:1}
+.ai-name{font-size:13px;font-weight:700;color:#d4af37;margin-bottom:6px}
+.ai-content{color:#d0d0d0;font-size:15px;line-height:1.6;white-space:pre-wrap}
+.ai-sources{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.ai-source{padding:4px 10px;background:#1a1a24;border:1px solid rgba(255,255,255,0.06);border-radius:6px;font-size:12px;color:#888;cursor:pointer;transition:all 0.2s}
+.ai-source:hover{background:#22222e;color:#d4af37}
+.ai-followups{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+.ai-followup{padding:8px 14px;background:#1a1a24;border:1px solid rgba(212,175,55,0.15);border-radius:10px;color:#c8c8c8;font-size:13px;cursor:pointer;transition:all 0.2s}
+.ai-followup:hover{background:#22222e;border-color:rgba(212,175,55,0.3);color:#d4af37}
+.typing{display:inline-flex;gap:4px;padding:8px 0}
+.typing span{width:8px;height:8px;background:#d4af37;border-radius:50%;animation:bounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:0.2s}
+.typing span:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-8px);opacity:1}}
+/* Search results inline */
+.search-section{margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px}
+.search-section-title{font-size:13px;color:#666;margin-bottom:12px}
+.result-card{background:#1a1a24;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:border-color 0.2s}
+.result-card:hover{border-color:rgba(212,175,55,0.2)}
+.result-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.engine-badge{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase}
+.result-url{color:#666;font-size:12px}
+.result-title{display:block;color:#d4af37;font-size:15px;font-weight:600;margin-bottom:4px}
 .result-title:hover{text-decoration:underline}
-.result-content{color:#c8c8c8;font-size:14px;line-height:1.5}
-.engine-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;margin-right:6px;text-transform:uppercase}
-.related-section{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.05)}
-.related-title{color:#666;font-size:13px;margin-bottom:10px;font-weight:600}
-.related-tags{display:flex;flex-wrap:wrap;gap:8px}
-.related-tag{padding:8px 16px;background:#1a1a24;border:1px solid rgba(212,175,55,0.15);border-radius:10px;color:#c8c8c8;font-size:13px;cursor:pointer;transition:all 0.2s}
-.related-tag:hover{background:#22222e;border-color:rgba(212,175,55,0.4);color:#d4af37}
-.also-search{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05)}
-.also-text{color:#666;font-size:13px;margin-bottom:10px}
-.external-links{display:flex;flex-wrap:wrap;gap:10px}
-.external-link{padding:8px 16px;background:#22222e;border:1px solid rgba(212,175,55,0.2);border-radius:8px;color:#d4af37;font-size:13px;font-weight:500;text-transform:capitalize;cursor:pointer;transition:background 0.2s}
-.external-link:hover{background:#2a2a38}
-.no-results{color:#888;text-align:center;padding:40px 20px}
-.footer{text-align:center;padding:30px 0 10px;color:#666670;font-size:12px}
-.footer p{margin:2px 0}
-.history-section{width:100%;max-width:600px}
-.history-title{color:#555;font-size:13px;margin-bottom:10px;font-weight:600}
-.history-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.history-tag{padding:6px 14px;background:#1a1a24;border:1px solid rgba(255,255,255,0.05);border-radius:20px;color:#888;font-size:13px;cursor:pointer;transition:all 0.2s}
-.history-tag:hover{background:#22222e;color:#c8c8c8}
-@media(max-width:600px){.logo-text{font-size:32px}.features{gap:10px}.search-form-top{flex-direction:column}}
+.result-content{color:#999;font-size:13px;line-height:1.5}
+.external-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.external-link{padding:6px 12px;background:#1a1a24;border:1px solid rgba(212,175,55,0.15);border-radius:8px;color:#d4af37;font-size:12px;text-transform:capitalize}
+.external-link:hover{background:#22222e}
+/* Input area */
+.input-area{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06);background:#13131a}
+.input-wrapper{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.input-box{flex:1;display:flex;align-items:center;background:#22222e;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:10px 14px;gap:8px;transition:border-color 0.2s}
+.input-box:focus-within{border-color:rgba(212,175,55,0.5)}
+.input-box input{flex:1;background:transparent;border:none;outline:none;color:#e8e8e8;font-size:15px;font-family:inherit}
+.input-box input::placeholder{color:#555560}
+.voice-btn{background:transparent;border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:6px;color:#d4af37;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.voice-btn:hover{background:rgba(212,175,55,0.1)}
+.send-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;border:none;padding:10px 18px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;font-family:inherit}
+.send-btn:hover{opacity:0.9}
+.send-btn:disabled{opacity:0.5;cursor:not-allowed}
+.input-hint{text-align:center;color:#555;font-size:11px;margin-top:8px}
+@media(max-width:600px){.suggest-cards{grid-template-columns:1fr}.welcome-logo{font-size:28px}.msg-user .bubble{max-width:90%}}
 </style>
 </head>
 <body>
-<div class="container" id="app">
-<div class="hero" id="hero">
-<div class="logo-area">
-<h1 class="logo-text"><span class="logo-d">DeryCode</span> <span class="logo-s">Search</span></h1>
-<p class="tagline">Premium C-powered search for Africa. AI summaries. No ads. No tracking.</p>
-<span class="premium-badge">PREMIUM</span><span class="c-badge">BUILT IN C</span>
+<div class="header">
+<div class="header-logo" onclick="location.reload()">
+<span class="d">DeryCode</span> <span class="a">AI</span>
+<span class="header-badge">BUILT IN C</span>
 </div>
-<form class="search-form" onsubmit="doSearch(event)">
-<div class="search-box">
-<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type="text" id="q" class="search-input" placeholder="Search anything..." autocomplete="off">
-<button type="button" class="voice-btn" onclick="startVoice()" title="Voice search">
+<div class="header-right">
+<button class="mode-btn active" id="mode-ai" onclick="setMode('ai')">AI Chat</button>
+<button class="mode-btn" id="mode-search" onclick="setMode('search')">Web Search</button>
+</div>
+</div>
+<div class="chat-container" id="chat">
+<div class="welcome" id="welcome">
+<div class="welcome-logo"><span class="d">DeryCode</span> <span class="a">AI</span></div>
+<div class="welcome-sub">Your AI search assistant. Ask anything.</div>
+<div class="welcome-features">
+<div class="welcome-feature"><span>AI</span> Direct answers</div>
+<div class="welcome-feature"><span>C</span> Pure C backend</div>
+<div class="welcome-feature"><span>FREE</span> No tracking</div>
+<div class="welcome-feature"><span>VOICE</span> Voice search</div>
+</div>
+<div class="suggest-cards" id="suggest-cards">
+<div class="suggest-card" onclick="quickAsk('What is Uganda known for?')">
+<div class="suggest-card-icon">🌍</div>
+<div class="suggest-card-text">What is Uganda known for?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('Explain how mobile money works in Africa')">
+<div class="suggest-card-icon">📱</div>
+<div class="suggest-card-text">How does mobile money work in Africa?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('Best programming languages to learn in 2026')">
+<div class="suggest-card-icon">💻</div>
+<div class="suggest-card-text">Best programming languages in 2026?</div>
+</div>
+<div class="suggest-card" onclick="quickAsk('Tell me about DeryCode Tech')">
+<div class="suggest-card-icon">🔧</div>
+<div class="suggest-card-text">Tell me about DeryCode Tech</div>
+</div>
+</div>
+</div>
+</div>
+<div class="input-area">
+<div class="input-wrapper">
+<div class="input-box">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:#888"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type="text" id="input" placeholder="Ask DeryCode AI anything..." autocomplete="off">
+<button class="voice-btn" onclick="startVoice()" title="Voice search">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
 </button>
-<button type="submit" class="search-btn">Search</button>
 </div>
-<div id="suggestions" class="suggestions" style="display:none"></div>
-</form>
-<div id="history" class="history-section" style="display:none">
-<p class="history-title">Recent searches</p>
-<div id="history-tags" class="history-tags"></div>
+<button class="send-btn" id="send" onclick="send()">Send</button>
 </div>
-<div class="features">
-<div class="feature"><span class="feature-icon">AI</span><span>AI Summaries</span></div>
-<div class="feature"><span class="feature-icon">KP</span><span>Knowledge Panels</span></div>
-<div class="feature"><span class="feature-icon">C</span><span>Pure C Backend</span></div>
-<div class="feature"><span class="feature-icon">MIC</span><span>Voice Search</span></div>
-<div class="feature"><span class="feature-icon">FREE</span><span>100% Free</span></div>
-</div>
-</div>
-<div id="results-view" style="display:none">
-<div class="results-header">
-<form class="search-form-top" onsubmit="doSearch(event)">
-<div class="search-box search-box-small">
-<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-<input type="text" id="q2" class="search-input" autocomplete="off">
-<button type="button" class="voice-btn" onclick="startVoice()" title="Voice search">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-</button>
-<button type="submit" class="search-btn">Search</button>
-</div>
-<a href="/" class="logo-link">DeryCode Search</a>
-</form>
-<p id="result-count" class="result-count"></p>
-</div>
-<div id="results-body"></div>
-</div>
-<div class="footer">
-<p>DeryCode Search - Premium C-Powered Search Engine for Africa</p>
-<p>AI Summaries - Knowledge Panels - Voice Search - Zero Dependencies</p>
-<p>Built in C by DeryCode Tech - No tracking - No ads - Open source</p>
-</div>
+<div class="input-hint">DeryCode AI - Powered by pure C - No ads - No tracking - Built in Uganda</div>
 </div>
 <script>
-var searched=false;
-document.getElementById('q').focus();
-loadHistory();
+var mode='ai';
+var messages=[];
+var busy=false;
+var inputEl=document.getElementById('input');
+var sendBtn=document.getElementById('send');
+var chatEl=document.getElementById('chat');
+var welcomeEl=document.getElementById('welcome');
+inputEl.focus();
+inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
 
-function loadHistory(){try{var h=JSON.parse(localStorage.getItem('dc_history')||'[]');if(h.length>0){document.getElementById('history').style.display='block';var ht=document.getElementById('history-tags');ht.innerHTML='';h.slice(0,8).forEach(function(s){var b=document.createElement('button');b.className='history-tag';b.textContent=s;b.onclick=function(){document.getElementById('q').value=s;doSearch()};ht.appendChild(b)})}}catch(e){}}
+function setMode(m){
+mode=m;
+document.getElementById('mode-ai').className='mode-btn'+(m==='ai'?' active':'');
+document.getElementById('mode-search').className='mode-btn'+(m==='search'?' active':'');
+inputEl.placeholder=m==='ai'?'Ask DeryCode AI anything...':'Search the web...';
+}
 
-function saveHistory(q){try{var h=JSON.parse(localStorage.getItem('dc_history')||'[]');if(h.indexOf(q)<0){h.unshift(q);localStorage.setItem('dc_history',JSON.stringify(h.slice(0,20)));loadHistory()}}catch(e){}}
+function quickAsk(q){inputEl.value=q;send()}
 
-var suggestTimer;
-document.getElementById('q').addEventListener('input',function(){
-var v=this.value;if(v.length<2){document.getElementById('suggestions').style.display='none';return}
-clearTimeout(suggestTimer);
-suggestTimer=setTimeout(function(){
-fetch('/api/suggest?q='+encodeURIComponent(v)).then(function(r){return r.json()}).then(function(data){
-if(data.length>0){var s=document.getElementById('suggestions');s.innerHTML='';
-data.forEach(function(item){var d=document.createElement('div');d.className='suggestion';
-d.innerHTML='<svg class="sug-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+item;
-d.onmousedown=function(){document.getElementById('q').value=item;doSearch()};
-s.appendChild(d)});s.style.display='block'
-}else{document.getElementById('suggestions').style.display='none'}
-}).catch(function(){})
-},300)
-});
-
-function doSearch(e){
-if(e)e.preventDefault();
-var q=document.getElementById('q').value.trim();
+function send(){
+if(busy)return;
+var q=inputEl.value.trim();
 if(!q)return;
-document.getElementById('suggestions').style.display='none';
-saveHistory(q);
-document.getElementById('q2').value=q;
-document.getElementById('hero').style.display='none';
-document.getElementById('results-view').style.display='block';
-document.getElementById('result-count').textContent='Searching...';
-document.getElementById('results-body').innerHTML='<p class="loading" style="color:#888;text-align:center;padding:40px">Searching C-powered backend...</p>';
+busy=true;sendBtn.disabled=true;
+welcomeEl.style.display='none';
+messages.push({role:'user',content:q});
+renderMessages();
+inputEl.value='';
+showTyping();
+if(mode==='ai'){
+askAI(q);
+}else{
+searchWeb(q);
+}
+}
 
-var start=Date.now();
-fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(data){
-var t=((Date.now()-start)/1000).toFixed(2);
-document.getElementById('result-count').textContent=data.count+' results in '+t+'s';
-var body=document.getElementById('results-body');
+function askAI(q){
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:messages.slice(0,-1)})})
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:'assistant',content:data.answer,sources:data.sources,followups:data.followups,results:data.results});
+renderMessages();
+busy=false;sendBtn.disabled=false;
+})
+.catch(function(e){
+messages.push({role:'assistant',content:'Sorry, I encountered an error. Please try again.'});
+renderMessages();busy=false;sendBtn.disabled=false;
+});
+}
+
+function searchWeb(q){
+fetch('/api/search?q='+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+var answer=data.knowledgePanel?data.knowledgePanel.extract:'';
+if(data.aiSummary)answer=data.aiSummary;
+if(!answer&&data.results&&data.results.length>0)answer=data.results[0].content;
+messages.push({role:'assistant',content:answer||'No results found.',sources:(data.results||[]).slice(0,5).map(function(r){return{title:r.title,url:r}}),results:data.results||[]});
+renderMessages();busy=false;sendBtn.disabled=false;
+})
+.catch(function(e){
+messages.push({role:'assistant',content:'Search failed. Please try again.'});
+renderMessages();busy=false;sendBtn.disabled=false;
+});
+}
+
+function renderMessages(){
 var html='';
-
-if(data.knowledgePanel){
-html+='<div class="knowledge-panel">';
-if(data.knowledgePanel.thumbnail)html+='<img src="'+data.knowledgePanel.thumbnail+'" class="kp-image" alt="">';
-html+='<h3 class="kp-title">'+esc(data.knowledgePanel.title)+'</h3>';
-html+='<p class="kp-extract">'+esc(data.knowledgePanel.extract)+'</p>';
-if(data.knowledgePanel.url)html+='<a href="'+data.knowledgePanel.url+'" target="_blank" class="kp-link">Read more on Wikipedia</a>';
-html+='</div>'
-}
-
-if(data.aiSummary){
-html+='<div class="ai-summary"><div class="ai-header"><span class="ai-icon">AI</span><span class="ai-label">AI Summary</span></div><p class="ai-text">'+esc(data.aiSummary)+'</p></div>'
-}
-
-html+='<div class="results-list">';
-(data.results||[]).forEach(function(r){
-var badgeColor={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';
-var badgeLabel={duckduckgo:'DDG',wikipedia:'Wiki',github:'GitHub',web:'Web'}[r.engine]||r.engine;
-html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+badgeColor+'">'+badgeLabel+'</span><a href="'+r.url+'" target="_blank" class="result-url">'+formatUrl(r.url)+'</a></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';
-if(r.content)html+='<p class="result-content">'+esc(r.content)+'</p>';
-html+='</div>'
+for(var i=0;i<messages.length;i++){
+var m=messages[i];
+if(m.role==='user'){
+html+='<div class="msg msg-user"><div class="bubble">'+esc(m.content)+'</div></div>';
+}else{
+html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble">';
+html+='<div class="ai-name">DeryCode AI</div>';
+html+='<div class="ai-content">'+esc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){
+html+='<div class="ai-sources">';
+m.sources.forEach(function(s){
+var url=s.url||s;
+var title=(s.title||url||'Source');
+if(title.length>40)title=title.substring(0,37)+'...';
+html+='<a href="'+(s.url||'')+'" target="_blank" class="ai-source">'+esc(title)+'</a>';
 });
 html+='</div>';
-
-if(data.related&&data.related.length>0){
-html+='<div class="related-section"><p class="related-title">Related searches</p><div class="related-tags">';
-data.related.forEach(function(r){html+='<button class="related-tag" onclick="document.getElementById(\\'q\\').value=\\''+r+'\\';doSearch()">'+esc(r)+'</button>'});
-html+='</div></div>'
+}
+if(m.followups&&m.followups.length>0){
+html+='<div class="ai-followups">';
+m.followups.forEach(function(f){
+html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>';
+});
+html+='</div>';
+}
+if(m.results&&m.results.length>0){
+html+='<div class="search-section"><div class="search-section-title">Web results</div>';
+m.results.slice(0,5).forEach(function(r){
+var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';
+var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GitHub',web:'Web'}[r.engine]||r.engine;
+html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><a href="'+r.url+'" target="_blank" class="result-url">'+formatUrl(r.url)+'</a></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';
+if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,150))+'</p>';
+html+='</div>';
+});
+html+='</div>';
+}
+html+='</div></div>';
+}
+}
+chatEl.innerHTML=html;
+chatEl.scrollTop=chatEl.scrollHeight;
 }
 
-if(data.external){
-html+='<div class="also-search"><p class="also-text">Also search on:</p><div class="external-links">';
-Object.entries(data.external).forEach(function(e){html+='<a href="'+e[1]+'" target="_blank" class="external-link">'+e[0]+'</a>'});
-html+='</div></div>'
-}
-
-body.innerHTML=html;
-if(data.count===0){body.innerHTML='<p class="no-results">No direct results found. Try searching on the links below.</p>'}
-}).catch(function(e){
-document.getElementById('result-count').textContent='Search failed';
-document.getElementById('results-body').innerHTML='<p class="no-results">Search error: '+esc(e.message)+'</p>'
-})
+function showTyping(){
+var t=document.createElement('div');
+t.className='msg msg-ai';t.id='typing';
+t.innerHTML='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div><div class="typing"><span></span><span></span><span></span></div></div>';
+chatEl.appendChild(t);
+chatEl.scrollTop=chatEl.scrollHeight;
+// Remove typing indicator when messages re-render
+setTimeout(function(){var tp=document.getElementById('typing');if(tp)tp.remove()},100);
 }
 
 function startVoice(){
-try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice search not supported');return}
+try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported');return}
 var rec=new SR();rec.lang='en-US';rec.continuous=false;rec.interimResults=false;
-rec.onresult=function(e){var t=e.results[0][0].transcript;var input=searched?document.getElementById('q2'):document.getElementById('q');input.value=t;doSearch()};
+rec.onresult=function(e){inputEl.value=e.results[0][0].transcript;send()};
 rec.start()}catch(e){}
 }
 
-function formatUrl(url){try{var u=new URL(url);return u.hostname.replace('www.','')}catch(e){return url}}
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
 </script>
 </body>
 </html>
