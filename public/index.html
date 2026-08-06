@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeryCode Search - Premium C-Powered Search Engine for Africa</title>
+<meta name="description" content="DeryCode Search - A premium search engine built in C. AI summaries, knowledge panels, image search, news, voice search. No ads. No tracking.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f0f14;color:#e8e8e8;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+a{text-decoration:none}
+.container{max-width:720px;margin:0 auto;padding:20px;min-height:100vh;display:flex;flex-direction:column}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+.logo-area{text-align:center}
+.logo-text{font-size:42px;font-weight:800;letter-spacing:-1px}
+.logo-d{color:#d4af37}.logo-s{color:#e8e8e8}
+.tagline{color:#888896;font-size:15px;margin-top:8px}
+.premium-badge{display:inline-block;margin-top:10px;padding:3px 14px;background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;font-size:11px;font-weight:700;border-radius:4px;letter-spacing:1px}
+.c-badge{display:inline-block;margin-left:6px;padding:3px 10px;background:rgba(0,200,83,0.15);color:#00c853;font-size:11px;font-weight:700;border-radius:4px}
+.search-form{width:100%;max-width:600px;position:relative}
+.search-box{display:flex;align-items:center;background:#22222e;border:1px solid rgba(212,175,55,0.3);border-radius:14px;padding:12px 16px;width:100%;gap:10px;transition:border-color 0.2s}
+.search-box:focus-within{border-color:rgba(212,175,55,0.6);box-shadow:0 0 0 3px rgba(212,175,55,0.1)}
+.search-box-small{flex:1}
+.search-icon{width:20px;height:20px;color:#888896;flex-shrink:0}
+.search-input{flex:1;background:transparent;border:none;outline:none;color:#e8e8e8;font-size:16px;font-family:inherit}
+.search-input::placeholder{color:#555560}
+.voice-btn{background:transparent;border:1px solid rgba(212,175,55,0.3);border-radius:8px;padding:6px;color:#d4af37;display:flex;align-items:center;justify-content:center;transition:all 0.2s;cursor:pointer}
+.voice-btn:hover{background:rgba(212,175,55,0.1)}
+.search-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;border:none;padding:8px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;font-family:inherit}
+.search-btn:hover{opacity:0.9}
+.suggestions{position:absolute;top:100%;left:0;right:0;background:#22222e;border:1px solid rgba(212,175,55,0.2);border-top:none;border-radius:0 0 14px 14px;z-index:10;overflow:hidden}
+.suggestion{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;color:#c8c8c8;font-size:14px;transition:background 0.15s}
+.suggestion:hover{background:#2a2a38}
+.sug-icon{width:16px;height:16px;color:#666}
+.features{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.feature{display:flex;align-items:center;gap:6px;color:#888896;font-size:13px}
+.feature-icon{display:inline-block;padding:2px 8px;background:rgba(212,175,55,0.15);color:#d4af37;font-size:10px;font-weight:700;border-radius:4px}
+.logo-link{color:#d4af37;font-weight:700;font-size:16px;white-space:nowrap}
+.results-header{padding-top:16px}
+.search-form-top{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.tabs{display:flex;gap:4px;margin-top:12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.tab{padding:10px 20px;background:transparent;border:none;color:#888;font-size:14px;font-weight:500;border-bottom:2px solid transparent;transition:all 0.2s;cursor:pointer;font-family:inherit}
+.tab:hover{color:#c8c8c8}
+.tab.active{color:#d4af37;border-bottom-color:#d4af37}
+.loading,.result-count{color:#888896;font-size:13px;margin-top:12px;margin-bottom:16px}
+.ai-summary{background:linear-gradient(135deg,#1a1a24,#22222e);border:1px solid rgba(212,175,55,0.3);border-radius:14px;padding:18px 20px;margin-bottom:20px}
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ai-icon{display:inline-block;padding:3px 10px;background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f14;font-size:11px;font-weight:700;border-radius:4px}
+.ai-label{color:#d4af37;font-size:14px;font-weight:600}
+.ai-text{color:#d0d0d0;font-size:14px;line-height:1.6}
+.knowledge-panel{background:#22222e;border:1px solid rgba(212,175,55,0.2);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center}
+.kp-image{width:120px;height:120px;object-fit:cover;border-radius:12px;margin-bottom:12px}
+.kp-title{color:#d4af37;font-size:18px;font-weight:700;margin-bottom:8px}
+.kp-extract{color:#c8c8c8;font-size:14px;line-height:1.5;margin-bottom:12px}
+.kp-link{color:#d4af37;font-size:13px;font-weight:500;cursor:pointer}
+.kp-link:hover{text-decoration:underline}
+.results-list{flex:1}
+.result-card{background:#22222e;border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:18px 20px;margin-bottom:14px;transition:border-color 0.2s}
+.result-card:hover{border-color:rgba(212,175,55,0.3)}
+.result-meta{display:flex;align-items:center;margin-bottom:6px;gap:6px}
+.result-url{color:#888896;font-size:12px}
+.result-title{display:block;color:#d4af37;font-size:17px;font-weight:600;margin-bottom:8px;cursor:pointer}
+.result-title:hover{text-decoration:underline}
+.result-content{color:#c8c8c8;font-size:14px;line-height:1.5}
+.engine-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;margin-right:6px;text-transform:uppercase}
+.related-section{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.05)}
+.related-title{color:#666;font-size:13px;margin-bottom:10px;font-weight:600}
+.related-tags{display:flex;flex-wrap:wrap;gap:8px}
+.related-tag{padding:8px 16px;background:#1a1a24;border:1px solid rgba(212,175,55,0.15);border-radius:10px;color:#c8c8c8;font-size:13px;cursor:pointer;transition:all 0.2s}
+.related-tag:hover{background:#22222e;border-color:rgba(212,175,55,0.4);color:#d4af37}
+.also-search{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05)}
+.also-text{color:#666;font-size:13px;margin-bottom:10px}
+.external-links{display:flex;flex-wrap:wrap;gap:10px}
+.external-link{padding:8px 16px;background:#22222e;border:1px solid rgba(212,175,55,0.2);border-radius:8px;color:#d4af37;font-size:13px;font-weight:500;text-transform:capitalize;cursor:pointer;transition:background 0.2s}
+.external-link:hover{background:#2a2a38}
+.no-results{color:#888;text-align:center;padding:40px 20px}
+.footer{text-align:center;padding:30px 0 10px;color:#666670;font-size:12px}
+.footer p{margin:2px 0}
+.history-section{width:100%;max-width:600px}
+.history-title{color:#555;font-size:13px;margin-bottom:10px;font-weight:600}
+.history-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.history-tag{padding:6px 14px;background:#1a1a24;border:1px solid rgba(255,255,255,0.05);border-radius:20px;color:#888;font-size:13px;cursor:pointer;transition:all 0.2s}
+.history-tag:hover{background:#22222e;color:#c8c8c8}
+@media(max-width:600px){.logo-text{font-size:32px}.features{gap:10px}.search-form-top{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+<div class="hero" id="hero">
+<div class="logo-area">
+<h1 class="logo-text"><span class="logo-d">DeryCode</span> <span class="logo-s">Search</span></h1>
+<p class="tagline">Premium C-powered search for Africa. AI summaries. No ads. No tracking.</p>
+<span class="premium-badge">PREMIUM</span><span class="c-badge">BUILT IN C</span>
+</div>
+<form class="search-form" onsubmit="doSearch(event)">
+<div class="search-box">
+<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type="text" id="q" class="search-input" placeholder="Search anything..." autocomplete="off">
+<button type="button" class="voice-btn" onclick="startVoice()" title="Voice search">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+</button>
+<button type="submit" class="search-btn">Search</button>
+</div>
+<div id="suggestions" class="suggestions" style="display:none"></div>
+</form>
+<div id="history" class="history-section" style="display:none">
+<p class="history-title">Recent searches</p>
+<div id="history-tags" class="history-tags"></div>
+</div>
+<div class="features">
+<div class="feature"><span class="feature-icon">AI</span><span>AI Summaries</span></div>
+<div class="feature"><span class="feature-icon">KP</span><span>Knowledge Panels</span></div>
+<div class="feature"><span class="feature-icon">C</span><span>Pure C Backend</span></div>
+<div class="feature"><span class="feature-icon">MIC</span><span>Voice Search</span></div>
+<div class="feature"><span class="feature-icon">FREE</span><span>100% Free</span></div>
+</div>
+</div>
+<div id="results-view" style="display:none">
+<div class="results-header">
+<form class="search-form-top" onsubmit="doSearch(event)">
+<div class="search-box search-box-small">
+<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<input type="text" id="q2" class="search-input" autocomplete="off">
+<button type="button" class="voice-btn" onclick="startVoice()" title="Voice search">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+</button>
+<button type="submit" class="search-btn">Search</button>
+</div>
+<a href="/" class="logo-link">DeryCode Search</a>
+</form>
+<p id="result-count" class="result-count"></p>
+</div>
+<div id="results-body"></div>
+</div>
+<div class="footer">
+<p>DeryCode Search - Premium C-Powered Search Engine for Africa</p>
+<p>AI Summaries - Knowledge Panels - Voice Search - Zero Dependencies</p>
+<p>Built in C by DeryCode Tech - No tracking - No ads - Open source</p>
+</div>
+</div>
+<script>
+var searched=false;
+document.getElementById('q').focus();
+loadHistory();
+
+function loadHistory(){try{var h=JSON.parse(localStorage.getItem('dc_history')||'[]');if(h.length>0){document.getElementById('history').style.display='block';var ht=document.getElementById('history-tags');ht.innerHTML='';h.slice(0,8).forEach(function(s){var b=document.createElement('button');b.className='history-tag';b.textContent=s;b.onclick=function(){document.getElementById('q').value=s;doSearch()};ht.appendChild(b)})}}catch(e){}}
+
+function saveHistory(q){try{var h=JSON.parse(localStorage.getItem('dc_history')||'[]');if(h.indexOf(q)<0){h.unshift(q);localStorage.setItem('dc_history',JSON.stringify(h.slice(0,20)));loadHistory()}}catch(e){}}
+
+var suggestTimer;
+document.getElementById('q').addEventListener('input',function(){
+var v=this.value;if(v.length<2){document.getElementById('suggestions').style.display='none';return}
+clearTimeout(suggestTimer);
+suggestTimer=setTimeout(function(){
+fetch('/api/suggest?q='+encodeURIComponent(v)).then(function(r){return r.json()}).then(function(data){
+if(data.length>0){var s=document.getElementById('suggestions');s.innerHTML='';
+data.forEach(function(item){var d=document.createElement('div');d.className='suggestion';
+d.innerHTML='<svg class="sug-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+item;
+d.onmousedown=function(){document.getElementById('q').value=item;doSearch()};
+s.appendChild(d)});s.style.display='block'
+}else{document.getElementById('suggestions').style.display='none'}
+}).catch(function(){})
+},300)
+});
+
+function doSearch(e){
+if(e)e.preventDefault();
+var q=document.getElementById('q').value.trim();
+if(!q)return;
+document.getElementById('suggestions').style.display='none';
+saveHistory(q);
+document.getElementById('q2').value=q;
+document.getElementById('hero').style.display='none';
+document.getElementById('results-view').style.display='block';
+document.getElementById('result-count').textContent='Searching...';
+document.getElementById('results-body').innerHTML='<p class="loading" style="color:#888;text-align:center;padding:40px">Searching C-powered backend...</p>';
+
+var start=Date.now();
+fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(data){
+var t=((Date.now()-start)/1000).toFixed(2);
+document.getElementById('result-count').textContent=data.count+' results in '+t+'s';
+var body=document.getElementById('results-body');
+var html='';
+
+if(data.knowledgePanel){
+html+='<div class="knowledge-panel">';
+if(data.knowledgePanel.thumbnail)html+='<img src="'+data.knowledgePanel.thumbnail+'" class="kp-image" alt="">';
+html+='<h3 class="kp-title">'+esc(data.knowledgePanel.title)+'</h3>';
+html+='<p class="kp-extract">'+esc(data.knowledgePanel.extract)+'</p>';
+if(data.knowledgePanel.url)html+='<a href="'+data.knowledgePanel.url+'" target="_blank" class="kp-link">Read more on Wikipedia</a>';
+html+='</div>'
+}
+
+if(data.aiSummary){
+html+='<div class="ai-summary"><div class="ai-header"><span class="ai-icon">AI</span><span class="ai-label">AI Summary</span></div><p class="ai-text">'+esc(data.aiSummary)+'</p></div>'
+}
+
+html+='<div class="results-list">';
+(data.results||[]).forEach(function(r){
+var badgeColor={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';
+var badgeLabel={duckduckgo:'DDG',wikipedia:'Wiki',github:'GitHub',web:'Web'}[r.engine]||r.engine;
+html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+badgeColor+'">'+badgeLabel+'</span><a href="'+r.url+'" target="_blank" class="result-url">'+formatUrl(r.url)+'</a></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';
+if(r.content)html+='<p class="result-content">'+esc(r.content)+'</p>';
+html+='</div>'
+});
+html+='</div>';
+
+if(data.related&&data.related.length>0){
+html+='<div class="related-section"><p class="related-title">Related searches</p><div class="related-tags">';
+data.related.forEach(function(r){html+='<button class="related-tag" onclick="document.getElementById(\\'q\\').value=\\''+r+'\\';doSearch()">'+esc(r)+'</button>'});
+html+='</div></div>'
+}
+
+if(data.external){
+html+='<div class="also-search"><p class="also-text">Also search on:</p><div class="external-links">';
+Object.entries(data.external).forEach(function(e){html+='<a href="'+e[1]+'" target="_blank" class="external-link">'+e[0]+'</a>'});
+html+='</div></div>'
+}
+
+body.innerHTML=html;
+if(data.count===0){body.innerHTML='<p class="no-results">No direct results found. Try searching on the links below.</p>'}
+}).catch(function(e){
+document.getElementById('result-count').textContent='Search failed';
+document.getElementById('results-body').innerHTML='<p class="no-results">Search error: '+esc(e.message)+'</p>'
+})
+}
+
+function startVoice(){
+try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice search not supported');return}
+var rec=new SR();rec.lang='en-US';rec.continuous=false;rec.interimResults=false;
+rec.onresult=function(e){var t=e.results[0][0].transcript;var input=searched?document.getElementById('q2'):document.getElementById('q');input.value=t;doSearch()};
+rec.start()}catch(e){}
+}
+
+function formatUrl(url){try{var u=new URL(url);return u.hostname.replace('www.','')}catch(e){return url}}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+</script>
+</body>
+</html>
