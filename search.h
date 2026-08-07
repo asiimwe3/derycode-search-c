@@ -940,6 +940,244 @@ static SearchResponse *perform_search(const char *query) {
 
 #endif
 
+/* ============ DERICK AGENT - Step-by-Step Practical Guide ============ */
+
+/* Derick step structure */
+typedef struct {
+    char title[256];
+    char content[1024];
+    char source_url[1024];
+    char source_name[128];
+} DerickStep;
+
+/* Derick guide response */
+typedef struct {
+    DerickStep steps[15];
+    int step_count;
+    char intro[1024];
+    char topic[256];
+    char tips[512];
+    char warnings[512];
+    int has_data;
+} DerickGuide;
+
+/* Check if query is practical/how-to type */
+static int is_practical_query(const char *query) {
+    const char *indicators[] = {
+        "how to", "how do", "how can", "what is", "what are",
+        "explain", "understand", "learn", "build", "create",
+        "make", "setup", "set up", "install", "configure",
+        "deploy", "implement", "use", "fix", "solve",
+        "start", "begin", "step by step", "guide", "tutorial",
+        "practical", "example", "do i", "can i", "should i",
+        NULL
+    };
+    for (int i = 0; indicators[i]; i++) {
+        if (strcasestr(query, indicators[i])) return 1;
+    }
+    return 0;
+}
+
+/* Generate step-by-step practical guide from search results */
+static DerickGuide *generate_derick_guide(const char *query, SearchResponse *search) {
+    DerickGuide *guide = calloc(1, sizeof(DerickGuide));
+    
+    if (!search || search->result_count == 0) {
+        snprintf(guide->intro, 1023, "I couldn't find enough information to create a practical guide for \"%s\". Try rephrasing your question.", query);
+        guide->has_data = 0;
+        return guide;
+    }
+    
+    strncpy(guide->topic, query, 255);
+    guide->has_data = 1;
+    
+    /* Build intro from knowledge panel or first result */
+    if (search->kp.has_data && strlen(search->kp.extract) > 50) {
+        /* Extract first 2 sentences for intro */
+        char intro[1024];
+        extract_key_sentences(search->kp.extract, intro, sizeof(intro));
+        snprintf(guide->intro, 1023, "Here's a practical breakdown of \"%s\":\n\n%s", query, intro);
+    } else if (search->results[0].content && strlen(search->results[0].content) > 30) {
+        char intro[1024];
+        extract_key_sentences(search->results[0].content, intro, sizeof(intro));
+        snprintf(guide->intro, 1023, "Here's a practical breakdown of \"%s\":\n\n%s", query, intro);
+    } else {
+        snprintf(guide->intro, 1023, "Here's a practical, step-by-step breakdown of \"%s\" based on what I found across the web.", query);
+    }
+    
+    /* Generate steps from search results */
+    int step = 0;
+    
+    /* Step 1: Understanding - use knowledge panel or Wikipedia */
+    if (search->kp.has_data && step < 15) {
+        snprintf(guide->steps[step].title, 255, "Understand the basics");
+        char content[1024];
+        extract_key_sentences(search->kp.extract, content, sizeof(content));
+        snprintf(guide->steps[step].content, 1023,
+            "Before diving in, here's what you need to know:\n%s", content);
+        strncpy(guide->steps[step].source_url, search->kp.url, 1023);
+        strncpy(guide->steps[step].source_name, "Wikipedia", 127);
+        step++;
+    }
+    
+    /* Step 2+: Extract practical steps from results */
+    for (int i = 0; i < search->result_count && step < 15; i++) {
+        SearchResult *r = &search->results[i];
+        if (!r->content || strlen(r->content) < 40) continue;
+        
+        /* Skip if we already used this as knowledge panel */
+        if (i == 0 && search->kp.has_data) continue;
+        
+        /* Check if result has practical content */
+        const char *practical_indicators[] = {
+            "step", "first", "then", "next", "after", "begin", "start",
+            "install", "create", "build", "configure", "use",
+            "require", "need", "must", "should", "important",
+            "option", "choose", "select", "click", "run", "type",
+            "code", "command", "example", "tutorial", "guide",
+            NULL
+        };
+        
+        int is_practical = 0;
+        for (int p = 0; practical_indicators[p]; p++) {
+            if (strcasestr(r->content, practical_indicators[p])) {
+                is_practical = 1;
+                break;
+            }
+        }
+        
+        if (!is_practical) continue;
+        
+        /* Generate step title from result title */
+        char step_title[256];
+        strncpy(step_title, r->title, 255);
+        step_title[255] = 0;
+        
+        /* Clean up title - remove "- Wikipedia", " - GitHub", etc */
+        char *dash = strstr(step_title, " - ");
+        if (dash) *dash = 0;
+        if (strlen(step_title) > 80) {
+            step_title[77] = '.';
+            step_title[78] = '.';
+            step_title[79] = '.';
+            step_title[80] = 0;
+        }
+        
+        /* Generate step number */
+        snprintf(guide->steps[step].title, 255, "Step %d: %s", step, step_title);
+        
+        /* Use the content as the step explanation */
+        char content[1024];
+        extract_key_sentences(r->content, content, sizeof(content));
+        if (strlen(content) > 30) {
+            strncpy(guide->steps[step].content, content, 1023);
+        } else {
+            strncpy(guide->steps[step].content, r->content, 1023);
+        }
+        
+        strncpy(guide->steps[step].source_url, r->url, 1023);
+        strncpy(guide->steps[step].source_name, r->source, 127);
+        step++;
+    }
+    
+    /* If we couldn't extract practical steps, create generic ones from all results */
+    if (step == 0 || (step == 1 && search->kp.has_data)) {
+        for (int i = 0; i < search->result_count && step < 10; i++) {
+            SearchResult *r = &search->results[i];
+            if (!r->content || strlen(r->content) < 40) continue;
+            if (i == 0 && search->kp.has_data) continue;
+            
+            char step_title[256];
+            strncpy(step_title, r->title, 255);
+            step_title[255] = 0;
+            char *dash = strstr(step_title, " - ");
+            if (dash) *dash = 0;
+            if (strlen(step_title) > 80) {
+                step_title[77] = '.';
+                step_title[78] = '.';
+                step_title[79] = '.';
+                step_title[80] = 0;
+            }
+            
+            snprintf(guide->steps[step].title, 255, "Step %d: %s", step, step_title);
+            char content[1024];
+            extract_key_sentences(r->content, content, sizeof(content));
+            strncpy(guide->steps[step].content, content, 1023);
+            strncpy(guide->steps[step].source_url, r->url, 1023);
+            strncpy(guide->steps[step].source_name, r->source, 127);
+            step++;
+        }
+    }
+    
+    guide->step_count = step;
+    
+    /* Generate tips from related searches */
+    if (search->related[0][0]) {
+        snprintf(guide->tips, 511,
+            "Pro tips:\n- %s\n- %s\n- %s",
+            search->related[0], search->related[3], search->related[4]);
+    }
+    
+    /* Generate warnings */
+    snprintf(guide->warnings, 511,
+        "Remember: This guide is generated from live web results. "
+        "Always verify critical steps with the original sources.");
+    
+    return guide;
+}
+
+/* Free Derick guide */
+static void free_derick_guide(DerickGuide *guide) {
+    if (guide) free(guide);
+}
+
+/* Build Derick JSON response */
+static char *build_derick_json(DerickGuide *guide, const char *query) {
+    char *json = malloc(MAX_RESPONSE);
+    int offset = 0;
+    
+    char topic[512], intro[2048];
+    json_escape(topic, guide->topic, 512);
+    json_escape(intro, guide->intro, 2048);
+    
+    offset += sprintf(json + offset,
+        "{\"query\":\"%s\",\"topic\":\"%s\",\"intro\":\"%s\",",
+        query, topic, intro);
+    
+    /* Steps */
+    offset += sprintf(json + offset, "\"steps\":[");
+    for (int i = 0; i < guide->step_count; i++) {
+        if (i > 0) offset += sprintf(json + offset, ",");
+        char title[512], content[2048], source_url[2048], source_name[256];
+        json_escape(title, guide->steps[i].title, 512);
+        json_escape(content, guide->steps[i].content, 2048);
+        json_escape(source_url, guide->steps[i].source_url, 2048);
+        json_escape(source_name, guide->steps[i].source_name, 256);
+        offset += sprintf(json + offset,
+            "{\"step\":%d,\"title\":\"%s\",\"content\":\"%s\",\"source_url\":\"%s\",\"source_name\":\"%s\"}",
+            i + 1, title, content, source_url, source_name);
+    }
+    offset += sprintf(json + offset, "]");
+    
+    /* Tips */
+    char tips[1024];
+    json_escape(tips, guide->tips, 1024);
+    offset += sprintf(json + offset, ",\"tips\":\"%s\"", tips);
+    
+    /* Warnings */
+    char warnings[1024];
+    json_escape(warnings, guide->warnings, 1024);
+    offset += sprintf(json + offset, ",\"warnings\":\"%s\"", warnings);
+    
+    /* Meta */
+    offset += sprintf(json + offset,
+        ",\"step_count\":%d,\"has_data\":%s,\"agent\":\"Derick\"}",
+        guide->step_count, guide->has_data ? "true" : "false");
+    
+    return json;
+}
+
+
 /* ============ AI ANSWER SYNTHESIS (Gemini-style) ============ */
 
 /* AI conversation message */

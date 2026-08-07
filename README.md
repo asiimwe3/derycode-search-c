@@ -25,6 +25,7 @@ A premium search engine built in **pure C** - zero frameworks, zero dependencies
 - No filtering, no censorship, no safe search
 - Privacy-focused: no tracking, no ads
 - DeryCode dark/gold branding
+- **Derick Agent** - Step-by-step practical guides from search results
 - Mobile responsive
 
 ## Why C?
@@ -47,6 +48,7 @@ Then open http://localhost:8080
 - `json.h` - Hand-written JSON parser (zero dependencies)
 - `search.h` - Search aggregation from 11 sources using curl via popen()
 - `public/index.html` - Single-page frontend with embedded CSS/JS
+- Derick Agent (`/api/derick`) - Takes search results and generates step-by-step practical explanations
 
 ## Why 11 Sources?
 Mainstream search engines filter, demote, and hide results. Google claims

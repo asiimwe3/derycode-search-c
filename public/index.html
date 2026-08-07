@@ -323,6 +323,20 @@ html{font-size:14px}
 .paa-q{flex:1;color:var(--text2);font-size:15px;font-weight:600;line-height:1.4}
 .paa-arrow{color:var(--gold);font-size:18px;font-weight:700;flex-shrink:0}
 
+
+/* Derick Agent - Step-by-Step Guide */
+.steps-container{margin:8px 0;display:flex;flex-direction:column;gap:10px}
+.step-card{background:var(--bg3);border:1px solid rgba(212,175,55,0.15);border-radius:12px;padding:14px;transition:all 0.2s}
+.step-card:active{transform:scale(0.98)}
+.step-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.step-number{display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);font-size:14px;font-weight:800;border-radius:50%;flex-shrink:0}
+.step-title{font-size:15px;font-weight:700;color:var(--gold);line-height:1.3}
+.step-content{font-size:14px;line-height:1.6;color:var(--text2);padding-left:38px}
+.step-source{display:inline-block;margin-top:8px;margin-left:38px;font-size:12px;color:var(--gold);text-decoration:none;border:1px solid rgba(212,175,55,0.2);padding:4px 12px;border-radius:16px;transition:all 0.15s}
+.step-source:active{background:rgba(212,175,55,0.1)}
+.step-tips{margin-top:12px;padding:12px 14px;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.2);border-radius:10px;font-size:13px;color:#81c784;line-height:1.5}
+.step-warning{margin-top:8px;padding:10px 14px;background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);border-radius:10px;font-size:13px;color:#ffb74d;line-height:1.5}
+
 </style>
 </head>
 <body>
@@ -350,6 +364,7 @@ html{font-size:14px}
 <button class="mode-btn" id="mode-images" onclick="setMode('images')"><span class="mi">🖼️</span> Images</button>
 <button class="mode-btn" id="mode-news" onclick="setMode('news')"><span class="mi">📰</span> News</button>
 <button class="mode-btn" id="mode-code" onclick="setMode('code')"><span class="mi">⚡</span> Code</button>
+<button class="mode-btn" id="mode-derick" onclick="setMode('derick')"><span class="mi">🧑‍🏫</span> Derick</button>
 <button class="mode-btn" id="mode-videos" onclick="setMode('videos')"><span class="mi">📺</span> Videos</button>
 </div>
 
@@ -404,7 +419,7 @@ suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe 
 te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 5 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
-var modeNames=['all','search','images','news','code','videos'];
+var modeNames=['all','search','images','news','code','derick','videos'];
 
 inputEl.focus();
 renderWelcome();
@@ -416,9 +431,9 @@ function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document
 
 function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
 
-function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
+function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code,derick:'Derick'};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
-function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',derick:'Ask Derick for step-by-step...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
 
 function quickAsk(q){inputEl.value=q;send()}
 
@@ -436,6 +451,7 @@ else if(mode==='search'){searchWeb(q)}
 else if(mode==='images'){searchImages(q)}
 else if(mode==='news'){searchNews(q)}
 else if(mode==='code'){searchCode(q)}
+else if(mode==='derick'){askDerick(q)}
 else if(mode==='videos'){searchVideos(q)}
 }
 
@@ -448,6 +464,19 @@ messages.push({role:'assistant',content:data.answer,sources:data.sources,followu
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Error. Please try again.',mode:'ai'});renderMessages();busy=false;sendBtn.disabled=false})
+
+function askDerick(q){
+saveHistory(q);
+fetch('/api/derick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})})
+.then(function(r){return r.json()})
+.then(function(data){
+if(data.error){messages.push({role:'assistant',content:data.error,mode:'derick'})}else{
+messages.push({role:'assistant',content:data,mode:'derick'})}
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:'assistant',content:'Derick agent error. Please try again.',mode:'derick'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
 }
 
 
@@ -680,10 +709,10 @@ var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[m.mode||'search']||'🔍';
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑‍🏫',videos:'📺'}[m.mode||'search']||'🔍';
 html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
-html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI';
+html+='<div class="msg msg-ai">';if(m.mode==='derick'){html+='<div class="ai-avatar" style="background:linear-gradient(135deg,#d4af37,#b8941f)">🧑\u200d🏫</div><div class="ai-bubble"><div class="ai-name">Derick Agent <span style="font-size:11px;color:var(--text3);font-weight:400">Step-by-Step Guide</span></div>'}else{html+='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI';
 if(m.confidence&&m.confidence!=='high'){var cc={high:['High','#4caf50'],medium:['Medium','#ffc107'],low:['Low','#ff9800'],none:['None','#f44336']}[m.confidence]||['Medium','#ffc107'];html+=' <span class="confidence-badge confidence-'+(m.confidence||'medium')+'"><span class="confidence-dot"></span>'+cc[0]+' confidence</span>'}
 html+='</div>';
 
@@ -703,6 +732,26 @@ if(m.results&&m.results.length>0){html+='<div class="search-section"><div class=
 if(m.images&&m.images.length>0){html+='<div class="search-section"><div class="search-section-title">🖼️ Images</div><div class="image-grid">';m.images.slice(0,12).forEach(function(img){html+='<a href="'+(img.image||img.url||img.thumbnail)+'" target="_blank" class="image-card">';if(img.thumbnail)html+='<img src="'+img.thumbnail+'" loading="lazy" alt="'+esc(img.title||'')+'" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'\.image-placeholder\').style.display=\'flex\'"><div class="image-placeholder" style="display:none">🖼️</div>';else html+='<div class="image-placeholder">🖼️</div>';if(img.source)html+='<div class="img-source">'+esc(img.source)+'</div>';html+='<div class="img-overlay">'+esc((img.title||'').substring(0,30))+'</div></a>'});html+='</div></div>'}
 if(m.videos&&m.videos.length>0){html+='<div class="search-section"><div class="search-section-title">📺 Videos</div><div class="video-list">';m.videos.slice(0,10).forEach(function(v){var thumb=v.thumbnail||'';var dur=v.duration?'<span class="vid-duration">'+esc(v.duration)+'</span>':'';html+='<a href="'+v.url+'" target="_blank" class="video-card">';html+='<div class="video-thumb">';if(thumb)html+='<img src="'+thumb+'" loading="lazy" alt="'+esc(v.title)+'" onerror="this.style.display=\'none\'">';else html+='<div class="image-placeholder">📺</div>';html+=dur;html+='</div>';html+='<div class="video-info"><div class="video-title">'+esc(v.title)+'</div>';html+='<div class="video-meta">';if(v.channel)html+='<span class="video-channel">'+esc(v.channel)+'</span>';if(v.views)html+='<span class="video-views">'+esc(v.views)+'</span>';if(v.published)html+='<span class="video-date">'+esc(v.published)+'</span>';html+='</div></div></a>'});html+='</div></div>'}
 if(m.paa&&m.paa.length>0){html+='<div class="search-section"><div class="search-section-title">🤔 People Also Ask</div>';m.paa.forEach(function(p){html+='<button class="paa-item" onclick="quickAsk(\''+p.replace(/'/g,"\\'")+'\')"><span class="paa-q">'+cleanAndEsc(p)+'</span><span class="paa-arrow">→</span></button>'});html+='</div>'}
+}
+
+
+// Derick mode - Step-by-step practical guide
+if(m.mode==='derick'){
+var d=m.content||{};
+if(d.intro){html+='<div class="ai-content">'+cleanAndEsc(d.intro)+'</div>'}
+if(d.steps&&d.steps.length>0){
+html+='<div class="steps-container">';
+d.steps.forEach(function(s,idx){
+html+='<div class="step-card">';
+html+='<div class="step-header"><span class="step-number">'+(s.step||idx+1)+'</span><span class="step-title">'+cleanAndEsc(s.title||'')+'</span></div>';
+html+='<div class="step-content">'+cleanAndEsc(s.content||'')+'</div>';
+if(s.source_url){html+='<a href="'+s.source_url+'" target="_blank" class="step-source">'+cleanAndEsc(s.source_name||'Source')+' →</a>'}
+html+='</div>'
+});
+html+='</div>';
+}
+if(d.tips&&d.tips.length>5){html+='<div class="step-tips">💡 '+cleanAndEsc(d.tips).replace(/\n/g,'<br>')+'</div>'}
+if(d.warnings&&d.warnings.length>5){html+='<div class="step-warning">⚠️ '+cleanAndEsc(d.warnings)+'</div>'}
 }
 
 // Web search mode

@@ -349,6 +349,61 @@ static void serve_ai(int client_fd, const char *request, int total_len, const ch
     free(query);
 }
 
+
+/* Serve Derick Agent - Step-by-step practical guide */
+static void serve_derick(int client_fd, const char *request, int total_len, const char *path) {
+    char *query = NULL;
+    
+    if (strncmp(request, "POST", 4) == 0) {
+        char *body = get_json_body(request, total_len);
+        if (body) {
+            JsonValue *json = json_parse(body);
+            free(body);
+            if (json) {
+                const char *q = json_get_string(json, "question");
+                if (q) query = strdup(q);
+                json_free(json);
+            }
+        }
+    } else {
+        query = get_param(path, "q");
+    }
+    
+    if (!query || strlen(query) == 0) {
+        send_json(client_fd, "{\"error\":\"Question is required\"}", 400);
+        if (query) free(query);
+        return;
+    }
+    
+    /* Check word limit */
+    int words = count_words(query);
+    if (words > MAX_QUERY_WORDS) {
+        char err[256];
+        snprintf(err, sizeof(err),
+            "{\"error\":\"Query too long. Maximum %d words.\"}", MAX_QUERY_WORDS);
+        send_json(client_fd, err, 400);
+        free(query);
+        return;
+    }
+    
+    printf("[Derick] Step-by-step guide for: %s (words: %d)\n", query, words);
+    
+    /* Perform deep search */
+    SearchResponse *search = perform_search(query);
+    
+    /* Generate step-by-step guide */
+    DerickGuide *guide = generate_derick_guide(query, search);
+    
+    /* Build and send response */
+    char *json = build_derick_json(guide, query);
+    send_json(client_fd, json, 200);
+    
+    free(json);
+    free_derick_guide(guide);
+    free(search);
+    free(query);
+}
+
 /* Serve autocomplete */
 static void serve_suggest(int client_fd, const char *path) {
     char *query = get_param(path, "q");
@@ -440,7 +495,9 @@ static void handle_request(int client_fd) {
     char method[8], path[2048];
     sscanf(request, "%s %s", method, path);
     
-    if (strncmp(path, "/api/ai", 7) == 0) {
+    if (strncmp(path, "/api/derick", 11) == 0) {
+        serve_derick(client_fd, request, bytes, path);
+    } else if (strncmp(path, "/api/ai", 7) == 0) {
         serve_ai(client_fd, request, bytes, path);
     } else if (strncmp(path, "/api/search", 11) == 0) {
         serve_search(client_fd, path);
@@ -487,7 +544,7 @@ int main(int argc, char *argv[]) {
     
     printf("DeryCode Search - C Edition with AI\n");
     printf("Listening on port %d\n", port);
-    printf("AI chat: /api/ai | Search: /api/search | Languages: /api/languages\n");
+    printf("Derick: /api/derick | AI chat: /api/ai | Search: /api/search | Languages: /api/languages\n");
     printf("6 African languages | Word limit: %d query, %d answer\n", MAX_QUERY_WORDS, MAX_ANSWER_WORDS);
     printf("Built with pure C - no frameworks, no dependencies\n\n");
     fflush(stdout);
