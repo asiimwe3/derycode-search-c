@@ -1,0 +1,137 @@
+{
+  "name": "DeryCode AI",
+  "short_name": "DeryCode AI",
+  "description": "AI-powered search engine with 10 modes: AI, web, images, news, code, Derick, books, maps, deep web, and videos. 22 sources. No tracking.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f14",
+  "theme_color": "#0f0f14",
+  "categories": [
+    "search",
+    "productivity",
+    "utilities",
+    "education",
+    "books"
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "AI Chat",
+      "short_name": "AI",
+      "description": "Chat with DeryCode AI",
+      "url": "/?mode=ai",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Web Search",
+      "short_name": "Web",
+      "description": "Search the web",
+      "url": "/?mode=search",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Deep Web",
+      "short_name": "Deep",
+      "description": "Search the deep web",
+      "url": "/?mode=deep",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "short_name": "Videos",
+      "description": "Search videos",
+      "url": "/?mode=videos",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "url_handlers": [
+    {
+      "origin": "https://derycode-search-hjs18exiw-nexacode45-8879s-projects.vercel.app"
+    },
+    {
+      "origin": "https://derycode-search-c.vercel.app"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "http",
+      "url": "/?url=%s"
+    },
+    {
+      "protocol": "https",
+      "url": "/?url=%s"
+    },
+    {
+      "protocol": "web+derycode",
+      "url": "/?url=%s"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}
