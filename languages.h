@@ -2,6 +2,12 @@
 #ifndef DC_LANGUAGES_H
 #define DC_LANGUAGES_H
 
+/* Maximum limits - HIGH OUTPUT MODE */
+#define MAX_QUERY_WORDS 500
+#define MAX_ANSWER_WORDS 5000
+#define MAX_ANSWER_CHARS 50000
+#define MAX_GUIDE_STEPS 30
+
 /* Supported languages */
 typedef struct {
     char code[8];       /* "en", "sw", "lg", etc */
@@ -48,82 +54,87 @@ static const Language languages[] = {
     
     /* Runyoro/Rutooro */
     {"rn", "Runyoro", "Runyoro",
-     "Buuza DeryCode AI ekintu kyona...", "Omutambi wo wa AI. Buuza ekintu kyona.",
-     "Ruma", "DeryCode AI", "Ahamaruho", "Ebyebigyezeho", "Ebyarugire aha muguru",
-     "Rondora aha Muguru", "Bigambo bya AI",
-     "Nikareba ntaronda ebyarugire. Gezaako kubuuza konka.",
-     "Nikitekateka..."},
+     "Buuza DeryCode AI kihabuuza...", "Akarigamba kaitu aha AI. Buuza kihabuuza.",
+     "Handiika", "DeryCode AI", "Emitwe", "Ebyokureeberera", "Ebyavugwire",
+     "Ronda kaha intaneti", "Bigambo bya AI",
+     "Tindaba byona. Gerageza kubuuza kandi.",
+     "Nikyetegyerez'aho..."},
     
-    /* Luo (Acholi/Luo) */
-    {"luo", "Luo", "Dholuo",
-     "Penj DeryCode AI gin mang'eyo...", "Maromi me AI. Penj gin mang'eyo.",
-     "Cwal", "DeryCode AI", "Kama odongo", "Ma marwach", "Gin ma otime i intanet",
-     "Yiye i Intanet", "Lok me AI",
-     "Onongo peya gin ma oyie. Tem dongo penji moker.",
-     "Zwo tamo..."},
+    /* French */
+    {"fr", "French", "Francais",
+     "Demandez a DeryCode AI...", "Votre assistant IA. Demandez n'importe quoi.",
+     "Envoyer", "DeryCode AI", "Sources", "Connexes", "Resultats web",
+     "Recherche web", "Chat IA",
+     "Aucun resultat. Rephrasez votre question.",
+     "Reflexion..."},
     
-    /* Ateso */
-    {"te", "Ateso", "Ateso",
-     "Kopus DeryCode AI aki akongun...", "Ekamolo naikot AI. Kopus akongun.",
-     "Rukor", "DeryCode AI", "Epar", "Eapar", "Aki internet",
-     "Loka Internet", "Aki AI",
-     "Akiyai nongo aki akongun. Tem aki aporopo.",
-     "Eponai..."},
+    /* Arabic */
+    {"ar", "Arabic", "Arabic",
+     "Ask DeryCode AI anything...", "Your AI search assistant. Ask anything.",
+     "Send", "DeryCode AI", "Sources", "Related", "Web results",
+     "Web Search", "AI Chat",
+     "No results found. Try rephrasing.",
+     "Thinking..."},
 };
-
-#define LANGUAGE_COUNT 6
-#define MAX_QUERY_WORDS 30
-#define MAX_ANSWER_WORDS 200
-#define MAX_ANSWER_CHARS 1200
+#define LANGUAGE_COUNT (sizeof(languages) / sizeof(Language))
 
 /* Get language by code */
 static const Language *get_language(const char *code) {
+    if (!code) return &languages[0];
     for (int i = 0; i < LANGUAGE_COUNT; i++) {
         if (strcmp(languages[i].code, code) == 0) return &languages[i];
     }
-    return &languages[0]; /* default to English */
+    return &languages[0];
 }
 
 /* Count words in a string */
 static int count_words(const char *str) {
-    if (!str || !*str) return 0;
+    if (!str) return 0;
     int count = 0;
-    const char *p = str;
-    while (*p) {
-        while (*p == ' ') p++;
-        if (*p) count++;
-        while (*p && *p != ' ') p++;
+    int in_word = 0;
+    while (*str) {
+        if (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r') {
+            in_word = 0;
+        } else if (!in_word) {
+            in_word = 1;
+            count++;
+        }
+        str++;
     }
     return count;
 }
 
-/* Truncate text to max words */
+/* Truncate text to N words and M chars */
 static void truncate_words(const char *input, char *output, int max_words, int max_chars) {
+    if (!input || !output || max_words <= 0 || max_chars <= 0) {
+        if (output) output[0] = 0;
+        return;
+    }
+    
     int word_count = 0;
     int out_pos = 0;
     const char *p = input;
     
+    while (*p == ' ' && out_pos < max_chars - 1) {
+        output[out_pos++] = *p++;
+    }
+    
     while (*p && word_count < max_words && out_pos < max_chars - 1) {
-        /* Skip spaces */
         while (*p == ' ' && out_pos < max_chars - 1) {
             output[out_pos++] = *p++;
         }
         if (!*p || word_count >= max_words) break;
         
-        /* Copy word */
+        word_count++;
         while (*p && *p != ' ' && out_pos < max_chars - 1) {
             output[out_pos++] = *p++;
         }
-        word_count++;
     }
     
-    /* Add ellipsis if truncated */
     if (word_count >= max_words && *p) {
         int remaining = max_chars - 1 - out_pos;
-        if (remaining >= 3) {
-            output[out_pos++] = '.';
-            output[out_pos++] = '.';
-            output[out_pos++] = '.';
+        if (remaining > 4) {
+            out_pos += snprintf(output + out_pos, remaining, "...");
         }
     }
     
@@ -136,9 +147,9 @@ static int check_query_limit(const char *query, char *error_msg, int max_len) {
     if (words > MAX_QUERY_WORDS) {
         snprintf(error_msg, max_len, 
             "Query too long. Maximum %d words allowed. You used %d.", MAX_QUERY_WORDS, words);
-        return 0;
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 #endif
