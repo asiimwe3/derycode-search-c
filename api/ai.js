@@ -1,12 +1,12 @@
 // DeryCode AI API - Vercel Serverless
-// NO Gemini dependency - uses Startpage web results + Wikipedia knowledge
-// Provides AI-style answers by synthesizing web content
+// Reliable answer synthesis from multiple sources
+// Prioritizes accuracy, deduplication, and clean formatting
 
 import { isDeryCodeQuery, getDeryCodeKnowledge } from './derycode-knowledge.js';
 
 const MAX_QUERY_WORDS = 30;
-const MAX_ANSWER_WORDS = 250;
-const MAX_ANSWER_CHARS = 1500;
+const MAX_ANSWER_WORDS = 300;
+const MAX_ANSWER_CHARS = 2000;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     });
   }
   
-  // 1. Check DeryCode knowledge base first (instant)
+  // 1. Check DeryCode knowledge base first (instant, 100% accurate)
   if (isDeryCodeQuery(question)) {
     const kb = getDeryCodeKnowledge(question);
     return res.status(200).json({
@@ -39,21 +39,26 @@ export default async function handler(req, res) {
       followups: kb.followups,
       results: [],
       model: 'DeryCode-KnowledgeBase',
+      confidence: 'high',
       lang
     });
   }
   
-  // 2. Fetch web context from Startpage + Wikipedia + DDG
+  // 2. Fetch from multiple sources in parallel
   const effectiveQuery = buildEffectiveQuery(question, history);
   
   let wiki = null, ddg = null, webResults = [];
-  [wiki, ddg, webResults] = await Promise.all([
-    fetchWikipedia(effectiveQuery),
-    fetchDuckDuckGo(effectiveQuery),
-    fetchStartpage(effectiveQuery)
-  ]);
+  try {
+    [wiki, ddg, webResults] = await Promise.all([
+      fetchWikipedia(effectiveQuery),
+      fetchDuckDuckGo(effectiveQuery),
+      fetchStartpage(effectiveQuery)
+    ]);
+  } catch (e) {
+    console.error('Fetch error:', e.message);
+  }
   
-  // Build sources list
+  // 3. Build sources list
   const sources = [];
   if (wiki && wiki.extract) {
     sources.push({ title: wiki.title, url: wiki.url, type: 'encyclopedia' });
@@ -65,72 +70,228 @@ export default async function handler(req, res) {
     sources.push({ title: r.title, url: r.url, type: r.engine });
   }
   
-  // 3. Build answer from web context (NO Gemini - synthesize from real sources)
-  let answerText = '';
+  // 4. Build synthesized answer from clean sources
+  const { answer: answerText, confidence } = await synthesizeAnswer(question, wiki, ddg, webResults, effectiveQuery);
   
-  if (wiki && wiki.extract && wiki.extract.length > 30) {
-    answerText += truncateWords(wiki.extract, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
-  }
-  
-  if (ddg && ddg.content && ddg.content.length > 30) {
-    if (answerText && !answerText.includes(ddg.content.substring(0, 50))) {
-      answerText += '\n\n';
-    }
-    answerText += truncateWords(ddg.content, 80, 400);
-  }
-  
-  for (const r of webResults.slice(0, 4)) {
-    if (r.content && r.content.length > 50 && answerText.length < MAX_ANSWER_CHARS - 200) {
-      if (answerText && answerText.includes(r.content.substring(0, 40))) continue;
-      if (answerText) answerText += '\n\n';
-      answerText += `${r.title}: ${truncateWords(r.content, 60, 250)}`;
-    }
-  }
-  
-  // 4. If not enough content, try scraping top results
-  if ((!answerText || answerText.length < 50) && webResults.length > 0) {
-    for (const r of webResults.slice(0, 3)) {
-      try {
-        const scraped = await scrapeUrl(r.url);
-        if (scraped && scraped.length > 80) {
-          if (answerText) answerText += '\n\n';
-          answerText += truncateWords(scraped, 100, 500);
-          if (!sources.find(s => s.url === r.url)) {
-            sources.push({ title: r.title, url: r.url, type: 'scraped' });
-          }
-        }
-      } catch {}
-      if (answerText.length >= MAX_ANSWER_CHARS - 100) break;
-    }
-  }
-  
-  // 5. Final fallback
-  if (!answerText || answerText.length < 20) {
-    if (webResults.length > 0) {
-      answerText = `Here are the top results I found for "${question}". Check the sources below for detailed information.`;
-    } else {
-      answerText = `I couldn't find specific information about "${question}". Try the Web search mode for more results, or rephrase your question.`;
-    }
-  }
-  
-  answerText = truncateWords(answerText, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
-  answerText = cleanText(answerText);
+  // 5. Clean and truncate final answer
+  let cleanAnswer = cleanText(answerText);
+  cleanAnswer = truncateWords(cleanAnswer, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
   
   const allResults = buildResults(wiki, ddg, webResults);
   
   res.status(200).json({
     question,
-    answer: answerText,
+    answer: cleanAnswer,
     sources: sources.slice(0, 5),
     followups: generateFollowups(effectiveQuery),
     results: allResults.slice(0, 8),
     model: 'DeryCode-Web-v2',
+    confidence,
     lang,
     grounded: true
   });
 }
 
-// Startpage search (works from Vercel - uses Google results!)
+// === ANSWER SYNTHESIS ===
+// Combines multiple sources into one coherent, accurate answer
+async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
+  const parts = [];
+  let confidence = 'low';
+  let sourceCount = 0;
+  
+  // Priority 1: Wikipedia (most reliable for factual queries)
+  if (wiki && wiki.extract && wiki.extract.length > 50) {
+    const wikiText = cleanSnippet(wiki.extract);
+    if (wikiText.length > 30) {
+      parts.push(wikiText);
+      sourceCount++;
+      confidence = 'medium';
+    }
+  }
+  
+  // Priority 2: DuckDuckGo Instant Answer (good for definitions)
+  if (ddg && ddg.content && ddg.content.length > 50) {
+    const ddgText = cleanSnippet(ddg.content);
+    // Only add if not duplicating Wikipedia
+    if (!isDuplicate(parts, ddgText)) {
+      parts.push(ddgText);
+      sourceCount++;
+    }
+  }
+  
+  // Priority 3: Top web results (for current info, news, specific topics)
+  const usedTexts = [...parts];
+  for (const r of webResults.slice(0, 5)) {
+    if (r.content && r.content.length > 80) {
+      const snippet = cleanSnippet(r.content);
+      if (snippet.length > 50 && !isDuplicate(usedTexts, snippet)) {
+        // Add with context — just the clean content, no title prefix
+        parts.push(snippet);
+        usedTexts.push(snippet);
+        sourceCount++;
+      }
+    }
+    if (parts.join(' ').length >= MAX_ANSWER_CHARS * 0.8) break;
+  }
+  
+  // Priority 4: Scrape top result if we don't have enough content
+  if (parts.join(' ').length < 200 && webResults.length > 0) {
+    for (const r of webResults.slice(0, 3)) {
+      try {
+        const scraped = await scrapeUrl(r.url);
+        if (scraped && scraped.length > 100) {
+          const clean = cleanSnippet(scraped);
+          if (!isDuplicate(usedTexts, clean)) {
+            parts.push(clean);
+            usedTexts.push(clean);
+            sourceCount++;
+          }
+        }
+      } catch {}
+      if (parts.join(' ').length >= MAX_ANSWER_CHARS * 0.6) break;
+    }
+  }
+  
+  // Build final answer
+  let answer = parts.join('\n\n');
+  
+  // Determine confidence based on source count and content quality
+  if (sourceCount >= 3 && answer.length > 300) {
+    confidence = 'high';
+  } else if (sourceCount >= 2 && answer.length > 150) {
+    confidence = 'medium';
+  } else if (sourceCount >= 1) {
+    confidence = 'low';
+  }
+  
+  // Fallback if no content found
+  if (!answer || answer.length < 20) {
+    if (webResults.length > 0) {
+      answer = `I found ${webResults.length} web results for "${question}", but couldn't extract a clear answer. Please check the sources below for detailed information.`;
+      confidence = 'low';
+    } else {
+      answer = `I couldn't find reliable information about "${question}". Try rephrasing your question or use Web search mode for more results.`;
+      confidence = 'none';
+    }
+  }
+  
+  return { answer, confidence };
+}
+
+// === TEXT CLEANING ===
+// Removes HTML entities, source prefixes, CSS artifacts, and junk text
+function cleanSnippet(text) {
+  if (!text) return '';
+  
+  let clean = text;
+  
+  // Remove HTML entities
+  clean = clean.replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&middot;/g, '·')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&ndash;/g, '–')
+    .replace(/&mdash;/g, '—')
+    .replace(/&hellip;/g, '...')
+    .replace(/&[a-z]+;/g, ''); // Remove any remaining HTML entities
+  
+  // Remove source prefixes like "Title - Source:" or "Title | Source:"
+  clean = clean.replace(/^[A-Z][^:]{5,80}:\s*/, '');
+  
+  // Remove CSS artifacts
+  clean = clean.replace(/\{[^}]*\}/g, '');
+  clean = clean.replace(/\.css-[a-zA-Z0-9]+/g, '');
+  
+  // Remove URL artifacts
+  clean = clean.replace(/https?:\/\/[^\s]+/g, '');
+  
+  // Remove file paths
+  clean = clean.replace(/[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-\/]+\.(js|css|html|png|jpg|svg)/g, '');
+  
+  // Remove excessive whitespace
+  clean = clean.replace(/[ \t]+/g, ' ');
+  clean = clean.replace(/\n{3,}/g, '\n\n');
+  clean = clean.trim();
+  
+  // Remove incomplete sentences at the end
+  clean = clean.replace(/\s+[a-z]{1,3}$/i, '');
+  
+  // Cap at reasonable length
+  if (clean.length > 800) {
+    // Find a good break point
+    const cutPoint = clean.lastIndexOf('. ', 700);
+    if (cutPoint > 200) {
+      clean = clean.substring(0, cutPoint + 1);
+    } else {
+      clean = clean.substring(0, 700) + '...';
+    }
+  }
+  
+  return clean;
+}
+
+// === DEDUPLICATION ===
+// Checks if text is substantially similar to existing parts
+function isDuplicate(existingParts, newText) {
+  if (!newText || newText.length < 30) return true;
+  
+  // Get first 60 chars of new text for comparison
+  const newStart = newText.substring(0, 60).toLowerCase();
+  
+  for (const part of existingParts) {
+    const existingStart = part.substring(0, 60).toLowerCase();
+    
+    // Check if they start the same (same source, different excerpt)
+    if (existingStart === newStart) return true;
+    
+    // Check if new text is contained within existing text
+    if (part.includes(newText.substring(0, 40))) return true;
+    if (newText.includes(part.substring(0, 40))) return true;
+    
+    // Check word overlap (if >70% same words, it's a duplicate)
+    const newWords = new Set(newText.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+    const existingWords = new Set(part.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+    if (newWords.size > 5 && existingWords.size > 5) {
+      let overlap = 0;
+      for (const w of newWords) {
+        if (existingWords.has(w)) overlap++;
+      }
+      const overlapRatio = overlap / Math.min(newWords.size, existingWords.size);
+      if (overlapRatio > 0.7) return true;
+    }
+  }
+  return false;
+}
+
+// === FINAL TEXT CLEANER ===
+function cleanText(text) {
+  if (!text) return '';
+  
+  let clean = text;
+  
+  // Remove any remaining HTML entities
+  clean = clean.replace(/&[a-zA-Z]+;/g, match => {
+    const map = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ', '&middot;': '·', '&ndash;': '–', '&mdash;': '—', '&hellip;': '...' };
+    return map[match] || '';
+  });
+  
+  // Clean whitespace
+  clean = clean.replace(/[ \t]+/g, ' ');
+  clean = clean.replace(/\n{3,}/g, '\n\n');
+  clean = clean.replace(/^\s+|\s+$/g, '');
+  
+  // Remove orphaned single characters
+  clean = clean.replace(/\s+[a-z]\s+/gi, ' ');
+  
+  return clean.trim();
+}
+
+// === SEARCH PROVIDERS ===
+
+// Startpage search (Google results via Startpage proxy)
 async function fetchStartpage(q) {
   const results = [];
   try {
@@ -179,7 +340,7 @@ async function fetchStartpage(q) {
   } catch { return []; }
 }
 
-// Wikipedia knowledge
+// Wikipedia knowledge (high reliability for factual queries)
 async function fetchWikipedia(q) {
   try {
     const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=1&explaintext=1&titles=${encodeURIComponent(q)}&redirects=1`;
@@ -193,7 +354,7 @@ async function fetchWikipedia(q) {
   } catch { return null; }
 }
 
-// DuckDuckGo instant answer
+// DuckDuckGo Instant Answer (good for definitions and quick facts)
 async function fetchDuckDuckGo(q) {
   try {
     const r = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`, {
@@ -213,7 +374,7 @@ async function fetchDuckDuckGo(q) {
   } catch { return null; }
 }
 
-// Scrape URL for content
+// Scrape URL for deeper content (last resort)
 async function scrapeUrl(url) {
   try {
     const r = await fetch(url, {
@@ -235,6 +396,8 @@ async function scrapeUrl(url) {
     return text.substring(0, 800);
   } catch { return ''; }
 }
+
+// === HELPERS ===
 
 function buildResults(wiki, ddg, webResults) {
   const all = [];
@@ -272,23 +435,15 @@ function generateFollowups(q) {
 function truncateWords(text, maxWords, maxChars) {
   if (!text) return '';
   let truncated = text;
-  if (truncated.length > maxChars) truncated = truncated.substring(0, maxChars);
+  if (truncated.length > maxChars) {
+    truncated = truncated.substring(0, maxChars);
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > maxChars * 0.7) truncated = truncated.substring(0, lastSpace);
+    truncated += '...';
+  }
   const words = truncated.split(/\s+/);
-  if (words.length > maxWords) truncated = words.slice(0, maxWords).join(' ') + '...';
+  if (words.length > maxWords) {
+    truncated = words.slice(0, maxWords).join(' ') + '...';
+  }
   return truncated;
-}
-
-function cleanText(text) {
-  if (!text) return '';
-  return text
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/^[-*•]\s+/gm, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .trim();
 }
