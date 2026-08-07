@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     const [w, d, ddgLiteResults] = await Promise.all([
       fetchWikipedia(variant),
       fetchDuckDuckGo(variant),
-      fetchMojeekProxy(variant)
+      fetchStartpage(variant)
     ]);
     if (w || (d && d.content) || ddgLiteResults.length > 0) {
       wiki = w; ddg = d; webResults = ddgLiteResults;
@@ -345,23 +345,36 @@ function truncateWords(text, maxWords, maxChars) {
 }
 
 
-async function fetchMojeekProxy(q) {
+async function fetchStartpage(q) {
   try {
-    const targetUrl = `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+    const r = await fetch('https://www.startpage.com/sp/search', {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Language': 'en-US,en;q=0.5'
+      },
+      body: `query=${encodeURIComponent(q)}&cat=web`,
+      signal: AbortSignal.timeout(10000)
+    });
     const html = await r.text();
     const results = [];
-    const liBlocks = html.split(/<li[^>]*class="r\d/);
-    for (const block of liBlocks.slice(1, 9)) {
-      const urlMatch = block.match(/<a[^>]*href="(https?:\/\/[^"]+)"[^>]*class="ob"/);
-      if (!urlMatch) continue;
-      const url = urlMatch[1];
-      const titleMatch = block.match(/<a[^>]*class="title"[^>]*>(.*?)<\/a>/s);
-      const snippetMatch = block.match(/<p[^>]*class="s"[^>]*>(.*?)<\/p>/s);
-      let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&rsaquo;/g, '›').trim() : url;
+    const titleMatches = [...html.matchAll(/<a[^>]*class="[^"]*result-title[^"]*"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs)];
+    for (const m of titleMatches.slice(0, 8)) {
+      let url = m[1];
+      let title = m[2].replace(/<[^>]+>/g, '').trim();
+      if (title.includes('.css-')) continue;
+      title = title.replace(/\{[^}]*\}/g, '').trim();
+      const resultBlock = html.substring(m.index, m.index + 1500);
+      const snippetMatch = resultBlock.match(/<p[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)<\/p>/s)
+                        || resultBlock.match(/<span[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)<\/span>/s);
       let snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim() : '';
-      results.push({ title: title.substring(0,200), url, content: snippet.substring(0,250), engine:'mojeek', source:'Mojeek', featured:false });
+      let domain = '';
+      try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+      if (title.length > 3 && url.startsWith('http')) {
+        results.push({ title: title.substring(0,200), url, content: snippet.substring(0,250), engine:'startpage', source: domain || 'Startpage', featured:false });
+      }
     }
     return results;
   } catch { return []; }
