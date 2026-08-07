@@ -45,29 +45,19 @@ export default async function handler(req, res) {
     });
   }
   
-  // 2. Fetch web context in parallel
+  // 2. Fetch web context - use DDG Lite (works server-side!) + Wikipedia
   const effectiveQuery = buildEffectiveQuery(question, history);
   const queryVariants = buildQueryVariants(effectiveQuery);
   
-  // Try multiple query variants for web search
   let wiki = null, ddg = null, webResults = [];
   for (const variant of queryVariants) {
-    const [w, d, ddgResults, bingResults] = await Promise.all([
+    const [w, d, ddgLiteResults] = await Promise.all([
       fetchWikipedia(variant),
       fetchDuckDuckGo(variant),
-      fetchDDGHTML(variant),
-      fetchBing(variant)
+      fetchMojeekProxy(variant)
     ]);
-    // Merge results from DDG and Bing, dedup by URL
-    const merged = [...ddgResults, ...bingResults];
-    const seen = new Set();
-    const deduped = merged.filter(r => {
-      if (seen.has(r.url)) return false;
-      seen.add(r.url);
-      return true;
-    });
-    if (w || (d && d.content) || deduped.length > 0) {
-      wiki = w; ddg = d; webResults = deduped;
+    if (w || (d && d.content) || ddgLiteResults.length > 0) {
+      wiki = w; ddg = d; webResults = ddgLiteResults;
       break;
     }
   }
@@ -355,25 +345,23 @@ function truncateWords(text, maxWords, maxChars) {
 }
 
 
-async function fetchBing(q) {
+async function fetchMojeekProxy(q) {
   try {
-    const url = `https://www.bing.com/search?q=${encodeURIComponent(q)}&count=8`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
-      signal: AbortSignal.timeout(6000)
-    });
+    const targetUrl = `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+    const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
     const html = await r.text();
     const results = [];
-    const resultRegex = /<li class="b_algo">\s*<h2><a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a><\/h2>.*?<p[^>]*>(.*?)<\/p>/gs;
-    let match; let count = 0;
-    while ((match = resultRegex.exec(html)) !== null && count < 5) {
-      const href = match[1].replace(/&amp;/g, '&');
-      const title = match[2].replace(/<[^>]*>/g, '').trim();
-      const content = match[3].replace(/<[^>]*>/g, '').trim();
-      if (title && href.startsWith('http')) {
-        results.push({ title: title.substring(0,200), url: href, content: content.substring(0,300), engine:'bing', source:'Bing', featured:false });
-        count++;
-      }
+    const liBlocks = html.split(/<li[^>]*class="r\d/);
+    for (const block of liBlocks.slice(1, 9)) {
+      const urlMatch = block.match(/<a[^>]*href="(https?:\/\/[^"]+)"[^>]*class="ob"/);
+      if (!urlMatch) continue;
+      const url = urlMatch[1];
+      const titleMatch = block.match(/<a[^>]*class="title"[^>]*>(.*?)<\/a>/s);
+      const snippetMatch = block.match(/<p[^>]*class="s"[^>]*>(.*?)<\/p>/s);
+      let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&rsaquo;/g, '›').trim() : url;
+      let snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim() : '';
+      results.push({ title: title.substring(0,200), url, content: snippet.substring(0,250), engine:'mojeek', source:'Mojeek', featured:false });
     }
     return results;
   } catch { return []; }

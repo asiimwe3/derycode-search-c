@@ -1,5 +1,6 @@
 // DeryCode Search API - Vercel Serverless
-// Sources: Wikipedia (search+extract) + DDG API + Gemini-enhanced results
+// Sources: DDG API + Wikipedia external links + Gemini google_search
+// No Wikipedia dependency for search results - only for knowledge panel
 
 const MAX_QUERY_WORDS = 30;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
@@ -17,75 +18,60 @@ export default async function handler(req, res) {
   let cleaned = q.trim().replace(/\?$/, '').trim();
   cleaned = cleaned.replace(/^(what is |what is the |what is a |what are |who is |tell me about |explain |describe |how does )/i, '').trim();
   
-  // Fetch from multiple sources in parallel
-  const [wiki, ddg, ddgHtml, wikiSearch, wikiRelated, wikiExtLinks] = await Promise.all([
+  // Fetch from sources that WORK from Vercel
+  const [ddgFull, wiki, wikiExtLinks] = await Promise.all([
+    fetchDDGFull(q),
     fetchWikipedia(cleaned),
-    fetchDuckDuckGo(cleaned),
-    fetchDDGHTML(cleaned),
-    fetchWikipediaSearch(cleaned),
-    fetchWikipediaRelated(cleaned),
     fetchWikipediaExtLinks(cleaned)
   ]);
   
-  // Merge results
-  let webResults = [...ddgHtml];
-  
-  // Add Wikipedia external links FIRST (these are real external websites!)
-  if (wikiExtLinks && wikiExtLinks.length > 0) {
-    for (const el of wikiExtLinks) {
-      if (!webResults.find(r => r.url === el.url)) {
-        webResults.push(el);
-      }
-    }
-  }
-  // Add Wikipedia search results
-  if (wikiSearch && wikiSearch.length > 0) {
-    for (const ws of wikiSearch) {
-      if (!webResults.find(r => r.url === ws.url)) {
-        webResults.push(ws);
-      }
-    }
-  }
-  // Add Wikipedia related pages
-  if (wikiRelated && wikiRelated.length > 0) {
-    for (const wr of wikiRelated) {
-      if (!webResults.find(r => r.url === wr.url)) {
-        webResults.push(wr);
-      }
-    }
+  // If Wikipedia extlinks returned nothing, try via search
+  let finalExtLinks = wikiExtLinks;
+  if (finalExtLinks.length === 0) {
+    finalExtLinks = await fetchWikipediaExtLinksSearch(cleaned);
   }
   
-  // Dedup by URL (normalize Wikipedia URLs - %20 and _ are equivalent)
+  // Build web results from DDG related topics + Wikipedia external links
+  let webResults = [];
+  
+  // DDG related topics (these have real external URLs like stackoverflow.com, github.com, etc.)
+  if (ddgFull && ddgFull.related) {
+    webResults.push(...ddgFull.related);
+  }
+  
+  // Wikipedia external links (real external websites referenced by Wikipedia)
+  if (finalExtLinks && finalExtLinks.length > 0) {
+    webResults.push(...finalExtLinks);
+  }
+  
+  // If Gemini is available, use google_search tool for REAL Google results
+  if (GEMINI_API_KEY) {
+    const geminiResults = await geminiGoogleSearch(q);
+    if (geminiResults && geminiResults.length > 0) {
+      // Gemini results go FIRST (they're the best)
+      webResults = [...geminiResults, ...webResults];
+    }
+  }
+  
+  // Dedup by URL
   const seen = new Set();
   webResults = webResults.filter(r => {
-    let urlNorm = r.url.toLowerCase()
-      .replace(/%20/g, ' ')
-      .replace(/_/g, ' ')
-      .replace(/%28/g, '(')
-      .replace(/%29/g, ')')
-      .replace(/%27/g, "'");
-    urlNorm = urlNorm.split('#')[0];
+    const urlNorm = r.url.toLowerCase().replace(/%20/g, ' ').replace(/_/g, ' ');
     if (seen.has(urlNorm)) return false;
     seen.add(urlNorm);
     return true;
   });
   
-  // Try DDG related topics
-  if (webResults.length < 3) {
-    const ddgRelated = await fetchDDGRelated(cleaned);
-    webResults.push(...ddgRelated);
-  }
-  
   // Knowledge panel
   let knowledgePanel = null;
   if (wiki) {
-    knowledgePanel = { title: wiki.title, extract: wiki.extract.substring(0, 500), url: wiki.url, source: 'Wikipedia' };
-  } else if (ddg) {
-    knowledgePanel = { title: ddg.title, extract: ddg.content.substring(0, 500), url: ddg.url, source: 'DuckDuckGo' };
+    knowledgePanel = { title: wiki.title, extract: wiki.extract.substring(0, 400), url: wiki.url, source: 'Wikipedia' };
+  } else if (ddgFull && ddgFull.instant) {
+    knowledgePanel = { title: ddgFull.instant.title, extract: ddgFull.instant.content.substring(0, 400), url: ddgFull.instant.url, source: 'DuckDuckGo' };
   }
   
-  // Scrape top results for richer content
-  const scrapePromises = webResults.slice(0, 3).map(async r => {
+  // Scrape top 2 results
+  const scrapePromises = webResults.slice(0, 2).map(async r => {
     try {
       const scraped = await scrapeUrl(r.url);
       if (scraped && scraped.length > 50) {
@@ -96,33 +82,18 @@ export default async function handler(req, res) {
   });
   await Promise.all(scrapePromises);
   
-  // Gemini summary + Gemini-generated related links
+  // Gemini summary
   let aiSummary = null;
-  let geminiLinks = [];
   if (GEMINI_API_KEY) {
-    const geminiData = await geminiSearchEnhance(q, wiki, ddg, webResults);
-    aiSummary = geminiData.summary;
-    geminiLinks = geminiData.links;
-    // Add Gemini-generated links if we have few web results
-    for (const gl of geminiLinks) {
-      if (!webResults.find(r => r.url === gl.url)) {
-        webResults.push(gl);
-      }
-    }
+    aiSummary = await geminiSummary(q, wiki, webResults);
   }
   
   // Build final results
   const allResults = [];
-  if (wiki) allResults.push({ title: wiki.title, url: wiki.url, content: wiki.extract?.substring(0,300), engine:'wikipedia', source:'Wikipedia', featured:true });
-  if (ddg) allResults.push({ title: ddg.title, url: ddg.url, content: ddg.content?.substring(0,300), engine:'duckduckgo', source:'DuckDuckGo', featured:true });
-  // Dedup against featured results
-  const featuredUrls = new Set(allResults.map(r => r.url.toLowerCase().replace(/%20/g,' ').replace(/_/g,' ')));
-  for (const r of webResults) {
-    const rNorm = r.url.toLowerCase().replace(/%20/g,' ').replace(/_/g,' ');
-    if (!featuredUrls.has(rNorm) && allResults.length < 10) {
-      allResults.push(r);
-      featuredUrls.add(rNorm);
-    }
+  allResults.push(...webResults.slice(0, 10));
+  // Add Wikipedia as knowledge panel (not as a search result)
+  if (wiki && !allResults.find(r => r.url === wiki.url)) {
+    allResults.unshift({ title: wiki.title, url: wiki.url, content: wiki.extract?.substring(0,300), engine:'wikipedia', source:'Wikipedia', featured:true });
   }
   
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -135,179 +106,38 @@ export default async function handler(req, res) {
   });
 }
 
-// Gemini-enhanced search: generates summary + suggests real related URLs
-async function geminiSearchEnhance(q, wiki, ddg, webResults) {
-  let summary = null;
-  let links = [];
-  
-  try {
-    let context = '';
-    if (wiki) context += `Wikipedia: ${wiki.extract.substring(0, 400)}\n`;
-    if (ddg) context += `DDG: ${ddg.content.substring(0, 200)}\n`;
-    for (const r of webResults.slice(0, 2)) {
-      context += `${r.title}: ${r.content?.substring(0, 200)}\n`;
-    }
-    
-    // Prompt for summary + related links
-    const prompt = `You are a search assistant. For the query "${q}", provide:
-1. A brief summary (max 150 words)
-2. 3-5 related websites with their URLs (real, well-known websites)
-
-Context: ${context || 'No additional context available.'}
-
-Format your response as JSON:
-{"summary": "...", "links": [{"title": "...", "url": "https://...", "description": "..."}]}
-
-Only include real, existing websites. Do not make up URLs.`;
-
-    for (const model of GEMINI_MODELS) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
-        }),
-        signal: AbortSignal.timeout(8000)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text && text.trim().length > 20) {
-          // Try to parse JSON from response
-          try {
-            // Find JSON in the response
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]);
-              if (parsed.summary) summary = parsed.summary.trim();
-              if (parsed.links && Array.isArray(parsed.links)) {
-                links = parsed.links.filter(l => l.url && l.url.startsWith('http')).map(l => ({
-                  title: l.title || l.url,
-                  url: l.url,
-                  content: l.description || '',
-                  engine: 'gemini',
-                  source: 'AI Recommended'
-                }));
-              }
-            } else {
-              // If no JSON, just use the text as summary
-              summary = text.trim().substring(0, 500);
-            }
-          } catch {
-            summary = text.trim().substring(0, 500);
-          }
-          break;
-        }
-      }
-      if (response.status === 429) continue;
-    }
-  } catch {}
-  
-  return { summary, links };
-}
-
-// Wikipedia search API (returns multiple matching pages)
-
-// Wikipedia REST API - get related pages
-
-// Wikipedia External Links - get actual external URLs from Wikipedia page
-async function fetchWikipediaExtLinks(q) {
-  try {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extlinks&titles=${encodeURIComponent(q)}&ellimit=15&elprotocol=https`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
-    const data = await r.json();
-    const pages = data?.query?.pages;
-    if (!pages) return [];
-    const page = Object.values(pages)[0];
-    if (!page || !page.extlinks) return [];
-    const results = [];
-    for (const link of (page.extlinks || []).slice(0, 8)) {
-      const linkUrl = link['*'];
-      if (linkUrl && !linkUrl.includes('wikipedia.org') && !linkUrl.includes('wikimedia')) {
-        // Try to get a title from the URL
-        let title = linkUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
-        results.push({
-          title: title,
-          url: linkUrl,
-          content: 'External link from Wikipedia',
-          engine: 'web',
-          source: 'Wikipedia External'
-        });
-      }
-    }
-    return results;
-  } catch { return []; }
-}
-
-async function fetchWikipediaRelated(q) {
-  try {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=links&titles=${encodeURIComponent(q)}&pllimit=5`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
-    const data = await r.json();
-    const pages = data?.query?.pages;
-    if (!pages) return [];
-    const page = Object.values(pages)[0];
-    if (!page || !page.links) return [];
-    const results = [];
-    for (const link of (page.links || []).slice(0, 5)) {
-      results.push({
-        title: link.title,
-        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(link.title.replace(/ /g, '_'))}`,
-        content: '',
-        engine: 'wikipedia',
-        source: 'Wikipedia Related'
-      });
-    }
-    return results;
-  } catch { return []; }
-}
-
-async function fetchWikipediaSearch(q) {
-  try {
-    // Use Wikipedia's search API to find related pages
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srlimit=3&srsearch=${encodeURIComponent(q)}&srprop=snippet`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
-    const data = await r.json();
-    const searchResults = data?.query?.search || [];
-    const results = [];
-    for (const sr of searchResults) {
-      const title = sr.title;
-      const snippet = (sr.snippet || '').replace(/<[^>]*>/g, '').trim();
-      results.push({
-        title: title,
-        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`,
-        content: snippet.substring(0, 300),
-        engine: 'wikipedia',
-        source: 'Wikipedia'
-      });
-    }
-    return results;
-  } catch { return []; }
-}
-
-async function fetchDDGRelated(q) {
+// DDG API: get instant answer + related topics (with real external URLs)
+async function fetchDDGFull(q) {
   try {
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`;
     const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
     const data = await r.json();
-    const results = [];
-    for (const t of (data.RelatedTopics || []).slice(0, 10)) {
+    const result = { instant: null, related: [] };
+    
+    // Instant answer
+    if (data.AbstractText && data.AbstractText.length > 30) {
+      result.instant = { title: data.Heading || q, content: data.AbstractText, url: data.AbstractURL || '' };
+    }
+    
+    // Related topics - these have real external URLs!
+    for (const t of (data.RelatedTopics || [])) {
       if (t && t.Text && t.FirstURL) {
-        results.push({
-          title: t.Text.substring(0, 100),
-          url: t.FirstURL,
-          content: t.Text.substring(0, 200),
-          engine: 'duckduckgo',
-          source: 'DuckDuckGo'
-        });
+        // Get the actual URL (DDG API returns duckduckgo.com/... URLs for some, 
+        // but the external ones are real)
+        const extUrl = t.FirstURL;
+        if (!extUrl.includes('duckduckgo.com')) {
+          result.related.push({
+            title: t.Text.substring(0, 100),
+            url: extUrl,
+            content: t.Text.substring(0, 200),
+            engine: 'duckduckgo',
+            source: 'DuckDuckGo'
+          });
+        }
       } else if (t && t.Topics && Array.isArray(t.Topics)) {
-        // Nested topics
         for (const nt of t.Topics.slice(0, 3)) {
-          if (nt.Text && nt.FirstURL) {
-            results.push({
+          if (nt.Text && nt.FirstURL && !nt.FirstURL.includes('duckduckgo.com')) {
+            result.related.push({
               title: nt.Text.substring(0, 100),
               url: nt.FirstURL,
               content: nt.Text.substring(0, 200),
@@ -318,8 +148,138 @@ async function fetchDDGRelated(q) {
         }
       }
     }
+    
+    // Also check Results array
+    for (const r of (data.Results || [])) {
+      if (r.FirstURL && !r.FirstURL.includes('duckduckgo.com')) {
+        result.related.push({
+          title: r.Text || r.FirstURL,
+          url: r.FirstURL,
+          content: r.Text || '',
+          engine: 'duckduckgo',
+          source: 'DuckDuckGo'
+        });
+      }
+    }
+    
+    return result;
+  } catch { return null; }
+}
+
+// Wikipedia external links - REAL external websites from Wikipedia pages
+async function fetchWikipediaExtLinks(q) {
+  try {
+    // Use redirects=1 to handle title mismatches
+    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extlinks&titles=${encodeURIComponent(q)}&ellimit=15&elprotocol=https&redirects=1`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
+    const data = await r.json();
+    const pages = data?.query?.pages;
+    if (!pages) return [];
+    const page = Object.values(pages)[0];
+    if (!page || !page.extlinks) return [];
+    const results = [];
+    for (const link of (page.extlinks || []).slice(0, 10)) {
+      const linkUrl = link['*'];
+      if (linkUrl && !linkUrl.includes('wikipedia.org') && !linkUrl.includes('wikimedia')) {
+        let title = linkUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+        results.push({
+          title: title,
+          url: linkUrl,
+          content: '',
+          engine: 'web',
+          source: title
+        });
+      }
+    }
     return results;
   } catch { return []; }
+}
+
+// Gemini google_search tool - REAL Google search results
+
+// If extlinks failed, try searching Wikipedia for the right title, then get extlinks
+async function fetchWikipediaExtLinksSearch(q) {
+  try {
+    // Search Wikipedia for the right title
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srlimit=1&srsearch=${encodeURIComponent(q)}`;
+    const searchR = await fetch(searchUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
+    const searchData = await searchR.json();
+    const searchResults = searchData?.query?.search || [];
+    if (searchResults.length === 0) return [];
+    const exactTitle = searchResults[0].title;
+    // Now get extlinks for the exact title
+    return await fetchWikipediaExtLinks(exactTitle);
+  } catch { return []; }
+}
+
+async function geminiGoogleSearch(q) {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Search for: ${q}. List the top 5 most relevant websites with their titles and URLs. Format as: TITLE - URL` }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 500 }
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+    
+    if (!response.ok) return [];
+    const data = await response.json();
+    const candidate = data?.candidates?.[0];
+    if (!candidate) return [];
+    
+    const results = [];
+    
+    // Extract grounding chunks (these contain real Google search results with URLs)
+    const groundingChunks = candidate?.groundingMetadata?.groundingChunks || [];
+    for (const chunk of groundingChunks.slice(0, 8)) {
+      const web = chunk?.web;
+      if (web && web.uri) {
+        results.push({
+          title: web.title || web.uri,
+          url: web.uri,
+          content: '',
+          engine: 'google',
+          source: 'Google'
+        });
+      }
+    }
+    
+    return results;
+  } catch { return []; }
+}
+
+async function geminiSummary(q, wiki, webResults) {
+  try {
+    let context = '';
+    if (wiki) context += `${wiki.extract.substring(0, 300)}\n`;
+    for (const r of webResults.slice(0, 3)) {
+      context += `${r.title}: ${r.content?.substring(0, 150)}\n`;
+    }
+    const prompt = `Brief summary (max 120 words) about: "${q}". ${context ? 'Context: ' + context : ''} Answer directly:`;
+    for (const model of GEMINI_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 250 }
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim().length > 20) return text.trim().replace(/\*+/g, '').substring(0, 400);
+      }
+      if (response.status === 429) continue;
+    }
+  } catch {}
+  return null;
 }
 
 async function scrapeUrl(url) {
@@ -329,13 +289,8 @@ async function scrapeUrl(url) {
       signal: AbortSignal.timeout(5000), redirect: 'follow'
     });
     const html = await r.text();
-    let text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
-      .replace(/\s+/g, ' ').trim();
-    return text.substring(0, 600);
+    return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim().substring(0, 600);
   } catch { return ''; }
 }
 
@@ -350,39 +305,4 @@ async function fetchWikipedia(q) {
     if (!page || page.missing !== undefined) return null;
     return { title: page.title, extract: page.extract || '', url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}` };
   } catch { return null; }
-}
-
-async function fetchDuckDuckGo(q) {
-  try {
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
-    const data = await r.json();
-    if (data.AbstractText && data.AbstractText.length > 30) {
-      return { title: data.Heading || q, content: data.AbstractText, url: data.AbstractURL || '' };
-    }
-    return null;
-  } catch { return null; }
-}
-
-async function fetchDDGHTML(q) {
-  try {
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } });
-    const html = await r.text();
-    const results = [];
-    const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>.*?<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/gs;
-    let match; let count = 0;
-    while ((match = resultRegex.exec(html)) !== null && count < 8) {
-      let href = match[1].replace(/&amp;/g, '&');
-      const uddg = href.match(/uddg=([^&]+)/);
-      if (uddg) href = decodeURIComponent(uddg[1]);
-      const title = match[2].replace(/<[^>]*>/g, '').trim();
-      const content = match[3].replace(/<[^>]*>/g, '').trim();
-      if (title && href.startsWith('http')) {
-        results.push({ title: title.substring(0,200), url: href, content: content.substring(0,300), engine:'duckduckgo', source:'DuckDuckGo' });
-        count++;
-      }
-    }
-    return results;
-  } catch { return []; }
 }
