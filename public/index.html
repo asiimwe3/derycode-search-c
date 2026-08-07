@@ -442,10 +442,24 @@ html{font-size:14px}
 .about-version{font-size:13px;color:var(--text3);margin-bottom:16px}
 .about-info{text-align:left;font-size:14px;color:var(--text3);line-height:1.6}
 .about-info a{color:var(--gold)}
-.color-theme-grid{display:flex;gap:8px;padding:0 16px;flex-wrap:wrap}
-.color-theme-btn{width:40px;height:40px;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:border 0.2s}
-.color-theme-btn.active{border-color:var(--gold)}
-.color-theme-btn:active{transform:scale(0.92)}
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px}
+.theme-card{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:6px;border-radius:12px;transition:background 0.15s}
+.theme-card:active{background:var(--bg3)}
+.theme-card.active{background:var(--bg3)}
+.theme-preview{width:100%;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px solid transparent;transition:border 0.2s;overflow:hidden}
+.theme-card.active .theme-preview{border-color:var(--gold)}
+.tp-dot{width:12px;height:12px;border-radius:50%}
+.tp-bar{width:60%;height:4px;border-radius:2px;opacity:0.6}
+.theme-label{font-size:11px;font-weight:600;color:var(--text3)}
+.theme-card.active .theme-label{color:var(--text2)}
+/* Theme preview backgrounds */
+.gold-prev{background:linear-gradient(135deg,#1a1a24,#0f0f14)}.gold-prev .tp-dot{background:#d4af37}.gold-prev .tp-bar{background:#d4af37}
+.ocean-prev{background:linear-gradient(135deg,#0a1929,#051420)}.ocean-prev .tp-dot{background:#0A84FF}.ocean-prev .tp-bar{background:#0A84FF}
+.forest-prev{background:linear-gradient(135deg,#0d1f0d,#061206)}.forest-prev .tp-dot{background:#00C853}.forest-prev .tp-bar{background:#00C853}
+.sunset-prev{background:linear-gradient(135deg,#1f1408,#120a04)}.sunset-prev .tp-dot{background:#FF9500}.sunset-prev .tp-bar{background:#FF9500}
+.violet-prev{background:linear-gradient(135deg,#1a0d2e,#0d0617)}.violet-prev .tp-dot{background:#AF52DE}.violet-prev .tp-bar{background:#AF52DE}
+.crimson-prev{background:linear-gradient(135deg,#1f0a0a,#120505)}.crimson-prev .tp-dot{background:#E5484D}.crimson-prev .tp-bar{background:#E5484D}
+.mono-prev{background:linear-gradient(135deg,#1a1a1a,#0d0d0d)}.mono-prev .tp-dot{background:#e8e8e8}.mono-prev .tp-bar{background:#888}
 
 /* Hamburger button */
 .menu-btn{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -1575,7 +1589,7 @@ function renderAppearanceSettings(){
   return '<div class="settings-group">'+
     '<div class="settings-group-title">Theme</div>'+
     '<div class="settings-row"><div><div class="settings-row-label">Dark mode</div><div class="settings-row-desc">Easy on the eyes</div></div>'+
-    '<div class="settings-select" onclick="toggleDarkMode()">'+(theme==='dark'?'🌙 On':'☀️ Off')+'</div></div>'+
+    '<div class="settings-select" onclick="toggleDarkMode()">'+(theme==='dark'?'🌙 Dark':'☀️ Light')+'</div></div>'+
     '<div class="settings-row"><div><div class="settings-row-label">Accent color</div><div class="settings-row-desc">Choose your color</div></div>'+
     '<div class="settings-row-right">'+
     '<div class="color-theme-grid">'+
@@ -1723,14 +1737,19 @@ function toggleDarkMode(){
 function applyTheme(){
   var theme=getSetting('theme','dark');
   if(theme==='light'){
-    document.documentElement.style.setProperty('--bg','#f5f5f7');
+    var accent=getSetting('accent','gold');
+    var lp=themePalettes[accent]||themePalettes.gold;
+    document.documentElement.style.setProperty('--bg','#f8f8fa');
     document.documentElement.style.setProperty('--bg2','#ffffff');
-    document.documentElement.style.setProperty('--bg3','#f0f0f3');
-    document.documentElement.style.setProperty('--bg4','#e5e5ea');
-    document.documentElement.style.setProperty('--text','#1c1c1e');
-    document.documentElement.style.setProperty('--text2','#3c3c43');
-    document.documentElement.style.setProperty('--text3','#8e8e93');
-    document.documentElement.style.setProperty('--border','rgba(0,0,0,0.08)');
+    document.documentElement.style.setProperty('--bg3','#f0f0f5');
+    document.documentElement.style.setProperty('--bg4','#e8e8ed');
+    document.documentElement.style.setProperty('--text','#1a1a2e');
+    document.documentElement.style.setProperty('--text2','#3a3a4e');
+    document.documentElement.style.setProperty('--text3','#8a8a9a');
+    document.documentElement.style.setProperty('--border','rgba(0,0,0,0.06)');
+    // Keep accent color but make it slightly darker for light mode contrast
+    document.documentElement.style.setProperty('--gold',lp.accent);
+    document.documentElement.style.setProperty('--gold-dark',lp.accentDark);
   }else{
     document.documentElement.style.setProperty('--bg','#0f0f14');
     document.documentElement.style.setProperty('--bg2','#13131a');
@@ -1746,20 +1765,41 @@ function applyTheme(){
   applyCompactMode();
 }
 
-function setAccent(color){
+function setTheme(color){
   setSetting('accent',color);
-  applyAccent();
-  var btns=document.querySelectorAll('.color-theme-btn');
-  btns.forEach(function(b){b.classList.remove('active')});
-  event.target.classList.add('active');
+  applyTheme();
+  var cards=document.querySelectorAll('.theme-card');
+  cards.forEach(function(c){c.classList.remove('active')});
+  var target=event.currentTarget||event.target;
+  if(target&&!target.classList.contains('theme-card'))target=target.closest('.theme-card');
+  if(target)target.classList.add('active');
 }
+
+var themePalettes={
+  gold:{accent:'#d4af37',accentDark:'#b8941f',bg:'#0f0f14',bg2:'#13131a',bg3:'#1a1a24',bg4:'#22222e',border:'rgba(255,255,255,0.06)'},
+  ocean:{accent:'#0A84FF',accentDark:'#0066CC',bg:'#051420',bg2:'#0a1929',bg3:'#0f2438',bg4:'#15314a',border:'rgba(100,180,255,0.08)'},
+  forest:{accent:'#00C853',accentDark:'#00A843',bg:'#061206',bg2:'#0d1f0d',bg3:'#112a11',bg4:'#1a3a1a',border:'rgba(100,255,150,0.06)'},
+  sunset:{accent:'#FF9500',accentDark:'#E07600',bg:'#120a04',bg2:'#1f1408',bg3:'#2a1c0e',bg4:'#3a2814',border:'rgba(255,150,50,0.08)'},
+  violet:{accent:'#AF52DE',accentDark:'#8B2DBA',bg:'#0d0617',bg2:'#1a0d2e',bg3:'#241340',bg4:'#2e1a52',border:'rgba(180,100,255,0.08)'},
+  crimson:{accent:'#E5484D',accentDark:'#C03035',bg:'#120505',bg2:'#1f0a0a',bg3:'#2a1010',bg4:'#3a1818',border:'rgba(230,80,90,0.08)'},
+  mono:{accent:'#e8e8e8',accentDark:'#c0c0c0',bg:'#0d0d0d',bg2:'#161616',bg3:'#1f1f1f',bg4:'#2a2a2a',border:'rgba(255,255,255,0.08)'}
+};
 
 function applyAccent(){
   var accent=getSetting('accent','gold');
-  var colors={gold:['#d4af37','#b8941f'],blue:['#0A84FF','#0066CC'],green:['#00C853','#00A843'],red:['#FF3B30','#D63030'],purple:['#AF52DE','#8B2DBA'],teal:['#00D4FF','#00A8CC']};
-  var c=colors[accent]||colors.gold;
-  document.documentElement.style.setProperty('--gold',c[0]);
-  document.documentElement.style.setProperty('--gold-dark',c[1]);
+  var p=themePalettes[accent]||themePalettes.gold;
+  var theme=getSetting('theme','dark');
+  // Apply accent color
+  document.documentElement.style.setProperty('--gold',p.accent);
+  document.documentElement.style.setProperty('--gold-dark',p.accentDark);
+  // If dark mode, also apply theme-specific background palette
+  if(theme!=='light'){
+    document.documentElement.style.setProperty('--bg',p.bg);
+    document.documentElement.style.setProperty('--bg2',p.bg2);
+    document.documentElement.style.setProperty('--bg3',p.bg3);
+    document.documentElement.style.setProperty('--bg4',p.bg4);
+    document.documentElement.style.setProperty('--border',p.border);
+  }
 }
 
 function changeFontSize(dir){
