@@ -464,6 +464,7 @@ messages.push({role:'assistant',content:data.answer,sources:data.sources,followu
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Error. Please try again.',mode:'ai'});renderMessages();busy=false;sendBtn.disabled=false})
+}
 
 function askDerick(q){
 saveHistory(q);
@@ -475,8 +476,6 @@ messages.push({role:'assistant',content:data,mode:'derick'})}
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Derick agent error. Please try again.',mode:'derick'});renderMessages();busy=false;sendBtn.disabled=false})
-}
-
 }
 
 
