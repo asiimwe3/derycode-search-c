@@ -198,8 +198,24 @@ function cleanSnippet(text) {
     .replace(/&hellip;/g, '...')
     .replace(/&[a-z]+;/g, ''); // Remove any remaining HTML entities
   
-  // Remove source prefixes like "Title - Source:" or "Title | Source:"
-  clean = clean.replace(/^[A-Z][^:]{5,80}:\s*/, '');
+  // Remove date prefixes like "Mar 16, 2016 ..." or "Jan 3, 2024 —"
+  clean = clean.replace(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\s*[.·—\-]?\s*/i, '');
+  clean = clean.replace(/^\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s*[.·—\-]?\s*/i, '');
+  
+  // Remove question echoes at start (e.g. "What is blockchain? Blockchain is...")
+  clean = clean.replace(/^(what is|what are|who is|how does|why is|tell me about)\s+[^?]{3,60}\?\s*/i, '');
+  clean = clean.replace(/^(what is|what are|who is|how does|why is)\s+[^?]{3,60}\s+/i, (match, p1) => {
+    // Only remove if the next part starts with a capital letter (it's echoing the question)
+    return '';
+  });
+  
+  // Remove source prefixes like "Title - Source:" or "Title | Source:" or "Title: "
+  clean = clean.replace(/^[A-Z][^:.|\n]{5,80}\s*[-–—|]\s*[A-Z][^:.|\n]{2,60}:\s*/, '');
+  clean = clean.replace(/^[A-Z][^:.|\n]{5,80}:\s*/, (match) => {
+    // Only remove if it looks like a source prefix (ends with colon and next is content)
+    if (match.length < 80 && match.includes(':')) return '';
+    return match;
+  });
   
   // Remove CSS artifacts
   clean = clean.replace(/\{[^}]*\}/g, '');
@@ -211,22 +227,49 @@ function cleanSnippet(text) {
   // Remove file paths
   clean = clean.replace(/[a-zA-Z0-9_\-]+\/[a-zA-Z0-9_\-\/]+\.(js|css|html|png|jpg|svg)/g, '');
   
+  // Remove markdown artifacts
+  clean = clean.replace(/[#*_~`]+/g, '');
+  clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  
+  // Remove "..." at the start
+  clean = clean.replace(/^\.\.\.\s*/, '');
+  clean = clean.replace(/^…\s*/, '');
+  
+  // Remove "Home:" or "Home -" prefixes
+  clean = clean.replace(/^(Home|About|Overview)\s*[-:|]\s*/i, '');
+  
+  // Fix spacing around punctuation
+  clean = clean.replace(/\s+([,.;:!?])/g, '$1');
+  clean = clean.replace(/([,.;:!?])(?=[A-Za-z])/g, '$1 ');
+  
   // Remove excessive whitespace
   clean = clean.replace(/[ \t]+/g, ' ');
   clean = clean.replace(/\n{3,}/g, '\n\n');
   clean = clean.trim();
   
+  // Remove incomplete sentences at the start
+  clean = clean.replace(/^[a-z]{1,5}\s+(?=[A-Z])/, '');
+  
   // Remove incomplete sentences at the end
   clean = clean.replace(/\s+[a-z]{1,3}$/i, '');
   
-  // Cap at reasonable length
+  // Ensure starts with capital
+  if (clean.length > 0 && clean[0] >= 'a' && clean[0] <= 'z') {
+    clean = clean[0].toUpperCase() + clean.slice(1);
+  }
+  
+  // Cap at reasonable length — find sentence boundary
   if (clean.length > 800) {
-    // Find a good break point
     const cutPoint = clean.lastIndexOf('. ', 700);
     if (cutPoint > 200) {
       clean = clean.substring(0, cutPoint + 1);
     } else {
-      clean = clean.substring(0, 700) + '...';
+      const cutSpace = clean.lastIndexOf(' ', 700);
+      if (cutSpace > 200) {
+        clean = clean.substring(0, cutSpace) + '...';
+      } else {
+        clean = clean.substring(0, 700) + '...';
+      }
     }
   }
   
