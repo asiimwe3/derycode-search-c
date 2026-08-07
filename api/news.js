@@ -1,5 +1,5 @@
 // DeryCode News Search API - Vercel Serverless
-const MAX_QUERY_WORDS = 60;
+const MAX_QUERY_WORDS = 500;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

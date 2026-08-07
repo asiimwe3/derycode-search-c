@@ -1,8 +1,8 @@
 // DeryCode Search API - Vercel Serverless
-// Deep Search: 11 sources - surfaces what other engines hide
+// Deep Search: 16 sources - surfaces what other engines hide
 // Relevance-scored, academic sources conditional
 
-const MAX_QUERY_WORDS = 60;
+const MAX_QUERY_WORDS = 500;
 
 function isAcademicQuery(q) {
   const academic = ['research', 'paper', 'study', 'theory', 'algorithm', 'analysis',
@@ -71,6 +71,12 @@ export default async function handler(req, res) {
     fetchOpenLibrary(q),
     academic ? fetchSemanticScholar(q) : Promise.resolve([]),
     fetchGitHub(q)
+    ,
+    fetchGoogleBooks(q).then(d => d.results || []),
+    fetchGoogleNews(q).then(d => d.results || []),
+    fetchGutenberg(q).then(d => d.results || []),
+    fetchPubMed(q),
+    fetchScholar(q)
   ];
   
   const settled = await Promise.allSettled(sources);
@@ -280,4 +286,118 @@ async function fetchGitHub(q) {
     }
     return results;
   } catch { return []; }
+}
+
+// NEW SOURCES - v2.0
+
+async function fetchGoogleBooks(q) {
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&printType=books&projection=full`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const data = await r.json();
+    const results = [];
+    const books = [];
+    for (const item of (data?.items || [])) {
+      const vol = item.volumeInfo || {};
+      const authors = (vol.authors || ['Unknown']).join(', ');
+      results.push({ title: `${vol.title} by ${authors}`, url: vol.infoLink || `https://books.google.com/books?q=${encodeURIComponent(vol.title||'')}`, content: (vol.description || `Book by ${authors}${vol.publishedDate ? ' (' + vol.publishedDate + ')' : ''}`).substring(0,1200), engine: 'google-books', source: 'Google Books' });
+      books.push({ title: vol.title || '', author: authors, description: vol.description || 'No description available.', year: vol.publishedDate || '', publisher: vol.publisher || '', source: 'Google Books' });
+    }
+    return { results, books };
+  } catch { return { results: [], books: [] }; }
+}
+
+async function fetchGoogleNews(q) {
+  try {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DeryCodeSearch/1.0)' }, signal: AbortSignal.timeout(10000) });
+    const text = await r.text();
+    const results = [];
+    const news = [];
+    const items = text.match(/<item>[\s\S]*?<\/item>/g) || [];
+    for (const item of items.slice(0, 10)) {
+      const titleMatch = item.match(/<title>(.*?)<\/title>/);
+      const linkMatch = item.match(/<link>(.*?)<\/link>/);
+      const descMatch = item.match(/<description>(.*?)<\/description>/);
+      const sourceMatch = item.match(/<source[^>]*>(.*?)<\/source>/);
+      const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
+      const title = titleMatch ? decodeHtml(titleMatch[1]) : '';
+      const link = linkMatch ? linkMatch[1] : '';
+      const desc = descMatch ? decodeHtml(descMatch[1]).replace(/<[^>]+>/g,'') : '';
+      const source = sourceMatch ? sourceMatch[1] : 'Google News';
+      const date = dateMatch ? dateMatch[1] : '';
+      if (title) {
+        results.push({ title, url: link, content: desc.substring(0,800), engine: 'google-news', source: `News: ${source}` });
+        news.push({ title, snippet: desc, source, date, url: link });
+      }
+    }
+    return { results, news };
+  } catch { return { results: [], news: [] }; }
+}
+
+async function fetchGutenberg(q) {
+  try {
+    const url = `https://gutendex.com/books?search=${encodeURIComponent(q)}`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const data = await r.json();
+    const results = [];
+    const books = [];
+    for (const book of (data?.results || []).slice(0, 8)) {
+      const authors = (book.authors || [{name:'Unknown'}]).map(a => a.name).join(', ');
+      const subjects = (book.subjects || []).join(', ');
+      results.push({ title: `${book.title} by ${authors} (FREE)`, url: `https://www.gutenberg.org/ebooks/${book.id}`, content: `Free public domain book by ${authors}. ${subjects.substring(0,500)}`, engine: 'gutenberg', source: 'Project Gutenberg' });
+      books.push({ title: book.title || '', author: authors, description: `Free public domain book. ${subjects}`, source: 'Project Gutenberg' });
+    }
+    return { results, books };
+  } catch { return { results: [], books: [] }; }
+}
+
+async function fetchPubMed(q) {
+  try {
+    const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(q)}&retmax=6&retmode=json`;
+    const sr = await fetch(searchUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const sd = await sr.json();
+    const ids = (sd?.esearchresult?.idlist || []);
+    if (ids.length === 0) return [];
+    const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`;
+    const sumr = await fetch(sumUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const sumd = await sumr.json();
+    const results = [];
+    for (const uid of (sumd?.result?.uids || []).slice(0, 6)) {
+      const art = sumd.result[uid];
+      const authors = (art.authors || [{name:'Unknown'}]).map(a => a.name).join(', ');
+      results.push({ title: art.title || '', url: `https://pubmed.ncbi.nlm.nih.gov/${uid}/`, content: `PubMed article by ${authors}, published ${art.pubdate || '?'} in ${art.source || 'PubMed'}. PMID: ${uid}`, engine: 'pubmed', source: 'PubMed' });
+    }
+    return results;
+  } catch { return []; }
+}
+
+async function fetchScholar(q) {
+  try {
+    const url = `https://scholar.google.com/scholar?q=${encodeURIComponent(q)}&hl=en&as_sdt=0,5`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0' }, signal: AbortSignal.timeout(10000) });
+    const html = await r.text();
+    const results = [];
+    // Simple regex extraction of scholar results
+    const blocks = html.split('gs_r gs_or').slice(1, 7);
+    for (const block of blocks) {
+      const titleMatch = block.match(/gs_rt[^>]*>([^<]+)/);
+      const snippetMatch = block.match(/gs_rs[^>]*>([\s\S]*?)<\/div>/);
+      const linkMatch = block.match(/href="([^"]+)"/);
+      const metaMatch = block.match(/gs_a[^>]*>([\s\S]*?)<\/div>/);
+      if (titleMatch) {
+        const title = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+        const link = linkMatch ? linkMatch[1] : '';
+        const meta = metaMatch ? metaMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+        results.push({ title, url: link || `https://scholar.google.com/scholar?q=${encodeURIComponent(q)}`, content: `${meta} - ${snippet}`.substring(0,800), engine: 'google-scholar', source: 'Google Scholar' });
+      }
+    }
+    return results;
+  } catch { return []; }
+}
+
+function decodeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').replace(/&#(\d+);/g,(m,c)=>String.fromCharCode(parseInt(c)));
 }

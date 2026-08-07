@@ -4,8 +4,8 @@
 
 import { isDeryCodeQuery, getDeryCodeKnowledge } from './derycode-knowledge.js';
 
-const MAX_QUERY_WORDS = 60;
-const MAX_ANSWER_WORDS = 600;
+const MAX_QUERY_WORDS = 500;
+const MAX_ANSWER_WORDS = 5000;
 const MAX_ANSWER_CHARS = 5000;
 
 export default async function handler(req, res) {

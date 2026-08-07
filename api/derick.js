@@ -2,7 +2,7 @@
 // Named after Asiimwe Derick, founder of DeryCode Tech
 // Surfaces what other search engines hide - 11 deep sources
 
-const MAX_QUERY_WORDS = 60;
+const MAX_QUERY_WORDS = 500;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
