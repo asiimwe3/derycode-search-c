@@ -97,6 +97,16 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .search-section{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
 .search-section-title{font-size:14px;color:#777;margin-bottom:12px;font-weight:600}
 .result-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.book-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:flex;gap:12px}
+.book-card:active{border-color:rgba(212,175,55,0.2)}
+.book-cover{width:60px;height:90px;border-radius:6px;object-fit:cover;flex-shrink:0}
+.book-info{flex:1;min-width:0}
+.book-title{color:var(--text);font-size:17px;font-weight:700;line-height:1.35;margin-bottom:4px}
+.book-author{color:var(--text3);font-size:14px;margin-bottom:6px}
+.book-desc{color:#aaa;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.book-meta{color:#777;font-size:13px;margin-top:6px}
+.deep-toggle{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg4);border:1px solid rgba(255,255,255,0.06);border-radius:12px;font-size:13px;color:var(--text3);cursor:pointer;flex-shrink:0}
+.deep-toggle.active{background:rgba(212,175,55,0.15);color:var(--gold);border-color:rgba(212,175,55,0.3)}
 .result-card:active{border-color:rgba(212,175,55,0.2)}
 .result-meta{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
 .engine-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase}
@@ -365,13 +375,15 @@ html{font-size:14px}
 <button class="mode-btn" id="mode-news" onclick="setMode('news')"><span class="mi">📰</span> News</button>
 <button class="mode-btn" id="mode-code" onclick="setMode('code')"><span class="mi">⚡</span> Code</button>
 <button class="mode-btn" id="mode-derick" onclick="setMode('derick')"><span class="mi">🧑‍🏫</span> Derick</button>
+<button class="mode-btn" id="mode-books" onclick="setMode('books')"><span class="mi">📚</span> Books</button>
 <button class="mode-btn" id="mode-videos" onclick="setMode('videos')"><span class="mi">📺</span> Videos</button>
+<div style="display:flex;justify-content:flex-end;padding:4px 12px;background:var(--bg2);border-bottom:1px solid var(--border)"><button class="deep-toggle" id="deepToggle" onclick="toggleDeep()">🔬 Deep Search</button></div>
 </div>
 
 <div class="chat-container" id="chat">
 <div class="welcome" id="welcome">
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
-<div class="welcome-sub" id="welcomeSub">Web-powered AI search. All-in-one results.</div>
+<div class="welcome-sub" id="welcomeSub">16-source AI search. Books, news, deep extraction. 5000-word answers.</div>
 <div class="welcome-features">
 <span class="welcome-feature"><span>6</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
@@ -395,18 +407,18 @@ html{font-size:14px}
 </div>
 <button class="send-btn" id="send" onclick="send()">Send</button>
 </div>
-<div class="input-hint" id="inputHint">DeryCode AI - Web powered - 6 languages - No tracking</div>
+<div class="input-hint" id="inputHint">16 sources | 512 results | 5000-word answers | Books + News + Deep Search</div>
 </div>
 
 <script>
-var mode='all';var messages=[];var busy=false;
-var lang='en';var maxWords=60;
+var mode='all';var messages=[];var busy=false;var deepSearch=false;
+var lang='en';var maxWords=500;
 var inputEl=document.getElementById('input');
 var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. All-in-one results.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'16-source AI search. Books, news, deep extraction. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
 sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
@@ -419,7 +431,7 @@ suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe 
 te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 5 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
-var modeNames=['all','search','images','news','code','derick','videos'];
+var modeNames=['all','search','images','news','code','derick','books','videos'];
 
 inputEl.focus();
 renderWelcome();
@@ -433,11 +445,12 @@ function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeh
 
 function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code,derick:'Derick'};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
-function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',derick:'Ask Derick for step-by-step...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',derick:'Ask Derick for step-by-step...',books:'Search books and summaries...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
 
 function quickAsk(q){inputEl.value=q;send()}
 
 function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
+function toggleDeep(){deepSearch=!deepSearch;var btn=document.getElementById("deepToggle");if(btn){btn.className="deep-toggle"+(deepSearch?" active":"")}}
 
 function send(){
 if(busy)return;var q=inputEl.value.trim();if(!q)return;
@@ -452,6 +465,7 @@ else if(mode==='images'){searchImages(q)}
 else if(mode==='news'){searchNews(q)}
 else if(mode==='code'){searchCode(q)}
 else if(mode==='derick'){askDerick(q)}
+else if(mode==='books'){searchBooks(q)}
 else if(mode==='videos'){searchVideos(q)}
 }
 
@@ -525,7 +539,7 @@ checkAllDone();
 });
 
 // 2. Web results
-fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+fetch('/api/search?q='+encodeURIComponent(q)+(deepSearch?'&deep=1':'')).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
 data=data||{};
 var m=messages[idx];if(!m)return;
 if(data.results&&data.results.length>0){
@@ -583,7 +597,7 @@ function searchWeb(q){
 saveHistory(q);
 // Fetch both web results AND AI summary in parallel
 Promise.all([
-fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
+fetch('/api/search?q='+encodeURIComponent(q)+(deepSearch?'&deep=1':'')).then(function(r){return r.json()}).catch(function(){return{}}),
 fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}})
 ]).then(function(responses){
 var searchData=responses[0]||{};
@@ -616,7 +630,7 @@ saveHistory(q);
 fetch('/api/news?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
 .then(function(data){
-messages.push({role:'assistant',content:'',articles:data.articles||[],mode:'news'});
+messages.push({role:"assistant",content:"",articles:data.articles||data.news||[],mode:"news"});
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'News search failed.',mode:'news'});renderMessages();busy=false;sendBtn.disabled=false})
@@ -642,6 +656,17 @@ messages.push({role:'assistant',content:'',videos:data.videos||[],mode:'videos'}
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Video search failed.',mode:'videos'});renderMessages();busy=false;sendBtn.disabled=false})
+
+function searchBooks(q){
+saveHistory(q);
+fetch("/api/books?q="+encodeURIComponent(q))
+.then(function(r){return r.json()})
+.then(function(data){
+messages.push({role:"assistant",content:"",books:data.books||[],book_count:data.book_count||0,mode:"books"});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:"assistant",content:"Book search failed.",mode:"books"});renderMessages();busy=false;sendBtn.disabled=false})
+}
 }
 
 
@@ -684,7 +709,7 @@ var histHtml='';
 if(h.length>0){
 histHtml='<div class="history-section"><div class="history-header"><span class="history-title">🕒 '+historyTitle+'</span><button class="history-clear" onclick="clearHistory()">'+clearLabel+'</button></div><div class="history-list">';
 h.slice(0,8).forEach(function(item){
-var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[item.mode||'all']||'✨';
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑200d🏫',books:'📚',videos:'📺'}[item.mode||'all']||'✨';
 histHtml+='<button class="history-item" onclick="quickAsk(\''+item.q.replace(/'/g,"\\'")+'\')"><span class="history-icon">'+modeIcon+'</span><span class="history-text">'+esc(item.q)+'</span><span class="history-time">'+timeAgo(item.t)+'</span></button>';
 });
 histHtml+='</div></div>';
@@ -708,7 +733,7 @@ var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑‍🏫',videos:'📺'}[m.mode||'search']||'🔍';
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑200d🏫',books:'📚',videos:'📺'}[m.mode||'search']||'🔍';
 html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
 html+='<div class="msg msg-ai">';if(m.mode==='derick'){html+='<div class="ai-avatar" style="background:linear-gradient(135deg,#d4af37,#b8941f)">🧑\u200d🏫</div><div class="ai-bubble"><div class="ai-name">Derick Agent <span style="font-size:11px;color:var(--text3);font-weight:400">Step-by-Step Guide</span></div>'}else{html+='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI';
@@ -734,6 +759,24 @@ if(m.paa&&m.paa.length>0){html+='<div class="search-section"><div class="search-
 }
 
 
+
+// Books mode
+if(m.mode==="books"){
+if(m.books&&m.books.length>0){
+html+='<div class="search-section"><div class="search-section-title">Books ('+m.books.length+' found)</div>';
+m.books.forEach(function(b){
+html+='<div class="result-card" style="margin-bottom:14px">';
+if(b.year)html+='<span class="engine-badge" style="background:rgba(212,175,55,0.3);color:var(--gold)">'+esc(b.year)+'</span> ';
+html+='<span class="engine-badge" style="background:#2d5a3d;color:#7fd49a">'+esc(b.source)+'</span>';
+html+='<div style="margin-top:8px"><span class="result-title">'+cleanAndEsc(b.title)+'</span>';
+if(b.author)html+='<div style="color:var(--text3);font-size:14px;margin-top:4px">by '+cleanAndEsc(b.author)+'</div>';
+if(b.description)html+='<p class="result-content">'+cleanAndEsc(b.description.substring(0,600))+'</p>';
+if(b.publisher)html+='<div style="color:#777;font-size:13px;margin-top:4px">'+cleanAndEsc(b.publisher)+'</div>';
+html+='</div></div>';
+});
+html+='</div>'
+}else{html+='<div class="ai-content">No books found. Try a different search term.</div>'}
+}
 // Derick mode - Step-by-step practical guide
 if(m.mode==='derick'){
 var d=m.content||{};
