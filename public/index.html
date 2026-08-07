@@ -130,6 +130,14 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .book-desc{color:#aaa;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .book-meta{color:#777;font-size:13px;margin-top:6px}
 .result-card:active{border-color:rgba(212,175,55,0.2)}
+.result-card{position:relative}
+.bookmark-btn{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:7px;background:var(--bg4);border:1px solid var(--border);color:var(--text3);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;z-index:2;opacity:0.7}
+.bookmark-btn:active{transform:scale(0.9);opacity:1}
+.bookmark-btn.bookmarked{background:rgba(212,175,55,0.15);color:var(--gold);border-color:rgba(212,175,55,0.3);opacity:1}
+.news-card{position:relative}
+.video-card{position:relative}
+.book-card{position:relative}
+.code-card{position:relative}
 .result-meta{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
 .engine-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase}
 .result-url{color:#777;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;font-weight:500}
@@ -685,6 +693,27 @@ function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getEle
 
 function quickAsk(q){inputEl.value=q;send()}
 
+function isResultBookmarked(url){try{var b=JSON.parse(localStorage.getItem('dc_rb')||'[]');return b.some(function(x){return x.u===url})}catch(e){return false}}
+function toggleResultBookmark(url,title,engine){
+  try{
+    var b=JSON.parse(localStorage.getItem('dc_rb')||'[]');
+    var idx=b.findIndex(function(x){return x.u===url});
+    if(idx>=0){b.splice(idx,1);showToast('Removed')}
+    else{b.push({u:url,t:title,e:engine||'web',d:Date.now()});showToast('Saved')}
+    localStorage.setItem('dc_rb',JSON.stringify(b));
+    var isAdd=idx<0;
+    var btns=document.querySelectorAll('[data-bm="'+url+'"]');
+    btns.forEach(function(btn){btn.className='bookmark-btn'+(isAdd?' bookmarked':'');btn.textContent=isAdd?'\u2605':'\u2606'});
+  }catch(e){}
+  updateBookmarkCount();
+}
+function bmBtn(url,title,engine){
+  var b=isResultBookmarked(url);
+  var safeUrl=url.replace(/'/g,'');
+  var safeTitle=(title||'').replace(/'/g,'');
+  return '<button class="bookmark-btn'+(b?' bookmarked':'')+'" data-bm="'+safeUrl+'" onclick="event.stopPropagation();event.preventDefault();toggleResultBookmark(\''+safeUrl+'\',\''+safeTitle+'\',\''+(engine||'web')+'\')">'+(b?'\u2605':'\u2606')+'</button>';
+}
+
 function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
 // Deep Search is now a mode button - toggle removed
 
@@ -1008,14 +1037,14 @@ if(m.mode==='ai'||!m.mode){
 if(m.content)html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>';
 if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>50)title=title.substring(0,47)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
 if(m.followups&&m.followups.length>0){html+='<div class="ai-followups">';m.followups.forEach(function(f){html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,20).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,20).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div>'+bmBtn(r.url,r.title,r.engine)+'<a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
 }
 
 // Unified All mode - AI overview + web results + images + videos + links
 if(m.mode==='all'){
 if(m.aiSummary&&m.content){html+='<div class="search-section-title" style="margin:0 0 8px;color:var(--gold);font-size:13px;font-weight:700">✨ AI Overview</div>';html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>'}
 if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>50)title=title.substring(0,47)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">🔍 Web Results</div>';m.results.slice(0,12).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">🔍 Web Results</div>';m.results.slice(0,12).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div>'+bmBtn(r.url,r.title,r.engine)+'<a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
 if(m.images&&m.images.length>0){html+='<div class="search-section"><div class="search-section-title">🖼️ Images</div><div class="image-grid">';m.images.slice(0,12).forEach(function(img){html+='<a href="'+(img.image||img.url||img.thumbnail)+'" target="_blank" class="image-card">';if(img.thumbnail)html+='<img src="'+img.thumbnail+'" loading="lazy" alt="'+esc(img.title||'')+'" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'\.image-placeholder\').style.display=\'flex\'"><div class="image-placeholder" style="display:none">🖼️</div>';else html+='<div class="image-placeholder">🖼️</div>';if(img.source)html+='<div class="img-source">'+esc(img.source)+'</div>';html+='<div class="img-overlay">'+esc((img.title||'').substring(0,30))+'</div></a>'});html+='</div></div>'}
 if(m.videos&&m.videos.length>0){html+='<div class="search-section"><div class="search-section-title">📺 Videos</div><div class="video-list">';m.videos.slice(0,10).forEach(function(v){var thumb=v.thumbnail||'';var dur=v.duration?'<span class="vid-duration">'+esc(v.duration)+'</span>':'';html+='<a href="'+v.url+'" target="_blank" class="video-card">';html+='<div class="video-thumb">';if(thumb)html+='<img src="'+thumb+'" loading="lazy" alt="'+esc(v.title)+'" onerror="this.style.display=\'none\'">';else html+='<div class="image-placeholder">📺</div>';html+=dur;html+='</div>';html+='<div class="video-info"><div class="video-title">'+esc(v.title)+'</div>';html+='<div class="video-meta">';if(v.channel)html+='<span class="video-channel">'+esc(v.channel)+'</span>';if(v.views)html+='<span class="video-views">'+esc(v.views)+'</span>';if(v.published)html+='<span class="video-date">'+esc(v.published)+'</span>';html+='</div></div></a>'});html+='</div></div>'}
 if(m.paa&&m.paa.length>0){html+='<div class="search-section"><div class="search-section-title">🤔 People Also Ask</div>';m.paa.forEach(function(p){html+='<button class="paa-item" onclick="quickAsk(\''+p.replace(/'/g,"\\'")+'\')"><span class="paa-q">'+cleanAndEsc(p)+'</span><span class="paa-arrow">→</span></button>'});html+='</div>'}
@@ -1126,7 +1155,7 @@ if(m.mode==='search'){
 if(m.aiSummary&&m.content)html+='<div class="search-section-title" style="margin:0 0 8px;color:var(--gold);font-size:12px;font-weight:600">AI Summary</div>';
 if(m.content)html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>';
 if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>50)title=title.substring(0,47)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,20).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,20).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div>'+bmBtn(r.url,r.title,r.engine)+'<a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}
 }
 
 // Images mode
@@ -1664,20 +1693,42 @@ function toggleBookmark(query){
 }
 function updateBookmarkCount(){
   var c=document.getElementById('bookmarkCount');
-  if(c){var n=getBookmarks().length;if(n>0)c.textContent=n;else c.textContent=''}
+  if(c){var n=getBookmarks().length;try{var r=JSON.parse(localStorage.getItem('dc_rb')||'[]');n+=r.length}catch(e){}if(n>0)c.textContent=n;else c.textContent=''}
 }
 function showBookmarks(){
-  var b=getBookmarks();
-  if(b.length===0){
-    showMessage('No bookmarks yet. Long-press a search to bookmark it.');
+  var sb=getBookmarks();
+  var rb=[];
+  try{rb=JSON.parse(localStorage.getItem('dc_rb')||'[]')}catch(e){}
+  if(sb.length===0&&rb.length===0){
+    showMessage('No bookmarks yet. Tap the star on any result to save it.');
     return;
   }
-  var html='<div class="history-section"><div class="history-header"><span class="history-title">⭐ Bookmarks</span><button class="history-clear" onclick="clearBookmarks()">Clear</button></div><div class="history-list">';
-  b.forEach(function(q){html+='<div class="history-item" onclick="inputEl.value=\''+q.replace(/'/g,'\\\'')+'\';send();"><span class="history-item-text">'+esc(q)+'</span><button class="history-item-del" onclick="event.stopPropagation();removeBookmark(\''+q.replace(/'/g,'\\\'')+'\')">✕</button></div>'});
-  html+='</div></div>';
+  var html='<div class="history-section">';
+  if(sb.length>0){
+    html+='<div class="history-header"><span class="history-title">Saved Searches</span></div><div class="history-list">';
+  sb.forEach(function(q){html+='<div class="history-item" onclick="inputEl.value=\''+q.replace(/'/g,'')+'\';send();"><span class="history-item-text">'+esc(q)+'</span><button class="history-item-del" onclick="event.stopPropagation();removeBookmark(\''+q.replace(/'/g,'')+'\')">✕</button></div>'});
+    html+='</div>';
+  }
+  if(rb.length>0){
+    html+='<div class="history-header" style="margin-top:16px"><span class="history-title">Saved Results</span><button class="history-clear" onclick="clearResultBookmarks()">Clear</button></div>';
+    rb.forEach(function(item){
+      var c2={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[item.e]||'#3050ff';
+      var l2={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[item.e]||'Web';
+      html+='<div class="result-card" style="margin:6px 0"><div class="result-meta"><span class="engine-badge" style="background:'+c2+'">'+l2+'</span></div><a href="'+item.u+'" target="_blank" class="result-title">'+cleanAndEsc(item.t)+'</a><div class="result-url" style="margin-top:4px">'+formatUrl(item.u)+'</div><button class="bookmark-btn bookmarked" style="position:static;float:right;top:auto;right:auto" onclick="removeResultBookmark(\''+item.u+'\')">★</button></div>';
+    });
+  }
+  html+='</div>';
   var c=document.getElementById('chat');
   c.innerHTML=html;
   document.getElementById('welcome').style.display='none';
+}
+function removeResultBookmark(url){
+  try{var b=JSON.parse(localStorage.getItem('dc_rb')||'[]');b=b.filter(function(x){return x.u!==url});localStorage.setItem('dc_rb',JSON.stringify(b))}catch(e){}
+  updateBookmarkCount();showBookmarks();
+}
+function clearResultBookmarks(){
+  try{localStorage.removeItem('dc_rb')}catch(e){}
+  updateBookmarkCount();showBookmarks();
 }
 function removeBookmark(q){
   var b=getBookmarks();
@@ -1688,7 +1739,8 @@ function removeBookmark(q){
   showBookmarks();
 }
 function clearBookmarks(){
-  try{localStorage.removeItem('dc_bookmarks')}catch(e){}
+  try{localStorage.removeItem('dc_bookmarks');
+    localStorage.removeItem('dc_rb');localStorage.removeItem('dc_rb')}catch(e){}
   updateBookmarkCount();
   showBookmarks();
 }
@@ -1699,6 +1751,7 @@ function clearAllData(){
   try{
     localStorage.removeItem('dc_history');
     localStorage.removeItem('dc_bookmarks');
+    localStorage.removeItem('dc_rb');
     localStorage.removeItem('dc_theme');
     localStorage.removeItem('dc_fontSize');
     localStorage.removeItem('dc_compact');
