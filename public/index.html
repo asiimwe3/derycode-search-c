@@ -382,18 +382,18 @@ html+='</div>';
 
 // AI mode
 if(m.mode==='ai'||!m.mode){
-if(m.content)html+='<div class="ai-content">'+esc(m.content)+'</div>';
-if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});html+='</div>'}
+if(m.content)html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
 if(m.followups&&m.followups.length>0){html+='<div class="ai-followups">';m.followups.forEach(function(f){html+='<button class="ai-followup" onclick="quickAsk(\''+f.replace(/'/g,"\\'")+'\')">'+esc(f)+'</button>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,15).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,120))+'</p>';html+='</div>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,15).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
 }
 
 // Web search mode
 if(m.mode==='search'){
 if(m.aiSummary&&m.content)html+='<div class="search-section-title" style="margin:0 0 8px;color:var(--gold);font-size:12px;font-weight:600">AI Summary</div>';
-if(m.content)html+='<div class="ai-content">'+esc(m.content)+'</div>';
-if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,15).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
+if(m.content)html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>';
+if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,15).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,180))+'</p>';html+='</div>'});html+='</div>'}
 }
 
 // Images mode
@@ -421,8 +421,8 @@ if(m.articles&&m.articles.length>0){
 m.articles.forEach(function(a){
 html+='<div class="news-card"><div class="news-source"><span class="news-source-name">'+esc(a.source||'News')+'</span>';
 if(a.date)html+='<span class="news-date">'+esc(formatDate(a.date))+'</span>';
-html+='</div><a href="'+a.url+'" target="_blank" class="news-title">'+esc(a.title)+'</a>';
-if(a.content)html+='<p class="news-desc">'+esc(a.content)+'</p>';
+html+='</div><a href="'+a.url+'" target="_blank" class="news-title">'+cleanAndEsc(a.title)+'</a>';
+if(a.content)html+='<p class="news-desc">'+cleanAndEsc(a.content)+'</p>';
 html+='</div>'
 });
 }else{
@@ -483,7 +483,9 @@ function showTyping(){var t=document.createElement('div');t.className='msg msg-a
 
 function startVoice(){try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported');return}var rec=new SR();rec.lang=lang==='sw'?'sw-KE':lang==='lg'?'lg-UG':'en-US';rec.continuous=false;rec.interimResults=false;rec.onresult=function(e){inputEl.value=e.results[0][0].transcript;send()};rec.start()}catch(e){}}
 
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function decodeEntities(s){if(!s)return'';var e=document.createElement('div');e.innerHTML=s;return e.textContent||e.innerText||''}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function cleanAndEsc(s){if(!s)return'';return esc(decodeEntities(s))}
 function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
 
 // Service Worker Registration
