@@ -185,6 +185,14 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 
 
 /* Install Prompt */
+.default-browser-banner{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);padding:10px 18px;border-radius:16px;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:10px;box-shadow:0 4px 24px rgba(212,175,55,0.4);z-index:200;animation:slideUp 0.4s ease;white-space:nowrap;max-width:90vw}
+.default-browser-banner:active{transform:translateX(-50%) scale(0.95)}
+.default-browser-banner .dbb-icon{font-size:20px}
+.default-browser-banner .dbb-close{background:rgba(0,0,0,0.2);border:none;border-radius:50%;width:22px;height:22px;color:inherit;font-size:14px;cursor:pointer;margin-left:4px}
+.default-browser-banner .dbb-close:hover{background:rgba(0,0,0,0.3)}
+@media(display-mode:standalone){.default-browser-banner{display:none !important}}
+@media(max-width:380px){.default-browser-banner{font-size:11px;padding:8px 14px}}
+
 .install-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(212,175,55,0.4);z-index:200;animation:slideDown 0.3s ease;white-space:nowrap}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .install-banner:active{transform:translateX(-50%) scale(0.95)}
@@ -418,6 +426,11 @@ html{font-size:14px}
 </div>
 </div>
 
+<div class="default-browser-banner" id="defaultBrowserBanner" onclick="setDefaultBrowser()">
+    <span class="dbb-icon">🌐</span>
+    <span>Set DeryCode as your default browser</span>
+    <button class="dbb-close" onclick="event.stopPropagation();dismissBrowserBanner()">×</button>
+</div>
 <div class="install-banner" id="installBanner" onclick="installApp()">
 <span class="ib-icon">📲</span> Install DeryCode AI
 <button class="ib-close" onclick="event.stopPropagation();dismissInstall()">×</button>
@@ -1016,6 +1029,131 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 
 // Install Prompt
 var deferredPrompt=null;
+
+// === EXTERNAL LINK HANDLING ===
+// When DeryCode is set as default browser/handler, links open here with ?url=...
+function handleExternalLink(){
+  var params=new URLSearchParams(window.location.search);
+  var extUrl=params.get('url');
+  var mode=params.get('mode');
+  
+  // If opened via protocol handler with a URL
+  if(extUrl){
+    // Strip protocol for cleaner display
+    var cleanUrl=extUrl.replace(/^https?:\/\//,'');
+    // Auto-search the content of the URL
+    setTimeout(function(){
+      inputEl.value='Summarize: '+cleanUrl;
+      setMode('all');
+      send();
+    },500);
+    return;
+  }
+  
+  // If opened with a mode parameter
+  if(mode){
+    var validModes=['all','search','images','news','code','derick','books','maps','deep','videos'];
+    if(validModes.indexOf(mode)>=0){
+      setMode(mode);
+    }
+  }
+}
+
+// === DEFAULT BROWSER BANNER ===
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+
+function showDefaultBrowserBanner(){
+  if(isStandalone()) return; // Already installed, no need
+  
+  // Check if user dismissed it before
+  try{
+    var dismissed=localStorage.getItem('derycode_browser_banner_dismissed');
+    if(dismissed==='1') return;
+  }catch(e){}
+  
+  // Check if it's been shown before in this session
+  if(sessionStorage.getItem('derycode_browser_shown')) return;
+  sessionStorage.setItem('derycode_browser_shown','1');
+  
+  var banner=document.getElementById('defaultBrowserBanner');
+  if(banner){
+    banner.style.display='flex';
+    // Auto-hide after 8 seconds
+    setTimeout(function(){
+      if(banner)banner.style.display='none';
+    },8000);
+  }
+}
+
+function dismissBrowserBanner(){
+  var banner=document.getElementById('defaultBrowserBanner');
+  if(banner)banner.style.display='none';
+  try{localStorage.setItem('derycode_browser_banner_dismissed','1')}catch(e){}
+}
+
+function setDefaultBrowser(){
+  // Try protocol handler registration (Chrome 91+)
+  if(navigator.registerProtocolHandler){
+    try{
+      navigator.registerProtocolHandler('web+derycode',
+        window.location.origin+'/?url=%s',
+        'DeryCode AI Search');
+    }catch(e){console.log('[PWA] Protocol handler registration failed:',e)}
+  }
+  
+  // Show instructions based on platform
+  var isAndroid=/Android/i.test(navigator.userAgent);
+  var isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var isChrome=/Chrome/i.test(navigator.userAgent);
+  
+  if(isAndroid&&isChrome){
+    alert('To set DeryCode as your default browser:\n\n1. Open Android Settings\n2. Go to Apps > Default Apps\n3. Tap "Browser app"\n4. Select "DeryCode AI"\n\nNow all links will open in DeryCode!');
+  }else if(isAndroid){
+    alert('To set DeryCode as your default browser:\n\n1. Open Android Settings\n2. Go to Apps > Default Apps\n3. Tap "Browser app"\n4. Select "DeryCode AI"');
+  }else if(isIOS){
+    alert('To set DeryCode as your default browser on iOS:\n\n1. Open Settings\n2. Scroll to "DeryCode AI"\n3. Tap "Default Browser App"\n4. Select "DeryCode AI"\n\nNote: Requires iOS 14+ and app installation.');
+  }else{
+    alert('To set DeryCode as your default browser:\n\n1. Install this app (tap "Install DeryCode" below)\n2. On Android: Settings > Apps > Default Apps > Browser\n3. On iOS: Settings > DeryCode AI > Default Browser App\n4. On Desktop: Set as default in your browser settings');
+  }
+  
+  dismissBrowserBanner();
+  
+  // Also trigger install prompt if available
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+  }
+}
+
+// === LAUNCH QUEUE API ===
+// Handle files/URLs passed to the app on launch
+if('launchQueue' in window){
+  window.launchQueue.setConsumer(function(launchParams){
+    if(launchParams.files&&launchParams.files.length>0){
+      // Handle files if needed
+      console.log('[PWA] Launched with files:',launchParams.files);
+    }
+    if(launchParams.targetURL){
+      var url=new URL(launchParams.targetURL,window.location.origin);
+      var extUrl=url.searchParams.get('url');
+      if(extUrl){
+        var cleanUrl=extUrl.replace(/^https?:\/\//,'');
+        setTimeout(function(){
+          inputEl.value='Summarize: '+cleanUrl;
+          setMode('all');
+          send();
+        },500);
+      }
+    }
+  });
+}
+
+// Handle external links on load
+handleExternalLink();
+
+// Show default browser banner after 3 seconds
+setTimeout(showDefaultBrowserBanner,3000);
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var banner=document.getElementById('installBanner');if(banner&&!isStandalone()){banner.style.display='flex';setTimeout(function(){if(banner)banner.style.display='none'},5000)}});
 window.addEventListener('appinstalled',function(){var banner=document.getElementById('installBanner');if(banner)banner.style.display='none';deferredPrompt=null;console.log('[PWA] App installed')});
 

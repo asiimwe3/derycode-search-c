@@ -60,9 +60,32 @@ self.addEventListener('fetch', function(e) {
 
   // Navigation requests (HTML pages) - network first, fall back to cache
   if (e.request.mode === 'navigate') {
+    var requestUrl = new URL(e.request.url);
+    
+    // If this is an external link (has ?url= parameter), serve the app shell
+    // and let the JavaScript handle the URL
+    if (requestUrl.searchParams.has('url')) {
+      e.respondWith(
+        caches.match('/').then(function(cached) {
+          return cached || fetch(e.request).then(function(response) {
+            if (response.status === 200) {
+              var clone = response.clone();
+              caches.open(CACHE_NAME).then(function(cache) {
+                cache.put(e.request, clone);
+              });
+            }
+            return response;
+          }).catch(function() {
+            return caches.match('/');
+          });
+        })
+      );
+      return;
+    }
+    
+    // Normal navigation - cache and serve
     e.respondWith(
       fetch(e.request).then(function(response) {
-        // Cache the fresh copy
         if (response.status === 200) {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {
@@ -71,7 +94,6 @@ self.addEventListener('fetch', function(e) {
         }
         return response;
       }).catch(function() {
-        // Offline - serve from cache
         return caches.match(e.request).then(function(cached) {
           return cached || caches.match('/');
         });
