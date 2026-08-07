@@ -18,7 +18,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
-<title>DeryCode AI - Gemini Powered</title>
+<title>DeryCode AI - Web Powered</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -210,11 +210,11 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 <div class="chat-container" id="chat">
 <div class="welcome" id="welcome">
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
-<div class="welcome-sub" id="welcomeSub">Gemini-powered AI search. 6 modes. Current info.</div>
+<div class="welcome-sub" id="welcomeSub">Web-powered AI search. 6 modes. Current info.</div>
 <div class="welcome-features">
 <span class="welcome-feature"><span>6</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
-<span class="welcome-feature">Gemini Powered</span>
+<span class="welcome-feature">Web Powered</span>
 <span class="welcome-feature">No Tracking</span>
 </div>
 <div class="suggest-cards" id="suggestCards"></div>
@@ -234,7 +234,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 </div>
 <button class="send-btn" id="send" onclick="send()">Send</button>
 </div>
-<div class="input-hint" id="inputHint">DeryCode AI - Gemini powered - 6 languages - No tracking</div>
+<div class="input-hint" id="inputHint">DeryCode AI - Web powered - 6 languages - No tracking</div>
 </div>
 
 <script>
@@ -245,17 +245,17 @@ var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'Gemini-powered AI search. 6 modes. Current info.',hint:'Gemini AI - 6 Modes - No tracking',send:'Send',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. 6 modes. Current info.',hint:'Web AI - 6 Modes - No tracking',send:'Send',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
-sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Gemini AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
+sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
-lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna.',hint:'Gemini AI - Enimi 6 - Tewali kwekalaba',send:'Tuma',search:'Noonya ku mtandao',images:'Noonya ebiwanvu',news:'Amawulire',code:'Noonya code',ai:'AI',
+lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna.',hint:'Web AI - Enimi 6 - Tewali kwekalaba',send:'Tuma',search:'Noonya ku mtandao',images:'Noonya ebiwanvu',news:'Amawulire',code:'Noonya code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ebalwa ki?'},{icon:'👤',text:'Asiimwe Derick ali ani?'},{icon:'💰',text:'Tovuti egula ssente mmeka?'},{icon:'🌍',text:'Gamba ku Uganda'}]},
-rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'Gemini AI - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora ku mtandao',images:'Rondora ebiishushani',news:'Amakuru',code:'Rondora code',ai:'AI',
+rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'Web AI - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora ku mtandao',images:'Rondora ebiishushani',news:'Amakuru',code:'Rondora code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode erimu ki?'},{icon:'👤',text:'Asiimwe Derick naiwe?'},{icon:'💰',text:'Webusaiti erimu nkaingana?'},{icon:'🌍',text:'Nkora kuganya ku Uganda'}]},
-luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'Gemini AI - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
+luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'Web AI - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe Derick en ngani?'},{icon:'💰',text:'Website ni wachne naka?'},{icon:'🌍',text:'Lok kwomi Uganda'}]},
-te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Gemini AI - Aki 6 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
+te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 6 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
 var modeNames=['ai','search','images','news','code','videos'];
