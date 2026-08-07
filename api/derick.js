@@ -19,6 +19,52 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Query too long. Max ${MAX_QUERY_WORDS} words.` });
   }
   
+  // Check for conversational input first
+  const lowerQ = question.toLowerCase().trim();
+  const greetings = ['hello','hi','hey','hallo','hola','salut','ciao','jambo','habari',
+    'good morning','good afternoon','good evening','greetings','howdy','yo','sup','sasa','niaje','mambo'];
+  const smallTalk = ['how are you','who are you','what is your name','thank you','thanks',
+    'goodbye','bye','okay','ok','yes','no','cool','nice','tell me a joke','are you real',
+    'i love you','you are great','what can you do','help me'];
+  
+  const isGreet = greetings.some(g => lowerQ === g || lowerQ.startsWith(g + ' ') || lowerQ.startsWith(g + '!'));
+  const isSmall = smallTalk.some(s => lowerQ.includes(s));
+  
+  if (isGreet || isSmall) {
+    let response = '';
+    if (isGreet) {
+      response = 'Hello! I am Derick, your practical guide assistant. I specialize in step-by-step guides and tutorials. Ask me "how to" do anything - build a website, learn programming, start a business, cook a recipe, and more. What would you like to learn today?';
+    } else if (lowerQ.includes('how are you')) {
+      response = 'I am doing great, always ready to help! What would you like a step-by-step guide for?';
+    } else if (lowerQ.includes('who are you') || lowerQ.includes('what is your name') || lowerQ.includes('what can you do')) {
+      response = 'I am Derick, the guide assistant from DeryCode. I create detailed step-by-step practical guides for anything you want to learn - from coding to cooking, from business to fitness. Just ask me "how to" do something and I will build you a complete guide with tips, warnings, and recommended tools.';
+    } else if (lowerQ.includes('thank')) {
+      response = 'You are welcome! Ask me for a step-by-step guide anytime.';
+    } else if (lowerQ.includes('bye') || lowerQ.includes('goodbye')) {
+      response = 'Goodbye! Come back anytime you need a practical guide. I am always here.';
+    } else if (lowerQ.includes('joke')) {
+      response = 'Why did the programmer quit his job? Because he didn\'t get arrays! (a raise) 😄 Now, what would you like a guide for?';
+    } else {
+      response = 'Great! What would you like a step-by-step guide for? Try asking "how to build a website" or "how to start a business".';
+    }
+    return res.status(200).json({
+      query: question,
+      topic: 'conversation',
+      intro: response,
+      steps: [],
+      tips: '',
+      warnings: '',
+      tools: [],
+      step_count: 0,
+      has_data: false,
+      agent: 'Derick',
+      isGreeting: true,
+      sources_used: [],
+      total_results: 0,
+      time: '0.01'
+    });
+  }
+  
   console.log(`[Derick] Guide for: "${question}" (${words} words)`);
   const startTime = Date.now();
   

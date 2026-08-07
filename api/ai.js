@@ -811,6 +811,172 @@ function truncateWords(text, maxWords, maxChars) {
 }
 
 // === MAIN HANDLER ===
+
+// === CONVERSATIONAL / CHAT HANDLING ===
+function isGreeting(text) {
+  const lower = text.toLowerCase().trim();
+  const greetings = ['hello', 'hi', 'hey', 'hallo', 'hola', 'salut', 'ciao', 
+    'bonjour', 'jambo', 'habari', 'olive', 'good morning', 'good afternoon', 
+    'good evening', 'good night', 'greetings', 'howdy', 'yo', 'sup',
+    'morning', 'afternoon', 'evening', 'hi there', 'hey there', 'whats up',
+    'what\'s up', 'how far', 'kulika', 'ngiibu', 'apoyo', 'esenale',
+    'eebale', 'tuk', 'oyo', 'hey bro', 'hi bro', 'hello bro', 'sasa',
+    'niaje', 'mambo', 'vipi'];
+  return greetings.some(g => lower === g || lower.startsWith(g + ' ') || lower.startsWith(g + '!') || lower.startsWith(g + '.'));
+}
+
+function isSmallTalk(text) {
+  const lower = text.toLowerCase().trim();
+  const smallTalk = [
+    'how are you', 'how are u', 'how r u', 'how do you do', 'whats up', 'what\'s up',
+    'how is your day', 'how is it going', 'how are things', 'how you doing',
+    'what is your name', 'whats your name', 'what\'s your name', 'who are you',
+    'what are you', 'what can you do', 'what do you do', 'help me',
+    'thank you', 'thanks', 'thx', 'appreciate it', 'thank u', 'asante',
+    'goodbye', 'bye', 'see you', 'see ya', 'later', 'cya', 'good night',
+    'i love you', 'love you', 'you are great', 'you are awesome', 'you are amazing',
+    'good bot', 'nice', 'cool', 'awesome', 'great', 'wow', 'lol', 'lmao',
+    'haha', 'hehe', 'funny', 'okay', 'ok', 'sure', 'alright', 'fine',
+    'good', 'yes', 'no', 'maybe', 'i agree', 'exactly', 'right',
+    'what', 'huh', 'hmm', 'hmmm', 'idk', 'i dont know', 'i don\'t know',
+    'tell me a joke', 'joke', 'make me laugh', 'something funny',
+    'are you human', 'are you real', 'are you ai', 'are you a robot',
+    'are you a bot', 'what is ai', 'do you have feelings'
+  ];
+  return smallTalk.some(s => lower === s || lower.startsWith(s + ' ') || lower.startsWith(s + '?'));
+}
+
+function handleConversational(text, lang) {
+  const lower = text.toLowerCase().trim();
+  
+  // Greetings
+  if (isGreeting(lower)) {
+    const hour = new Date().getUTCHours() + 3; // EAT timezone
+    let timeGreeting = '';
+    if (hour >= 5 && hour < 12) timeGreeting = 'Good morning';
+    else if (hour >= 12 && hour < 17) timeGreeting = 'Good afternoon';
+    else if (hour >= 17 && hour < 21) timeGreeting = 'Good evening';
+    else timeGreeting = 'Hello';
+    
+    const greetings = {
+      en: timeGreeting + '! I am DeryCode AI, your personal search assistant. I can search the web, find images, news, books, maps, code, and even the deep web. What would you like to know today?',
+      sw: timeGreeting + '! Mimi ni DeryCode AI, msaidizi wako wa utafutaji. Naweza kutafuta mtandao, picha, habari, vitabu, ramani, code, na hata deep web. Unataka kujua nini leo?',
+      fr: timeGreeting + '! Je suis DeryCode AI, votre assistant de recherche personnel. Je peux rechercher sur le web, images, actualités, livres, cartes, code et même le deep web. Que voulez-vous savoir aujourd\'hui?',
+      es: timeGreeting + '! Soy DeryCode AI, tu asistente de búsqueda personal. Puedo buscar en la web, imágenes, noticias, libros, mapas, código e incluso la deep web. ¿Qué quieres saber hoy?',
+      lg: timeGreeting + '! Nze DeryCode AI, yakuyamba mu kunoonya. Nnyinza okunoonya ku mtandao, ebifaananyi, amawulire, ebitabo, maapu, code, n\'ebisangibwa mu deep web. Oyagala okumanya ki leero?',
+      ar: timeGreeting + '! أنا DeryCode AI، مساعدك الشخصي للبحث. يمكنني البحث في الويب والصور والأخبار والكتب والخرائط والكود وحتى الويب العميق. ماذا تريد أن تعرف اليوم؟'
+    };
+    return {
+      answer: greetings[lang] || greetings.en,
+      sources: [],
+      followups: ['What can DeryCode AI do?', 'Search for latest technology news', 'Who is Asiimwe Derick?'],
+      confidence: 'high',
+      isGreeting: true
+    };
+  }
+  
+  // How are you
+  if (lower.match(/how are you|how r u|how do you do|how is it going|how are things|how you doing|how is your day/)) {
+    const responses = {
+      en: 'I am doing great, thank you for asking! I am always ready to help you search and find information. How can I help you today?',
+      sw: 'Niko vizuri sana, asante kwa kuuliza! Daima tayari kukusaidia kutafuta taarifa. Ninaweza kukusaidia vipi leo?',
+      fr: 'Je vais très bien, merci de demander! Je suis toujours prêt à vous aider à rechercher des informations. Comment puis-je vous aider aujourd\'hui?'
+    };
+    return { answer: responses[lang] || responses.en, sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // Who are you / What is your name
+  if (lower.match(/what is your name|whats your name|what's your name|who are you|what are you|what can you do/)) {
+    const responses = {
+      en: 'I am DeryCode AI, a premium search engine assistant built by Asiimwe Derick. I search 22 sources across the web, deep web, dark web, maps, books, news, images, videos, and code to give you accurate answers. I am not a regular chatbot - I actually search the internet in real-time to find real, up-to-date information for you. Try asking me anything!',
+      sw: 'Mimi ni DeryCode AI, msaidiza utafutaji wa hali ya juu aliyejengwa na Asiimwe Derick. Ninatafuta katika vyanzo 22 tofauti - mtandao, deep web, dark web, ramani, vitabu, habari, picha, video, na code. Sio chatbot ya kawaida - ninatafuta mtandao papo hapo kupata taarifa za kweli. Uliza chochote!',
+      fr: 'Je suis DeryCode AI, un assistant de recherche premium créé par Asiimwe Derick. Je recherche 22 sources: web, deep web, dark web, cartes, livres, actualités, images, vidéos et code. Je ne suis pas un simple chatbot - je recherche réellement Internet en temps réel. Demandez-moi n\'importe quoi!'
+    };
+    return { 
+      answer: responses[lang] || responses.en, 
+      sources: [{ title: 'DeryCode Search', url: 'https://derycode-search-c.vercel.app' }],
+      followups: ['What services does DeryCode offer?', 'Search for AI news', 'How to build a website'], 
+      confidence: 'high', 
+      isGreeting: true 
+    };
+  }
+  
+  // Thank you
+  if (lower.match(/thank you|thanks|thx|appreciate it|thank u|asante/)) {
+    const responses = {
+      en: 'You are welcome! Feel free to ask me anything else. I am here to help.',
+      sw: 'Karibu! Usitasita kuuliza chochote kingine. Nipo hapa kukusaidia.',
+      fr: 'De rien! N\'hésitez pas à me demander autre chose. Je suis là pour aider.'
+    };
+    return { answer: responses[lang] || responses.en, sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // Goodbye
+  if (lower.match(/goodbye|bye|see you|see ya|later|cya|good night|goodnight/)) {
+    const responses = {
+      en: 'Goodbye! Come back anytime you need to search or find information. I am always here for you.',
+      sw: 'Kwaheri! Rudi wakati wowote unahitaji kutafuta taarifa. Daima nipo hapa.',
+      fr: 'Au revoir! Revenez quand vous voulez chercher des informations. Je suis toujours là.'
+    };
+    return { answer: responses[lang] || responses.en, sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // Jokes
+  if (lower.match(/tell me a joke|joke|make me laugh|something funny/)) {
+    const jokes = [
+      'Why did the programmer quit his job? Because he didn\'t get arrays! (a raise) 😄',
+      'Why do programmers prefer dark mode? Because light attracts bugs! 🐛',
+      'How many programmers does it take to change a light bulb? None - that\'s a hardware problem! 💡',
+      'Why did the developer go broke? Because he used up all his cache! 💸',
+      'What is a programmer\'s favorite hangout place? The Foo Bar! 🍺'
+    ];
+    return { answer: jokes[Math.floor(Math.random() * jokes.length)], sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // Are you AI/human/robot
+  if (lower.match(/are you human|are you real|are you ai|are you a robot|are you a bot|do you have feelings/)) {
+    const responses = {
+      en: 'I am DeryCode AI - an intelligent search assistant. I am not human, but I am very real! I search the internet in real-time across 22 sources to find accurate, up-to-date information for you. I may not have feelings, but I genuinely enjoy helping you find what you need. What would you like to search for?',
+      sw: 'Mimi ni DeryCode AI - msaidiza utafutaji mwerevu. Sio binadamu, lakini niko wa kweli kabisa! Ninatafuta mtandao papo hapo katika vyanzo 22 kupata taarifa sahihi. Labda sina hisia, lakini ninapenda kukusaidia. Unataka kutafta nini?',
+      fr: 'Je suis DeryCode AI - un assistant de recherche intelligent. Je ne suis pas humain, mais je suis bien réel! Je recherche Internet en temps réel sur 22 sources. Qu\'aimeriez-vous rechercher?'
+    };
+    return { answer: responses[lang] || responses.en, sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // Okay / yes / no / ok
+  if (lower.match(/^(okay|ok|sure|alright|fine|good|yes|no|maybe|cool|nice|awesome|great|wow|lol|lmao|haha|hehe)$/)) {
+    const responses = [
+      'Great! What would you like to search for or know about?',
+      'Awesome! Ask me anything - I can search the web, find news, images, books, maps, and more.',
+      'Got it! What\'s next? I am ready to help you find anything.',
+      'Nice! Feel free to ask me a question or search for something.'
+    ];
+    return { answer: responses[Math.floor(Math.random() * responses.length)], sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  // I don't know
+  if (lower.match(/idk|i dont know|i don't know|hmm|hmmm|huh/)) {
+    return { 
+      answer: 'No worries! That\'s what I am here for. Tell me what you are curious about and I will search the internet to find the answer for you.', 
+      sources: [], followups: ['What is trending today?', 'Tell me about Uganda', 'What is artificial intelligence?'], 
+      confidence: 'high', isGreeting: true 
+    };
+  }
+  
+  // I love you / you're great
+  if (lower.match(/i love you|love you|you are great|you are awesome|you are amazing|good bot|you're great|you're awesome/)) {
+    const responses = [
+      'That means a lot! I am always here for you. What would you like to search for?',
+      'Thank you! I enjoy helping you. What can I find for you today?',
+      'You are too kind! Ready when you are - ask me anything.'
+    ];
+    return { answer: responses[Math.floor(Math.random() * responses.length)], sources: [], followups: [], confidence: 'high', isGreeting: true };
+  }
+  
+  return null; // Not conversational, proceed to search
+}
+
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   
@@ -829,6 +995,23 @@ export default async function handler(req, res) {
       error: `Query too long. Maximum ${MAX_QUERY_WORDS} words. You used ${words}.`,
       max_words: MAX_QUERY_WORDS,
       used_words: words
+    });
+  }
+  
+  // 0. Check for conversational/chat input (greetings, small talk, etc.)
+  const convResult = handleConversational(question, lang);
+  if (convResult) {
+    return res.status(200).json({
+      question,
+      answer: convResult.answer,
+      sources: convResult.sources || [],
+      followups: convResult.followups || [],
+      results: [],
+      model: 'DeryCode-Conversational',
+      confidence: convResult.confidence,
+      lang,
+      isGreeting: convResult.isGreeting || false,
+      grounded: false
     });
   }
   
