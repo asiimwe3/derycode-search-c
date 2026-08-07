@@ -90,4 +90,7 @@ Disallow: /
 User-agent: Bytespider
 Disallow: /
 
-Sitemap: https://derycode-search.vercel.app/sitemap.xml
+Sitemap: https://derycode-search-c.vercel.app/sitemap.xml
+
+# IndexNow key for fast indexing
+# https://derycode-search-c.vercel.app/9c4b1bf35f06e15a56c0d1a2ffafaddf.txt

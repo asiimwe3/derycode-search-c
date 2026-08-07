@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=3600');
 
-  const base = 'https://derycode-search.vercel.app';
+  const base = 'https://derycode-search-c.vercel.app';
   const now = new Date().toISOString().split('T')[0];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

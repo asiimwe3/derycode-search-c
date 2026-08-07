@@ -4,32 +4,32 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 
   <url>
-    <loc>https://derycode-search.vercel.app/</loc>
+    <loc>https://derycode-search-c.vercel.app/</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://derycode-search.vercel.app/icons/icon-512.png</image:loc>
+      <image:loc>https://derycode-search-c.vercel.app/icons/icon-512.png</image:loc>
       <image:title>DeryCode AI Search Engine</image:title>
     </image:image>
   </url>
 
   <url>
-    <loc>https://derycode-search.vercel.app/about.html</loc>
+    <loc>https://derycode-search-c.vercel.app/about.html</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://derycode-search.vercel.app/api/status</loc>
+    <loc>https://derycode-search-c.vercel.app/api/status</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://derycode-search.vercel.app/manifest.json</loc>
+    <loc>https://derycode-search-c.vercel.app/manifest.json</loc>
     <lastmod>2026-08-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
