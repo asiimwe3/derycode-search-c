@@ -164,8 +164,8 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     confidence = 'low';
   }
   
-  // Fallback if no content found
-  if (!answer || answer.length < 20) {
+  // Fallback if no content found or content is too short/garbage
+  if (!answer || answer.length < 20 || (answer.length < 50 && sourceCount < 2)) {
     if (webResults.length > 0) {
       answer = `I found ${webResults.length} web results for "${question}", but couldn't extract a clear answer. Please check the sources below for detailed information.`;
       confidence = 'low';
@@ -174,6 +174,10 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
       confidence = 'none';
     }
   }
+  
+  // Final cleanup: remove any remaining leading dots
+  answer = answer.replace(/^[.…•·]+\s*/, '');
+  answer = answer.replace(/^\.\s+/, '');
   
   return { answer, confidence };
 }
@@ -231,8 +235,9 @@ function cleanSnippet(text) {
   clean = clean.replace(/[#*_~`]+/g, '');
   clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
   
-  // Remove "..." at the start
-  clean = clean.replace(/^\.\.\.\s*/, '');
+  // Remove "...", "..", and "…" at the start
+  clean = clean.replace(/^[.…]+\s*/, '');
+  clean = clean.replace(/^\.\.+\s*/, '');
   clean = clean.replace(/^…\s*/, '');
   
   // Remove "Home:" or "Home -" prefixes
