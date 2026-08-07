@@ -175,14 +175,123 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .send-btn:active{opacity:0.8}
 .send-btn:disabled{opacity:0.4}
 .input-hint{text-align:center;color:#555;font-size:10px;margin-top:6px}
-@media(max-width:380px){
-.header-logo{font-size:15px}
+/* Mobile responsive - all screen sizes */
+@media(max-width:430px){
+html{font-size:16px}
+.header{padding:8px 10px;min-height:48px}
+.header-logo{font-size:18px}
+.header-badge{font-size:10px;padding:2px 6px}
+.lang-select{font-size:13px;padding:6px 8px}
+.mode-bar{padding:6px 10px;gap:4px}
+.mode-btn{padding:7px 14px;font-size:13px}
+.mode-btn .mi{font-size:15px}
+.chat-container{padding:10px}
+.welcome{padding:24px 12px}
+.welcome-logo{font-size:30px}
+.welcome-sub{font-size:14px;margin-bottom:18px}
+.welcome-feature{padding:6px 12px;font-size:12px}
+.suggest-cards{grid-template-columns:repeat(2,1fr);gap:8px;max-width:100%}
+.suggest-card{padding:14px}
+.suggest-card-icon{font-size:20px}
+.suggest-card-text{font-size:13px}
+.msg-user .bubble{font-size:15px;padding:12px 14px;max-width:90%}
+.ai-avatar{width:32px;height:32px;font-size:12px}
+.ai-name{font-size:14px}
+.ai-content{font-size:15px;line-height:1.6}
+.ai-source{font-size:12px;padding:4px 8px}
+.ai-followup{padding:9px 12px;font-size:14px}
+.result-card{padding:12px 14px}
+.result-title{font-size:16px}
+.result-content{font-size:14px}
+.result-url{font-size:12px;max-width:160px}
+.engine-badge{font-size:10px;padding:2px 6px}
+.image-grid{grid-template-columns:repeat(2,1fr);gap:6px}
+.image-card .img-overlay{font-size:11px;padding:18px 8px 6px}
+.image-card .img-source{font-size:10px}
+.news-card{padding:14px}
+.news-title{font-size:16px}
+.news-desc{font-size:14px}
+.code-card{padding:12px 14px}
+.code-title{font-size:15px}
+.code-desc{font-size:13px}
+.video-card{gap:8px}
+.video-thumb{width:120px;min-width:120px;height:70px}
+.video-title{font-size:14px}
+.video-channel{font-size:12px}
+.video-views{font-size:12px}
+.video-date{font-size:12px}
+.vid-duration{font-size:9px;padding:1px 4px}
+.input-area{padding:8px 10px}
+.input-box{padding:10px 12px}
+#input{font-size:15px}
+.send-btn{font-size:12px;padding:8px 12px}
+.input-hint{font-size:10px}
+.install-banner{font-size:13px;padding:6px 12px}
+}
+
+@media(max-width:360px){
+html{font-size:15px}
+.header-logo{font-size:16px}
 .header-badge{display:none}
-.suggest-cards{grid-template-columns:1fr}
-.msg-user .bubble{max-width:92%}
+.mode-btn{padding:6px 10px;font-size:12px;gap:4px}
+.mode-btn .mi{font-size:14px}
+.chat-container{padding:8px}
+.welcome{padding:20px 10px}
+.welcome-logo{font-size:26px}
+.welcome-sub{font-size:13px}
+.welcome-features{gap:6px}
+.welcome-feature{padding:5px 10px;font-size:11px}
+.suggest-cards{grid-template-columns:1fr;gap:8px}
+.suggest-card{padding:12px}
+.suggest-card-icon{font-size:18px}
+.suggest-card-text{font-size:13px}
+.msg-user .bubble{font-size:14px;padding:10px 12px;max-width:93%}
 .ai-avatar{width:28px;height:28px;font-size:11px}
+.ai-name{font-size:13px}
+.ai-content{font-size:14px;line-height:1.55}
+.ai-source{font-size:11px;padding:3px 7px}
+.ai-followup{padding:8px 10px;font-size:13px}
+.result-card{padding:10px 12px}
+.result-title{font-size:15px}
+.result-content{font-size:13px}
+.result-url{font-size:11px;max-width:130px}
+.engine-badge{font-size:9px;padding:2px 5px}
+.video-card{flex-direction:column}
+.video-thumb{width:100%;min-width:100%;height:auto;aspect-ratio:16/9}
+.video-info{padding:8px 10px}
+.video-title{font-size:13px}
+.video-channel{font-size:11px}
+.video-views{font-size:11px}
+.video-date{font-size:11px}
+.input-box{padding:8px 10px}
+#input{font-size:14px}
+.send-btn{font-size:11px;padding:7px 10px}
+}
+
+@media(max-width:320px){
+html{font-size:14px}
+.header{padding:6px 8px}
+.header-logo{font-size:14px}
+.lang-select{font-size:11px;padding:5px 6px}
+.mode-btn{padding:5px 8px;font-size:11px}
+.mode-btn .mi{font-size:13px}
+.chat-container{padding:6px}
+.welcome-logo{font-size:22px}
+.welcome-sub{font-size:12px}
+.welcome-feature{padding:4px 8px;font-size:10px}
+.suggest-card{padding:10px}
+.suggest-card-icon{font-size:16px}
+.suggest-card-text{font-size:12px}
+.msg-user .bubble{font-size:13px;padding:8px 10px}
+.ai-avatar{width:26px;height:26px;font-size:10px}
 .ai-content{font-size:13px}
-.image-grid{grid-template-columns:repeat(2,1fr)}
+.result-title{font-size:14px}
+.result-content{font-size:12px}
+.video-thumb{width:90px;min-width:90px;height:52px}
+.video-title{font-size:12px}
+.video-card{gap:6px}
+#input{font-size:13px}
+.send-btn{font-size:10px;padding:6px 8px}
 }
 </style>
 </head>
@@ -445,6 +554,7 @@ html+='</div>'
 });
 }else{
 html+='<div class="ai-content">No code results found.</div>'
+}
 }
 
 // Videos mode
