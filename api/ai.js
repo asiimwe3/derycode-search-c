@@ -219,8 +219,10 @@ function isLowQuality(text) {
 function extractSentences(text) {
   if (!text) return [];
   
-  // Clean and split into sentences
+  // Replace list separators with sentence breaks
   let clean = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Replace "·" with ". "
+  clean = clean.replace(/\s*·\s*/g, '. ');
   
   // Split on sentence boundaries
   const sentences = [];
@@ -556,6 +558,9 @@ function cleanSnippet(text) {
     .replace(/&mdash;/g, '—')
     .replace(/&hellip;/g, '...')
     .replace(/&[a-z]+;/g, '');
+  
+  // Replace middle dots with periods (list separators in search results)
+  clean = clean.replace(/\s*·\s*/g, '. ');
   
   // Remove date prefixes
   clean = clean.replace(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\s*[.·—\-]?\s*/i, '');
