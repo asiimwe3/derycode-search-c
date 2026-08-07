@@ -303,6 +303,26 @@ html{font-size:14px}
 @media(max-width:360px){.image-grid{grid-template-columns:repeat(2,1fr)}.result-title{font-size:16px}.result-content{font-size:14px}}
 @media(max-width:320px){.image-grid{grid-template-columns:repeat(2,1fr);gap:6px}.result-card{padding:12px 14px}.result-title{font-size:15px}}
 
+
+/* Search History */
+.history-section{max-width:520px;margin:16px auto 0;text-align:left}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px}
+.history-title{font-size:14px;font-weight:700;color:var(--text3)}
+.history-clear{background:none;border:none;color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px}
+.history-clear:active{background:rgba(212,175,55,0.1)}
+.history-list{display:flex;flex-direction:column;gap:6px}
+.history-item{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:left;width:100%;font-family:inherit}
+.history-item:active{background:var(--bg4);transform:scale(0.98)}
+.history-icon{font-size:16px;flex-shrink:0}
+.history-text{flex:1;color:var(--text2);font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history-time{font-size:12px;color:var(--text3);flex-shrink:0;font-weight:400}
+
+/* People Also Ask */
+.paa-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:left;width:100%;margin-bottom:8px;font-family:inherit}
+.paa-item:active{background:var(--bg4);border-color:rgba(212,175,55,0.2);transform:scale(0.98)}
+.paa-q{flex:1;color:var(--text2);font-size:15px;font-weight:600;line-height:1.4}
+.paa-arrow{color:var(--gold);font-size:18px;font-weight:700;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -371,7 +391,7 @@ var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. All-in-one results.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. All-in-one results.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
 sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
@@ -387,6 +407,7 @@ suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimw
 var modeNames=['all','search','images','news','code','videos'];
 
 inputEl.focus();
+renderWelcome();
 inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
 inputEl.addEventListener('input',checkWordCount);
 renderSuggests();
@@ -431,16 +452,19 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 
 
 function searchAll(q){
+saveHistory(q);
 Promise.all([
 fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
 fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}}),
 fetch('/api/images?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
-fetch('/api/videos?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}})
+fetch('/api/videos?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
+fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return[]})
 ]).then(function(responses){
 var searchData=responses[0]||{};
 var aiData=responses[1]||{};
 var imgData=responses[2]||{};
 var vidData=responses[3]||{};
+var suggests=responses[4]||[];
 var summary=aiData.answer||'';
 var sources=[];
 if(aiData.sources&&aiData.sources.length>0)sources=aiData.sources;
@@ -448,12 +472,15 @@ else if(searchData.results&&searchData.results.length>0)sources=searchData.resul
 var allResults=(searchData.results||[]).concat((aiData.results||[]).filter(function(r){return!(searchData.results||[]).some(function(s){return s.url===r.url})}));
 var images=imgData.images||[];
 var videos=vidData.videos||[];
-messages.push({role:'assistant',content:summary||'',sources:sources,results:allResults,images:images,videos:videos,mode:'all',aiSummary:summary?true:false,confidence:aiData.confidence||'medium'});
+var paa=[];
+if(suggests&&suggests.length>0){paa=suggests.slice(0,4).map(function(s){return s})}
+messages.push({role:'assistant',content:summary||'',sources:sources,results:allResults,images:images,videos:videos,mode:'all',aiSummary:summary?true:false,confidence:aiData.confidence||'medium',paa:paa});
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }).catch(function(e){messages.push({role:'assistant',content:'Search failed. Please try again.',mode:'all'});renderMessages();busy=false;sendBtn.disabled=false})
 }
 
 function searchWeb(q){
+saveHistory(q);
 // Fetch both web results AND AI summary in parallel
 Promise.all([
 fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
@@ -474,6 +501,7 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 function searchImages(q){
+saveHistory(q);
 fetch('/api/images?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
 .then(function(data){
@@ -484,6 +512,7 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 function searchNews(q){
+saveHistory(q);
 fetch('/api/news?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
 .then(function(data){
@@ -494,6 +523,7 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 function searchCode(q){
+saveHistory(q);
 fetch('/api/code?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
 .then(function(data){
@@ -504,6 +534,7 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 function searchVideos(q){
+saveHistory(q);
 fetch('/api/videos?q='+encodeURIComponent(q))
 .then(function(r){return r.json()})
 .then(function(data){
@@ -511,6 +542,65 @@ messages.push({role:'assistant',content:'',videos:data.videos||[],mode:'videos'}
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Video search failed.',mode:'videos'});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
+
+// Search History
+function saveHistory(q){
+try{
+var h=JSON.parse(localStorage.getItem('dc_history')||'[]');
+q=q.trim();
+if(q.length<2)return;
+h=h.filter(function(x){return x.toLowerCase()!==q.toLowerCase()});
+h.unshift({q:q,t:Date.now()});
+if(h.length>50)h=h.slice(0,50);
+localStorage.setItem('dc_history',JSON.stringify(h));
+}catch(e){}
+}
+
+function getHistory(){
+try{return JSON.parse(localStorage.getItem('dc_history')||'[]')}catch(e){return[]}
+}
+
+function clearHistory(){
+try{localStorage.removeItem('dc_history')}catch(e){}
+renderWelcome();
+}
+
+function timeAgo(ts){
+var d=Date.now()-ts;
+if(d<60000)return'just now';
+if(d<3600000)return Math.floor(d/60000)+'m ago';
+if(d<86400000)return Math.floor(d/3600000)+'h ago';
+return Math.floor(d/86400000)+'d ago';
+}
+
+function renderWelcome(){
+var lb=langLabels[lang]||langLabels.en;
+var historyTitle=lb.history||'Recent Searches';
+var clearLabel=lb.clearHistory||'Clear';
+var h=getHistory();
+var histHtml='';
+if(h.length>0){
+histHtml='<div class="history-section"><div class="history-header"><span class="history-title">🕒 '+historyTitle+'</span><button class="history-clear" onclick="clearHistory()">'+clearLabel+'</button></div><div class="history-list">';
+h.slice(0,8).forEach(function(item){
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[item.mode||'all']||'✨';
+histHtml+='<button class="history-item" onclick="quickAsk(\''+item.q.replace(/'/g,"\\'")+'\')"><span class="history-icon">'+modeIcon+'</span><span class="history-text">'+esc(item.q)+'</span><span class="history-time">'+timeAgo(item.t)+'</span></button>';
+});
+histHtml+='</div></div>';
+}
+var sc=document.getElementById('suggestCards');
+if(sc){
+var sh='';
+(lb.suggests||[]).forEach(function(s){sh+='<div class="suggest-card" onclick="quickAsk(\''+s.text.replace(/'/g,"\\'")+'\')"><div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+esc(s.text)+'</div></div>'});
+sc.innerHTML=sh;
+}
+var welcome=document.getElementById('welcome');
+if(welcome){
+var existingHist=welcome.querySelector('.history-section');
+if(existingHist)existingHist.remove();
+welcome.insertAdjacentHTML('beforeend',histHtml);
+}
 }
 
 function renderMessages(){
@@ -540,6 +630,7 @@ if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.for
 if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">🔍 Web Results</div>';m.results.slice(0,8).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
 if(m.images&&m.images.length>0){html+='<div class="search-section"><div class="search-section-title">🖼️ Images</div><div class="image-grid">';m.images.slice(0,8).forEach(function(img){html+='<a href="'+(img.image||img.url||img.thumbnail)+'" target="_blank" class="image-card">';if(img.thumbnail)html+='<img src="'+img.thumbnail+'" loading="lazy" alt="'+esc(img.title||'')+'" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'\.image-placeholder\').style.display=\'flex\'"><div class="image-placeholder" style="display:none">🖼️</div>';else html+='<div class="image-placeholder">🖼️</div>';if(img.source)html+='<div class="img-source">'+esc(img.source)+'</div>';html+='<div class="img-overlay">'+esc((img.title||'').substring(0,30))+'</div></a>'});html+='</div></div>'}
 if(m.videos&&m.videos.length>0){html+='<div class="search-section"><div class="search-section-title">📺 Videos</div><div class="video-list">';m.videos.slice(0,6).forEach(function(v){var thumb=v.thumbnail||'';var dur=v.duration?'<span class="vid-duration">'+esc(v.duration)+'</span>':'';html+='<a href="'+v.url+'" target="_blank" class="video-card">';html+='<div class="video-thumb">';if(thumb)html+='<img src="'+thumb+'" loading="lazy" alt="'+esc(v.title)+'" onerror="this.style.display=\'none\'">';else html+='<div class="image-placeholder">📺</div>';html+=dur;html+='</div>';html+='<div class="video-info"><div class="video-title">'+esc(v.title)+'</div>';html+='<div class="video-meta">';if(v.channel)html+='<span class="video-channel">'+esc(v.channel)+'</span>';if(v.views)html+='<span class="video-views">'+esc(v.views)+'</span>';if(v.published)html+='<span class="video-date">'+esc(v.published)+'</span>';html+='</div></div></a>'});html+='</div></div>'}
+if(m.paa&&m.paa.length>0){html+='<div class="search-section"><div class="search-section-title">🤔 People Also Ask</div>';m.paa.forEach(function(p){html+='<button class="paa-item" onclick="quickAsk(\''+p.replace(/'/g,"\\'")+'\')"><span class="paa-q">'+cleanAndEsc(p)+'</span><span class="paa-arrow">→</span></button>'});html+='</div>'}
 }
 
 // Web search mode
