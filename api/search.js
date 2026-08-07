@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   
   // Build final results
   const allResults = [];
-  allResults.push(...webResults.slice(0, 10));
+  allResults.push(...webResults.slice(0, 20));
   // Add Wikipedia as knowledge panel
   if (wiki && !allResults.find(r => r.url === wiki.url)) {
     allResults.unshift({ 
@@ -58,8 +58,10 @@ export default async function handler(req, res) {
 
 // PRIMARY: Startpage search (privacy search engine using Google results)
 async function fetchStartpage(q) {
+  const results = [];
   try {
-    const r = await fetch('https://www.startpage.com/sp/search', {
+    // Page 1
+    const r1 = await fetch('https://www.startpage.com/sp/search', {
       method: 'POST',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -70,14 +72,47 @@ async function fetchStartpage(q) {
       body: `query=${encodeURIComponent(q)}&cat=web`,
       signal: AbortSignal.timeout(10000)
     });
-    const html = await r.text();
-    const results = [];
+    const html1 = await r1.text();
+    
+    // Extract hidden form fields for pagination (session token)
+    const hiddenInputs = {};
+    const inputMatches = [...html1.matchAll(/<input[^>]*type="hidden"[^>]*name="([^"]+)"[^>]*value="([^"]*)"/g)];
+    for (const m of inputMatches) {
+      hiddenInputs[m[1]] = m[2];
+    }
+    
+    // Build page 2 body with session token
+    let page2Body = `query=${encodeURIComponent(q)}&cat=web&page=2`;
+    for (const [k, v] of Object.entries(hiddenInputs)) {
+      page2Body += `&${k}=${encodeURIComponent(v)}`;
+    }
+    
+    // Fetch page 2 using the session token
+    let html2 = '';
+    try {
+      const r2 = await fetch('https://www.startpage.com/sp/search', {
+        method: 'POST',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept-Language': 'en-US,en;q=0.5'
+        },
+        body: page2Body,
+        signal: AbortSignal.timeout(10000)
+      });
+      html2 = await r2.text();
+    } catch {}
+    
+    // Parse both pages
+    const htmls = [html1, html2];
+    for (const html of htmls) {
     
     // Parse result titles and URLs
     // Startpage pattern: <a class="w-gl__result-title" href="URL">Title</a>
     const titleMatches = [...html.matchAll(/<a[^>]*class="[^"]*result-title[^"]*"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs)];
     
-    for (const m of titleMatches.slice(0, 10)) {
+    for (const m of titleMatches.slice(0, 20)) {
       let url = m[1];
       let title = m[2].replace(/<[^>]+>/g, '').trim();
       
@@ -107,10 +142,11 @@ async function fetchStartpage(q) {
       }
     }
     
+    }
     return results;
   } catch (e) {
     console.error('Startpage error:', e.message);
-    return [];
+    return results;
   }
 }
 

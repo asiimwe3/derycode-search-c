@@ -132,6 +132,7 @@ export default async function handler(req, res) {
 
 // Startpage search (works from Vercel - uses Google results!)
 async function fetchStartpage(q) {
+  const results = [];
   try {
     const r = await fetch('https://www.startpage.com/sp/search', {
       method: 'POST',
@@ -145,11 +146,10 @@ async function fetchStartpage(q) {
       signal: AbortSignal.timeout(10000)
     });
     const html = await r.text();
-    const results = [];
     
     const titleMatches = [...html.matchAll(/<a[^>]*class="[^"]*result-title[^"]*"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs)];
     
-    for (const m of titleMatches.slice(0, 10)) {
+    for (const m of titleMatches.slice(0, 20)) {
       let url = m[1];
       let title = m[2].replace(/<[^>]+>/g, '').trim();
       if (title.includes('.css-')) continue;
