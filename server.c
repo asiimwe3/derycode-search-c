@@ -451,7 +451,7 @@ static void handle_request(int client_fd) {
     } else if (strcmp(path, "/") == 0 || strcmp(path, "/index.html") == 0) {
         serve_html(client_fd);
     } else if (strcmp(path, "/health") == 0) {
-        send_json(client_fd, "{\"status\":\"healthy\",\"lang\":\"c\",\"ai\":true,\"languages\":6}", 200);
+        send_json(client_fd, "{\"status\":\"healthy\",\"lang\":\"c\",\"ai\":true,\"languages\":6,\"sources\":11,\"max_results\":128}", 200);
     } else {
         const char *err = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         write(client_fd, err, strlen(err));

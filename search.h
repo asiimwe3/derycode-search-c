@@ -158,7 +158,7 @@ typedef struct {
 
 /* Full search response */
 typedef struct {
-    SearchResult results[32];
+    SearchResult results[128];
     int result_count;
     KnowledgePanel kp;
     AiSummary ai;
@@ -373,7 +373,7 @@ static void generate_related(const char *query, SearchResponse *resp) {
     snprintf(resp->related[5], 127, "what is %s", query);
 }
 
-/* Deduplicate results by URL */
+/* Soft deduplicate - only remove EXACT URL matches, keep different pages */
 static void dedup_results(SearchResponse *resp) {
     for (int i = 0; i < resp->result_count; i++) {
         for (int j = i + 1; j < resp->result_count; j++) {
@@ -389,16 +389,543 @@ static void dedup_results(SearchResponse *resp) {
     }
 }
 
+
+/* ============ DEEP SEARCH SOURCES (What Others Hide) ============ */
+
+/* DuckDuckGo Full HTML Results - scrapes the actual search page for ALL results */
+static void search_duckduckgo_html(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url), "https://html.duckduckgo.com/html/?q=%s", encoded);
+    free(encoded);
+    
+    /* Use a browser-like UA for HTML scraping */
+    char cmd[4096];
+    snprintf(cmd, sizeof(cmd),
+        "curl -s -L --max-time 8 -A \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36\" \"%s\" 2>/dev/null", url);
+    
+    FILE *fp = popen(cmd, "r");
+    if (!fp) return;
+    
+    size_t cap = 131072;  /* 128KB for HTML pages */
+    char *buf = malloc(cap);
+    size_t len = 0, r;
+    while ((r = fread(buf + len, 1, cap - len - 1, fp)) > 0) {
+        len += r;
+        if (len >= cap - 1) { cap *= 2; buf = realloc(buf, cap); }
+    }
+    buf[len] = 0;
+    pclose(fp);
+    
+    if (len == 0) { free(buf); return; }
+    
+    /* Parse result blocks: <a class="result__a" href="URL">TITLE</a> */
+    char *p = buf;
+    int found = 0;
+    while (p && *p && *count < max && found < 15) {
+        /* Find result link */
+        char *link_start = strstr(p, "class=\"result__a\"");
+        if (!link_start) { 
+            link_start = strstr(p, "class=\"result__url\"");
+            if (!link_start) break;
+        }
+        
+        /* Find href before this */
+        char *href = link_start - 1;
+        char *href_start = NULL;
+        while (href > p) {
+            if (strncmp(href, "href=\"", 6) == 0) { href_start = href + 6; break; }
+            href--;
+        }
+        if (!href_start) { p = link_start + 10; continue; }
+        
+        /* Extract URL */
+        char *href_end = strchr(href_start, '"');
+        if (!href_end) break;
+        int url_len = href_end - href_start;
+        if (url_len > 1023) url_len = 1023;
+        
+        /* DDG wraps URLs in redirect links - extract actual URL */
+        char actual_url[1024] = "";
+        if (strncmp(href_start, "//duckduckgo.com/l/?uddg=", 25) == 0) {
+            /* URL-encoded redirect - decode it */
+            char *encoded_url = href_start + 25;
+            int enc_len = (href_end - encoded_url < 1023) ? href_end - encoded_url : 1023;
+            strncpy(actual_url, encoded_url, enc_len);
+            actual_url[enc_len] = 0;
+            /* URL decode */
+            url_decode(actual_url);
+            /* Strip &rut=... parameter */
+            char *amp = strchr(actual_url, '&');
+            if (amp) *amp = 0;
+        } else {
+            strncpy(actual_url, href_start, url_len);
+            actual_url[url_len] = 0;
+        }
+        
+        /* Find title text after the href */
+        char *title_start = href_end + 1;
+        /* Skip to > */
+        char *gt = strchr(title_start, '>');
+        if (!gt) { p = link_start + 10; continue; }
+        title_start = gt + 1;
+        char *title_end = strstr(title_start, "</a>");
+        if (!title_end) { p = link_start + 10; continue; }
+        int title_len = title_end - title_start;
+        if (title_len > 511) title_len = 511;
+        
+        /* Find snippet */
+        char *snippet_start = strstr(title_end, "class=\"result__snippet\"");
+        char snippet[1024] = "";
+        if (snippet_start) {
+            char *sn_gt = strchr(snippet_start, '>');
+            if (sn_gt) {
+                char *sn_end = strstr(sn_gt + 1, "</a>");
+                if (sn_end) {
+                    int sn_len = sn_end - sn_gt - 1;
+                    if (sn_len > 1023) sn_len = 1023;
+                    strncpy(snippet, sn_gt + 1, sn_len);
+                    snippet[sn_len] = 0;
+                    strip_html(snippet);
+                    decode_html(snippet);
+                }
+            }
+        }
+        
+        /* Add result */
+        strncpy(results[*count].url, actual_url, 1023);
+        strncpy(results[*count].title, title_start, title_len);
+        results[*count].title[title_len] = 0;
+        strip_html(results[*count].title);
+        decode_html(results[*count].title);
+        strncpy(results[*count].content, snippet, 1023);
+        strcpy(results[*count].engine, "ddg-html");
+        strcpy(results[*count].source, "DuckDuckGo Web");
+        results[*count].featured = 0;
+        (*count)++;
+        found++;
+        
+        p = title_end + 4;
+    }
+    
+    free(buf);
+}
+
+/* Reddit JSON API - forum discussions that Google demotes */
+static void search_reddit(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://www.reddit.com/search.json?q=%s&sort=relevance&limit=10&t=year", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0 (bot)");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *data = json_get_array(json, "data");
+    if (data) {
+        JsonValue *children = json_get_array(data, "children");
+        if (children) {
+            int len = json_array_len(children);
+            for (int i = 0; i < len && *count < max; i++) {
+                JsonValue *child = json_array_at(children, i);
+                if (!child) continue;
+                JsonValue *child_data = json_get_array(child, "data");
+                if (!child_data) continue;
+                const char *title = json_get_string(child_data, "title");
+                const char *permalink = json_get_string(child_data, "permalink");
+                const char *selftext = json_get_string(child_data, "selftext");
+                const char *subreddit = json_get_string(child_data, "subreddit");
+                int score = 0;
+                const char *score_str = json_get_string(child_data, "score");
+                if (score_str) score = atoi(score_str);
+                
+                if (title && permalink) {
+                    snprintf(results[*count].title, 511, "%s [r/%s]", title, subreddit ? subreddit : "reddit");
+                    snprintf(results[*count].url, 1023, "https://www.reddit.com%s", permalink);
+                    if (selftext && strlen(selftext) > 10) {
+                        strncpy(results[*count].content, selftext, 800);
+                        results[*count].content[800] = 0;
+                        strip_html(results[*count].content);
+                    } else {
+                        snprintf(results[*count].content, 1023, "Reddit discussion - %d upvotes", score);
+                    }
+                    strcpy(results[*count].engine, "reddit");
+                    strcpy(results[*count].source, "Reddit");
+                    (*count)++;
+                }
+            }
+        }
+    }
+    json_free(json);
+}
+
+/* Hacker News via Algolia API - tech discussions */
+static void search_hackernews(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://hn.algolia.com/api/v1/search?query=%s&tags=story&hitsPerPage=8", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *hits = json_get_array(json, "hits");
+    if (hits) {
+        int len = json_array_len(hits);
+        for (int i = 0; i < len && *count < max; i++) {
+            JsonValue *hit = json_array_at(hits, i);
+            if (!hit) continue;
+            const char *title = json_get_string(hit, "title");
+            const char *hn_url = json_get_string(hit, "url");
+            const char *objectID = json_get_string(hit, "objectID");
+            const char *story_text = json_get_string(hit, "story_text");
+            int points = 0;
+            const char *points_str = json_get_string(hit, "points");
+            if (points_str) points = atoi(points_str);
+            
+            if (title) {
+                strncpy(results[*count].title, title, 511);
+                if (hn_url && strlen(hn_url) > 5) {
+                    strncpy(results[*count].url, hn_url, 1023);
+                } else if (objectID) {
+                    snprintf(results[*count].url, 1023, "https://news.ycombinator.com/item?id=%s", objectID);
+                }
+                if (story_text && strlen(story_text) > 10) {
+                    strncpy(results[*count].content, story_text, 800);
+                    results[*count].content[800] = 0;
+                    strip_html(results[*count].content);
+                } else {
+                    snprintf(results[*count].content, 1023, "Hacker News story - %d points", points);
+                }
+                strcpy(results[*count].engine, "hackernews");
+                strcpy(results[*count].source, "Hacker News");
+                (*count)++;
+            }
+        }
+    }
+    json_free(json);
+}
+
+/* Stack Exchange API - Q&A from Stack Overflow and friends */
+static void search_stackexchange(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=votes&q=%s&pagesize=8&site=stackoverflow&filter=withbody", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *items = json_get_array(json, "items");
+    if (items) {
+        int len = json_array_len(items);
+        for (int i = 0; i < len && *count < max; i++) {
+            JsonValue *item = json_array_at(items, i);
+            if (!item) continue;
+            const char *title = json_get_string(item, "title");
+            const char *link = json_get_string(item, "link");
+            const char *body = json_get_string(item, "body");
+            int score = 0;
+            const char *score_str = json_get_string(item, "score");
+            if (score_str) score = atoi(score_str);
+            
+            if (title) {
+                strncpy(results[*count].title, title, 511);
+                strip_html(results[*count].title);
+                decode_html(results[*count].title);
+                if (link) strncpy(results[*count].url, link, 1023);
+                if (body) {
+                    strncpy(results[*count].content, body, 800);
+                    results[*count].content[800] = 0;
+                    strip_html(results[*count].content);
+                    decode_html(results[*count].content);
+                } else {
+                    snprintf(results[*count].content, 1023, "Stack Overflow - %d votes", score);
+                }
+                strcpy(results[*count].engine, "stackexchange");
+                strcpy(results[*count].source, "Stack Overflow");
+                (*count)++;
+            }
+        }
+    }
+    json_free(json);
+}
+
+/* ArXiv API - academic papers (preprints, not behind paywalls) */
+static void search_arxiv(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://export.arxiv.org/api/query?search_query=all:%s&max_results=5&sortBy=relevance", encoded);
+    free(encoded);
+    
+    /* ArXiv returns XML, not JSON - use curl and parse with grep/sed */
+    char cmd[4096];
+    snprintf(cmd, sizeof(cmd),
+        "curl -s -L --max-time 8 -A \"DeryCodeSearch/1.0\" \"%s\" 2>/dev/null", url);
+    
+    FILE *fp = popen(cmd, "r");
+    if (!fp) return;
+    
+    size_t cap = 65536;
+    char *buf = malloc(cap);
+    size_t len = 0, r;
+    while ((r = fread(buf + len, 1, cap - len - 1, fp)) > 0) {
+        len += r;
+        if (len >= cap - 1) { cap *= 2; buf = realloc(buf, cap); }
+    }
+    buf[len] = 0;
+    pclose(fp);
+    
+    if (len == 0) { free(buf); return; }
+    
+    /* Parse XML entries: <entry><title>...</title><summary>...</summary><id>...</id></entry> */
+    char *p = buf;
+    int found = 0;
+    while (p && *p && *count < max && found < 5) {
+        char *entry = strstr(p, "<entry>");
+        if (!entry) break;
+        char *entry_end = strstr(entry, "</entry>");
+        if (!entry_end) break;
+        
+        /* Title */
+        char *title_start = strstr(entry, "<title>");
+        char *title_end = strstr(title_start ? title_start : entry, "</title>");
+        char *summary_start = strstr(entry, "<summary>");
+        char *summary_end = strstr(summary_start ? summary_start : entry, "</summary>");
+        char *id_start = strstr(entry, "<id>");
+        char *id_end = strstr(id_start ? id_start : entry, "</id>");
+        
+        if (title_start && title_end && id_start && id_end) {
+            title_start += 7;
+            int tlen = title_end - title_start;
+            if (tlen > 511) tlen = 511;
+            strncpy(results[*count].title, title_start, tlen);
+            results[*count].title[tlen] = 0;
+            /* Clean whitespace */
+            char *ws = results[*count].title;
+            while (*ws == ' ' || *ws == '\n' || *ws == '\t') ws++;
+            if (ws != results[*count].title) memmove(results[*count].title, ws, strlen(ws)+1);
+            
+            id_start += 4;
+            int ilen = id_end - id_start;
+            if (ilen > 1023) ilen = 1023;
+            strncpy(results[*count].url, id_start, ilen);
+            results[*count].url[ilen] = 0;
+            /* Strip trailing whitespace */
+            char *urlend = results[*count].url + strlen(results[*count].url) - 1;
+            while (urlend > results[*count].url && (*urlend == ' ' || *urlend == '\n')) *urlend-- = 0;
+            
+            if (summary_start && summary_end) {
+                summary_start += 9;
+                int slen = summary_end - summary_start;
+                if (slen > 800) slen = 800;
+                strncpy(results[*count].content, summary_start, slen);
+                results[*count].content[slen] = 0;
+                strip_html(results[*count].content);
+            } else {
+                strcpy(results[*count].content, "ArXiv preprint paper");
+            }
+            
+            strcpy(results[*count].engine, "arxiv");
+            strcpy(results[*count].source, "ArXiv");
+            (*count)++;
+            found++;
+        }
+        
+        p = entry_end + 8;
+    }
+    
+    free(buf);
+}
+
+/* Internet Archive - archived content, old pages, media */
+static void search_archive(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://archive.org/advancedsearch.php?q=%s&fl[]=identifier&fl[]=title&fl[]=description&fl[]=downloads&rows=5&output=json&sort[]=downloads+desc", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *response = json_get_array(json, "response");
+    if (response) {
+        JsonValue *docs = json_get_array(response, "docs");
+        if (docs) {
+            int len = json_array_len(docs);
+            for (int i = 0; i < len && *count < max; i++) {
+                JsonValue *doc = json_array_at(docs, i);
+                if (!doc) continue;
+                const char *id = json_get_string(doc, "identifier");
+                const char *title = json_get_string(doc, "title");
+                const char *desc = json_get_string(doc, "description");
+                
+                if (id) {
+                    snprintf(results[*count].title, 511, "%s", title ? title : id);
+                    snprintf(results[*count].url, 1023, "https://archive.org/details/%s", id);
+                    if (desc) {
+                        strncpy(results[*count].content, desc, 800);
+                        results[*count].content[800] = 0;
+                        strip_html(results[*count].content);
+                    } else {
+                        strcpy(results[*count].content, "Internet Archive item");
+                    }
+                    strcpy(results[*count].engine, "archive");
+                    strcpy(results[*count].source, "Internet Archive");
+                    (*count)++;
+                }
+            }
+        }
+    }
+    json_free(json);
+}
+
+/* Open Library - book search */
+static void search_openlibrary(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://openlibrary.org/search.json?q=%s&limit=5&fields=title,author_name,first_publish_year,subject,id", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *docs = json_get_array(json, "docs");
+    if (docs) {
+        int len = json_array_len(docs);
+        for (int i = 0; i < len && *count < max; i++) {
+            JsonValue *doc = json_array_at(docs, i);
+            if (!doc) continue;
+            const char *title = json_get_string(doc, "title");
+            const char *key = json_get_string(doc, "key");
+            
+            if (title && key) {
+                snprintf(results[*count].title, 511, "%s - Book", title);
+                snprintf(results[*count].url, 1023, "https://openlibrary.org%s", key);
+                
+                /* Get author */
+                JsonValue *authors = json_get_array(doc, "author_name");
+                char author_str[256] = "";
+                if (authors) {
+                    const char *author = json_get_string(authors, "0");
+                    if (author) snprintf(author_str, 255, "by %s", author);
+                }
+                
+                const char *year = json_get_string(doc, "first_publish_year");
+                if (year && strlen(author_str) > 0) {
+                    snprintf(results[*count].content, 1023, "Book %s, first published %s", author_str, year);
+                } else if (strlen(author_str) > 0) {
+                    snprintf(results[*count].content, 1023, "Book %s", author_str);
+                } else {
+                    strcpy(results[*count].content, "Open Library book entry");
+                }
+                
+                strcpy(results[*count].engine, "openlibrary");
+                strcpy(results[*count].source, "Open Library");
+                (*count)++;
+            }
+        }
+    }
+    json_free(json);
+}
+
+/* Semantic Scholar - research papers */
+static void search_semantic_scholar(const char *query, SearchResult *results, int *count, int max) {
+    char *encoded = url_encode(query);
+    char url[1024];
+    snprintf(url, sizeof(url),
+        "https://api.semanticscholar.org/graph/v1/paper/search?query=%s&limit=5&fields=title,abstract,year,url,authors", encoded);
+    free(encoded);
+    
+    char *raw = http_get(url, "DeryCodeSearch/1.0");
+    if (!raw) return;
+    
+    JsonValue *json = json_parse(raw);
+    free(raw);
+    if (!json) return;
+    
+    JsonValue *data = json_get_array(json, "data");
+    if (data) {
+        int len = json_array_len(data);
+        for (int i = 0; i < len && *count < max; i++) {
+            JsonValue *paper = json_array_at(data, i);
+            if (!paper) continue;
+            const char *title = json_get_string(paper, "title");
+            const char *paper_url = json_get_string(paper, "url");
+            const char *abstract = json_get_string(paper, "abstract");
+            const char *year = json_get_string(paper, "year");
+            
+            if (title) {
+                if (year) {
+                    snprintf(results[*count].title, 511, "%s (%s) - Research Paper", title, year);
+                } else {
+                    snprintf(results[*count].title, 511, "%s - Research Paper", title);
+                }
+                if (paper_url) {
+                    strncpy(results[*count].url, paper_url, 1023);
+                } else {
+                    strcpy(results[*count].url, "https://www.semanticscholar.org");
+                }
+                if (abstract) {
+                    strncpy(results[*count].content, abstract, 800);
+                    results[*count].content[800] = 0;
+                } else {
+                    strcpy(results[*count].content, "Academic research paper from Semantic Scholar");
+                }
+                strcpy(results[*count].engine, "semantic-scholar");
+                strcpy(results[*count].source, "Semantic Scholar");
+                (*count)++;
+            }
+        }
+    }
+    json_free(json);
+}
+
+
 /* Main search function */
 static SearchResponse *perform_search(const char *query) {
     SearchResponse *resp = calloc(1, sizeof(SearchResponse));
     struct timeval start, end;
     gettimeofday(&start, NULL);
     
-    /* Search all sources */
-    search_duckduckgo(query, resp->results, &resp->result_count, 32);
-    search_wikipedia(query, resp->results, &resp->result_count, 32, &resp->kp);
-    search_github(query, resp->results, &resp->result_count, 32);
+    /* Search ALL sources - deep dive, no filtering */
+    search_duckduckgo(query, resp->results, &resp->result_count, 128);
+    search_wikipedia(query, resp->results, &resp->result_count, 128, &resp->kp);
+    search_github(query, resp->results, &resp->result_count, 128);
+    search_duckduckgo_html(query, resp->results, &resp->result_count, 128);
+    search_reddit(query, resp->results, &resp->result_count, 128);
+    search_hackernews(query, resp->results, &resp->result_count, 128);
+    search_stackexchange(query, resp->results, &resp->result_count, 128);
+    search_arxiv(query, resp->results, &resp->result_count, 128);
+    search_archive(query, resp->results, &resp->result_count, 128);
+    search_openlibrary(query, resp->results, &resp->result_count, 128);
+    search_semantic_scholar(query, resp->results, &resp->result_count, 128);
     
     /* Post-process */
     dedup_results(resp);
