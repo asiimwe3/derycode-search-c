@@ -1,7 +1,9 @@
 // DeryCode Search API - Vercel Serverless
-// Web search with AI summary, knowledge panel, and page scraping
+// Multi-source: Wikipedia + DDG + Bing + Gemini-enhanced
 
 const MAX_QUERY_WORDS = 30;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+const GEMINI_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,49 +14,55 @@ export default async function handler(req, res) {
   if (words > MAX_QUERY_WORDS) return res.status(400).json({ error: `Query too long. Max ${MAX_QUERY_WORDS} words.` });
   
   const startTime = Date.now();
-  
-  // Clean query
   let cleaned = q.trim().replace(/\?$/, '').trim();
   cleaned = cleaned.replace(/^(what is |what is the |what is a |what are |who is |tell me about |explain |describe |how does )/i, '').trim();
   
   // Fetch from multiple sources in parallel
-  const [wiki, ddg, webResults] = await Promise.all([
+  const [wiki, ddg, ddgHtml, bingResults] = await Promise.all([
     fetchWikipedia(cleaned),
     fetchDuckDuckGo(cleaned),
-    fetchDDGHTML(cleaned)
+    fetchDDGHTML(cleaned),
+    fetchBing(cleaned)
   ]);
+  
+  // Merge and dedup
+  let webResults = [...ddgHtml, ...bingResults];
+  const seen = new Set();
+  webResults = webResults.filter(r => {
+    if (seen.has(r.url)) return false;
+    seen.add(r.url);
+    return true;
+  });
   
   // Knowledge panel
   let knowledgePanel = null;
   if (wiki) {
-    knowledgePanel = {
-      title: wiki.title,
-      extract: wiki.extract.substring(0, 500),
-      url: wiki.url,
-      source: 'Wikipedia'
-    };
+    knowledgePanel = { title: wiki.title, extract: wiki.extract.substring(0, 500), url: wiki.url, source: 'Wikipedia' };
+  } else if (ddg) {
+    knowledgePanel = { title: ddg.title, extract: ddg.content.substring(0, 500), url: ddg.url, source: 'DuckDuckGo' };
   }
   
-  // AI summary from collected context
-  let aiSummary = '';
-  if (wiki && wiki.extract) aiSummary += wiki.extract.substring(0, 400) + ' ';
-  if (ddg && ddg.content) aiSummary += ddg.content.substring(0, 200) + ' ';
-  for (const r of webResults.slice(0, 2)) {
-    if (r.content) aiSummary += r.content.substring(0, 150) + ' ';
-  }
-  
-  // Scrape top 2 web results for richer content
-  const scrapedResults = [];
-  for (const r of webResults.slice(0, 2)) {
+  // Scrape top results for richer content
+  for (const r of webResults.slice(0, 3)) {
     try {
       const scraped = await scrapeUrl(r.url);
-      if (scraped && scraped.content) {
-        r.content = scraped.content.substring(0, 300);
+      if (scraped && scraped.length > 50) {
+        r.content = scraped.substring(0, 300);
         r.scraped = true;
-        if (scraped.ogImage) r.image = scraped.ogImage;
-        if (scraped.siteName && !r.source) r.source = scraped.siteName;
       }
     } catch {}
+  }
+  
+  // If still very few results, try DDG related topics
+  if (webResults.length < 3 && ddg) {
+    const ddgRelated = await fetchDDGRelated(cleaned);
+    webResults.push(...ddgRelated);
+  }
+  
+  // If Gemini is available and we have few results, generate a summary
+  let aiSummary = null;
+  if (GEMINI_API_KEY && webResults.length < 3) {
+    aiSummary = await geminiSearchSummary(q, wiki, ddg, webResults);
   }
   
   const allResults = [];
@@ -65,44 +73,109 @@ export default async function handler(req, res) {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   
   res.status(200).json({
-    query: q,
-    knowledgePanel,
-    aiSummary: aiSummary.trim().substring(0, 800) || undefined,
+    query: q, knowledgePanel, aiSummary,
     results: allResults,
-    count: allResults.length,
-    time: elapsed,
+    count: allResults.length, time: elapsed,
     limits: { maxQueryWords: MAX_QUERY_WORDS }
   });
+}
+
+async function geminiSearchSummary(q, wiki, ddg, webResults) {
+  try {
+    let context = '';
+    if (wiki) context += `Wikipedia: ${wiki.extract.substring(0, 400)}\n`;
+    if (ddg) context += `DDG: ${ddg.content.substring(0, 200)}\n`;
+    for (const r of webResults.slice(0, 2)) {
+      context += `${r.title}: ${r.content?.substring(0, 200)}\n`;
+    }
+    
+    const prompt = `Provide a brief informative summary (max 150 words) about: "${q}". ${context ? 'Context: ' + context : ''} Answer:`;
+    
+    for (const model of GEMINI_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 300 }
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim().length > 20) {
+          return text.trim().substring(0, 500);
+        }
+      }
+      if (response.status === 429) continue;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchDDGRelated(q) {
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
+    const data = await r.json();
+    const results = [];
+    for (const t of (data.RelatedTopics || []).slice(0, 5)) {
+      if (t && t.Text && t.FirstURL) {
+        results.push({
+          title: t.Text.substring(0, 100),
+          url: t.FirstURL,
+          content: t.Text.substring(0, 200),
+          engine: 'duckduckgo',
+          source: 'DuckDuckGo'
+        });
+      }
+    }
+    return results;
+  } catch { return []; }
+}
+
+async function fetchBing(q) {
+  try {
+    const url = `https://www.bing.com/search?q=${encodeURIComponent(q)}&count=10`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
+      signal: AbortSignal.timeout(6000)
+    });
+    const html = await r.text();
+    const results = [];
+    const resultRegex = /<li class="b_algo">\s*<h2><a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a><\/h2>.*?<p[^>]*>(.*?)<\/p>/gs;
+    let match; let count = 0;
+    while ((match = resultRegex.exec(html)) !== null && count < 8) {
+      const href = match[1].replace(/&amp;/g, '&');
+      const title = match[2].replace(/<[^>]*>/g, '').trim();
+      const content = match[3].replace(/<[^>]*>/g, '').trim();
+      if (title && href.startsWith('http')) {
+        results.push({ title: title.substring(0,200), url: href, content: content.substring(0,300), engine:'bing', source:'Bing' });
+        count++;
+      }
+    }
+    return results;
+  } catch { return []; }
 }
 
 async function scrapeUrl(url) {
   try {
     const r = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(5000), redirect: 'follow'
     });
     const html = await r.text();
-    
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/is);
-    const descMatch = html.match(/<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)/is);
-    
     let text = html
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
       .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    return {
-      title: titleMatch?.[1]?.trim() || '',
-      description: descMatch?.[1]?.trim() || '',
-      content: text.substring(0, 500)
-    };
-  } catch { return null; }
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ').trim();
+    return text.substring(0, 600);
+  } catch { return ''; }
 }
 
 async function fetchWikipedia(q) {
@@ -133,7 +206,7 @@ async function fetchDuckDuckGo(q) {
 async function fetchDDGHTML(q) {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' } });
     const html = await r.text();
     const results = [];
     const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>.*?<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/gs;

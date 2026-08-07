@@ -7,9 +7,8 @@ const MAX_QUERY_WORDS = 30;
 const MAX_ANSWER_WORDS = 250;
 const MAX_ANSWER_CHARS = 1500;
 
-// Gemini API config
-const GEMINI_MODEL = 'gemini-2.0-flash-lite';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+const GEMINI_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,13 +31,12 @@ export default async function handler(req, res) {
     });
   }
   
-  // 1. Check DeryCode knowledge base first (instant, no API call)
+  // 1. Check DeryCode knowledge base first (instant)
   if (isDeryCodeQuery(question)) {
     const kb = getDeryCodeKnowledge(question);
-    const truncated = truncateWords(kb.answer, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
     return res.status(200).json({
       question,
-      answer: truncated,
+      answer: truncateWords(kb.answer, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS),
       sources: kb.sources,
       followups: kb.followups,
       results: [],
@@ -47,15 +45,34 @@ export default async function handler(req, res) {
     });
   }
   
-  // 2. Fetch web context (Wikipedia + DuckDuckGo) for grounding
+  // 2. Fetch web context in parallel
   const effectiveQuery = buildEffectiveQuery(question, history);
-  const [wiki, ddg, webResults] = await Promise.all([
-    fetchWikipedia(effectiveQuery),
-    fetchDuckDuckGo(effectiveQuery),
-    fetchDDGHTML(effectiveQuery)
-  ]);
+  const queryVariants = buildQueryVariants(effectiveQuery);
   
-  // Build context from web results
+  // Try multiple query variants for web search
+  let wiki = null, ddg = null, webResults = [];
+  for (const variant of queryVariants) {
+    const [w, d, ddgResults, bingResults] = await Promise.all([
+      fetchWikipedia(variant),
+      fetchDuckDuckGo(variant),
+      fetchDDGHTML(variant),
+      fetchBing(variant)
+    ]);
+    // Merge results from DDG and Bing, dedup by URL
+    const merged = [...ddgResults, ...bingResults];
+    const seen = new Set();
+    const deduped = merged.filter(r => {
+      if (seen.has(r.url)) return false;
+      seen.add(r.url);
+      return true;
+    });
+    if (w || (d && d.content) || deduped.length > 0) {
+      wiki = w; ddg = d; webResults = deduped;
+      break;
+    }
+  }
+  
+  // Build web context string
   let webContext = '';
   const sources = [];
   
@@ -74,46 +91,25 @@ export default async function handler(req, res) {
     }
   }
   
-  // 3. Try Gemini API for a synthesized, current answer
+  // 3. Try Gemini API
   if (GEMINI_API_KEY) {
-    try {
-      const geminiAnswer = await askGemini(question, webContext, history, lang);
-      if (geminiAnswer) {
-        // Scrape top result for additional context if available
-        let scrapedContent = '';
-        if (webResults.length > 0 && webResults[0].url) {
-          try {
-            const scrapeRes = await fetch(`https://${req.headers.host}/api/scrape?url=${encodeURIComponent(webResults[0].url)}`);
-            const scrapeData = await scrapeRes.json();
-            if (scrapeData.content) {
-              scrapedContent = scrapeData.content.substring(0, 500);
-            }
-          } catch {}
-        }
-        
-        const allResults = [];
-        if (wiki) allResults.push({ title: wiki.title, url: wiki.url, content: wiki.extract?.substring(0,200), engine:'wikipedia', source:'Wikipedia', featured:true });
-        if (ddg) allResults.push({ title: ddg.title, url: ddg.url, content: ddg.content?.substring(0,200), engine:'duckduckgo', source:'DuckDuckGo', featured:true });
-        allResults.push(...webResults.slice(0, 5));
-        
-        return res.status(200).json({
-          question,
-          answer: geminiAnswer,
-          sources: sources.slice(0, 5),
-          followups: generateFollowups(effectiveQuery),
-          results: allResults.slice(0, 8),
-          model: 'DeryCode-Gemini-v2',
-          lang,
-          grounded: true
-        });
-      }
-    } catch (e) {
-      console.error('Gemini error:', e.message);
-      // Fall through to fallback
+    const geminiAnswer = await askGemini(question, webContext, history, lang);
+    if (geminiAnswer) {
+      const allResults = buildResults(wiki, ddg, webResults);
+      return res.status(200).json({
+        question,
+        answer: geminiAnswer,
+        sources: sources.slice(0, 5),
+        followups: generateFollowups(effectiveQuery),
+        results: allResults.slice(0, 8),
+        model: 'DeryCode-Gemini-v2',
+        lang,
+        grounded: true
+      });
     }
   }
   
-  // 4. Fallback: Use web context directly (no Gemini key)
+  // 4. Fallback: Use web context directly
   let answerText = '';
   
   if (wiki) {
@@ -123,24 +119,38 @@ export default async function handler(req, res) {
     if (answerText) answerText += '\n\n';
     answerText += truncateWords(ddg.content, 80, 400);
   }
-  for (const r of webResults.slice(0, 2)) {
+  for (const r of webResults.slice(0, 3)) {
     if (r.content && r.content.length > 50 && answerText.length < MAX_ANSWER_CHARS - 200) {
       if (answerText) answerText += '\n\n';
       answerText += truncateWords(r.content, 60, 300);
     }
   }
   
+  // 5. If nothing found, try scraping top web results for content
+  if ((!answerText || answerText.length < 30) && webResults.length > 0) {
+    for (const r of webResults.slice(0, 2)) {
+      try {
+        const scraped = await scrapeUrl(r.url);
+        if (scraped && scraped.length > 50) {
+          if (answerText) answerText += '\n\n';
+          answerText += truncateWords(scraped, 80, 400);
+          if (!sources.find(s => s.url === r.url)) {
+            sources.push({ title: r.title, url: r.url, type: 'scraped' });
+          }
+        }
+      } catch {}
+    }
+  }
+  
+  // 6. Final fallback message
   if (!answerText || answerText.length < 20) {
-    answerText = `I couldn't find specific information about "${question}". Try rephrasing or use Web search mode.`;
+    answerText = `I couldn't find specific information about "${question}". Try the Web search mode for more results, or rephrase your question.`;
   }
   
   answerText = truncateWords(answerText, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
-  answerText = answerText.replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'");
+  answerText = cleanText(answerText);
   
-  const allResults = [];
-  if (wiki) allResults.push({ title: wiki.title, url: wiki.url, content: wiki.extract?.substring(0,200), engine:'wikipedia', source:'Wikipedia', featured:true });
-  if (ddg) allResults.push({ title: ddg.title, url: ddg.url, content: ddg.content?.substring(0,200), engine:'duckduckgo', source:'DuckDuckGo', featured:true });
-  allResults.push(...webResults.slice(0, 5));
+  const allResults = buildResults(wiki, ddg, webResults);
   
   res.status(200).json({
     question, answer: answerText,
@@ -149,11 +159,11 @@ export default async function handler(req, res) {
     results: allResults.slice(0, 8),
     model: GEMINI_API_KEY ? 'DeryCode-Gemini-v2' : 'DeryCode-Web-v1',
     lang,
-    grounded: !!GEMINI_API_KEY
+    grounded: false
   });
 }
 
-// Gemini API call
+// Gemini API call with multi-model fallback
 async function askGemini(question, webContext, history, lang) {
   const langInstruction = {
     en: 'Respond in English.',
@@ -164,7 +174,6 @@ async function askGemini(question, webContext, history, lang) {
     te: 'Respond in Ateso.'
   }[lang] || 'Respond in English.';
   
-  // Build conversation context
   let conversationHistory = '';
   if (history && history.length > 0) {
     const recent = history.slice(-4);
@@ -174,26 +183,18 @@ async function askGemini(question, webContext, history, lang) {
     }
   }
   
-  const systemPrompt = `You are DeryCode AI, a helpful search assistant. Provide accurate, current information. ${langInstruction}
-Keep your answer concise (max 200 words). If web context is provided, use it as grounding but add your own knowledge too.
-Be direct and informative. If you're not sure, say so.
+  const prompt = `You are DeryCode AI, a helpful search assistant. ${langInstruction} Keep your answer concise (max 200 words). Be direct and informative. Do not include meta instructions or formatting markers in your response.
 
 ${webContext ? 'Web context for grounding:\n' + webContext : ''}
 ${conversationHistory ? 'Conversation so far:\n' + conversationHistory : ''}
 
-Question: ${question}`;
+User question: ${question}
 
-  // Try flash-lite first (higher free quota), fall back to flash
-  const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-  let url = `https://generativelanguage.googleapis.com/v1beta/models/${models[0]}:generateContent?key=${GEMINI_API_KEY}`;
+Answer:`;
   
   const body = JSON.stringify({
-    contents: [{ parts: [{ text: systemPrompt }] }],
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 600,
-      topP: 0.9
-    },
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 600, topP: 0.9 },
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -202,11 +203,11 @@ Question: ${question}`;
     ]
   });
   
-  // Try multiple models in case of rate limiting
-  for (const model of models) {
+  // Try each model until one works
+  for (const model of GEMINI_MODELS) {
     try {
-      const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-      const response = await fetch(modelUrl, {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
@@ -216,38 +217,64 @@ Question: ${question}`;
       if (response.ok) {
         const data = await response.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text.trim()
-          .replace(/^Here's .*?:/i, '')
-          .replace(/^Based on .*?:/i, '')
-          .replace(/^According to .*?:/i, '')
-          .trim();
+        if (text && text.trim().length > 10) {
+          let cleaned = cleanText(text);
+          // Remove meta instruction artifacts
+          cleaned = cleaned.replace(/^.*?(?:Tone|Language|Instructions)[::].*$/im, '').trim();
+          cleaned = cleaned.replace(/^DeryCode AI.*$/im, '').trim();
+          if (cleaned.length > 10) {
+            return truncateWords(cleaned, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
+          }
+        }
       }
       
-      if (response.status === 429) {
-        // Rate limited, try next model
-        continue;
-      }
+      // 429 = rate limited, try next model
+      // 404 = model not found, try next
+      // 400 = bad request, try next
+      if (response.status === 429 || response.status === 404 || response.status === 400) continue;
       
-      // Other error, log and try next
+      // Other errors, log and try next
       const errText = await response.text();
-      console.error(`Gemini ${model} error:`, response.status, errText.substring(0, 200));
+      console.error(`Gemini ${model}:`, response.status, errText.substring(0, 200));
       continue;
     } catch (e) {
-      console.error(`Gemini ${model} fetch error:`, e.message);
+      console.error(`Gemini ${model}:`, e.message);
       continue;
     }
   }
   
   return null;
-  
-  // Clean and truncate
-  let cleaned = text.trim()
-    .replace(/^Here's .*?:/i, '')
-    .replace(/^Based on .*?:/i, '')
-    .replace(/^According to .*?:/i, '')
-    .trim();
-  
-  return truncateWords(cleaned, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
+}
+
+// Scrape URL for content
+async function scrapeUrl(url) {
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(5000),
+      redirect: 'follow'
+    });
+    const html = await r.text();
+    let text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ').trim();
+    return text.substring(0, 800);
+  } catch { return ''; }
+}
+
+function buildResults(wiki, ddg, webResults) {
+  const allResults = [];
+  if (wiki) allResults.push({ title: wiki.title, url: wiki.url, content: wiki.extract?.substring(0,200), engine:'wikipedia', source:'Wikipedia', featured:true });
+  if (ddg) allResults.push({ title: ddg.title, url: ddg.url, content: ddg.content?.substring(0,200), engine:'duckduckgo', source:'DuckDuckGo', featured:true });
+  allResults.push(...webResults.slice(0, 5));
+  return allResults;
 }
 
 function buildEffectiveQuery(question, history) {
@@ -282,7 +309,6 @@ function buildQueryVariants(q) {
   let cleaned = q.trim().replace(/\?$/, '').trim();
   cleaned = cleaned.replace(/^(what is |what is the |what is a |what are |who is |who is the |who are |tell me about |explain |describe |how does |how do |how is |how are |when did |when was |where is |where are |why is |why are |can you |please )/i, '');
   cleaned = cleaned.replace(/\s*(known for|famous for|in africa|in uganda|in east africa)$/i, '').trim();
-  
   if (cleaned.length > 2) variants.push(cleaned);
   const words4 = cleaned.split(/\s+/).filter(w => w.length > 2).slice(0, 4).join(' ');
   if (words4.length > 2 && !variants.includes(words4)) variants.push(words4);
@@ -291,8 +317,17 @@ function buildQueryVariants(q) {
   const words2 = cleaned.split(/\s+/).filter(w => w.length > 2).slice(0, 2).join(' ');
   if (words2.length > 2 && !variants.includes(words2)) variants.push(words2);
   if (!variants.includes(q)) variants.push(q);
-  
   return variants.length > 0 ? variants : [q];
+}
+
+function cleanText(text) {
+  return text
+    .replace(/^Here's .*?:/i, '')
+    .replace(/^Based on .*?:/i, '')
+    .replace(/^According to .*?:/i, '')
+    .replace(/&quot;/g,'"').replace(/&amp;/g,'&')
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'")
+    .trim();
 }
 
 function truncateWords(text, maxWords, maxChars) {
@@ -302,6 +337,31 @@ function truncateWords(text, maxWords, maxChars) {
   if (result.length > maxChars) result = result.substring(0, maxChars);
   if (words.length > maxWords) result += '...';
   return result;
+}
+
+
+async function fetchBing(q) {
+  try {
+    const url = `https://www.bing.com/search?q=${encodeURIComponent(q)}&count=8`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' },
+      signal: AbortSignal.timeout(6000)
+    });
+    const html = await r.text();
+    const results = [];
+    const resultRegex = /<li class="b_algo">\s*<h2><a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a><\/h2>.*?<p[^>]*>(.*?)<\/p>/gs;
+    let match; let count = 0;
+    while ((match = resultRegex.exec(html)) !== null && count < 5) {
+      const href = match[1].replace(/&amp;/g, '&');
+      const title = match[2].replace(/<[^>]*>/g, '').trim();
+      const content = match[3].replace(/<[^>]*>/g, '').trim();
+      if (title && href.startsWith('http')) {
+        results.push({ title: title.substring(0,200), url: href, content: content.substring(0,300), engine:'bing', source:'Bing', featured:false });
+        count++;
+      }
+    }
+    return results;
+  } catch { return []; }
 }
 
 async function fetchWikipedia(q) {
@@ -332,7 +392,7 @@ async function fetchDuckDuckGo(q) {
 async function fetchDDGHTML(q) {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
     const html = await r.text();
     const results = [];
     const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>.*?<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/gs;
@@ -351,4 +411,3 @@ async function fetchDDGHTML(q) {
     return results;
   } catch { return []; }
 }
-// Gemini v2 - key updated Fri Aug  7 03:27:56 UTC 2026
