@@ -1590,16 +1590,31 @@ function renderAppearanceSettings(){
     '<div class="settings-group-title">Theme</div>'+
     '<div class="settings-row"><div><div class="settings-row-label">Dark mode</div><div class="settings-row-desc">Easy on the eyes</div></div>'+
     '<div class="settings-select" onclick="toggleDarkMode()">'+(theme==='dark'?'🌙 Dark':'☀️ Light')+'</div></div>'+
-    '<div class="settings-row"><div><div class="settings-row-label">Accent color</div><div class="settings-row-desc">Choose your color</div></div>'+
-    '<div class="settings-row-right">'+
-    '<div class="color-theme-grid">'+
-    '<div class="color-theme-btn '+(accent==='gold'?'active':'')+'" style="background:#d4af37" onclick="setAccent(\'gold\')"></div>'+
-    '<div class="color-theme-btn '+(accent==='blue'?'active':'')+'" style="background:#0A84FF" onclick="setAccent(\'blue\')"></div>'+
-    '<div class="color-theme-btn '+(accent==='green'?'active':'')+'" style="background:#00C853" onclick="setAccent(\'green\')"></div>'+
-    '<div class="color-theme-btn '+(accent==='red'?'active':'')+'" style="background:#FF3B30" onclick="setAccent(\'red\')"></div>'+
-    '<div class="color-theme-btn '+(accent==='purple'?'active':'')+'" style="background:#AF52DE" onclick="setAccent(\'purple\')"></div>'+
-    '<div class="color-theme-btn '+(accent==='teal'?'active':'')+'" style="background:#00D4FF" onclick="setAccent(\'teal\')"></div>'+
-    '</div></div></div>'+
+    '<div class="settings-row" style="flex-direction:column;align-items:stretch">'+
+    '<div style="margin-bottom:8px"><div class="settings-row-label">Theme</div><div class="settings-row-desc">Choose your color palette</div></div>'+
+    '<div class="theme-grid">'+
+    '<div class="theme-card '+(accent==='gold'?'active':'')+'" onclick="setTheme(\'gold\')">'+
+      '<div class="theme-preview gold-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Gold</div></div>'+
+    '<div class="theme-card '+(accent==='ocean'?'active':'')+'" onclick="setTheme(\'ocean\')">'+
+      '<div class="theme-preview ocean-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Ocean</div></div>'+
+    '<div class="theme-card '+(accent==='forest'?'active':'')+'" onclick="setTheme(\'forest\')">'+
+      '<div class="theme-preview forest-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Forest</div></div>'+
+    '<div class="theme-card '+(accent==='sunset'?'active':'')+'" onclick="setTheme(\'sunset\')">'+
+      '<div class="theme-preview sunset-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Sunset</div></div>'+
+    '<div class="theme-card '+(accent==='violet'?'active':'')+'" onclick="setTheme(\'violet\')">'+
+      '<div class="theme-preview violet-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Violet</div></div>'+
+    '<div class="theme-card '+(accent==='crimson'?'active':'')+'" onclick="setTheme(\'crimson\')">'+
+      '<div class="theme-preview crimson-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Crimson</div></div>'+
+    '<div class="theme-card '+(accent==='mono'?'active':'')+'" onclick="setTheme(\'mono\')">'+
+      '<div class="theme-preview mono-prev"><div class="tp-dot"></div><div class="tp-bar"></div></div>'+
+      '<div class="theme-label">Mono</div></div>'+
+    '</div></div>'+
   '</div>'+
   '<div class="settings-group">'+
     '<div class="settings-group-title">Text Size</div>'+
