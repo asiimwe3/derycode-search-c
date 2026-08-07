@@ -153,7 +153,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 
 
 /* Install Prompt */
-.install-banner{position:fixed;bottom:62px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(212,175,55,0.4);z-index:200;animation:slideUp 0.3s ease}
+.install-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);padding:8px 16px;border-radius:24px;font-size:12px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(212,175,55,0.4);z-index:200;animation:slideDown 0.3s ease;white-space:nowrap}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .install-banner:active{transform:translateX(-50%) scale(0.95)}
 .install-banner .ib-icon{font-size:18px}
@@ -859,7 +859,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 
 // Install Prompt
 var deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var banner=document.getElementById('installBanner');if(banner&&!isStandalone())banner.style.display='flex'});
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var banner=document.getElementById('installBanner');if(banner&&!isStandalone()){banner.style.display='flex';setTimeout(function(){if(banner)banner.style.display='none'},5000)}});
 window.addEventListener('appinstalled',function(){var banner=document.getElementById('installBanner');if(banner)banner.style.display='none';deferredPrompt=null;console.log('[PWA] App installed')});
 
 function isStandalone(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
