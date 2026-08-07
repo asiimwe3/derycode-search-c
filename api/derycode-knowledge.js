@@ -138,7 +138,7 @@ export function getDeryCodeKnowledge(query) {
   }
 
   // === SAGECO EVERGREEN ===
-  if (lower.includes('sageco') || lower.includes('evergreen') || lower.includes('real estate') || lower.includes('property')) {
+  if (lower.includes('sageco') || lower.includes('evergreen') || lower.includes('real estate') || (lower.includes('property') && !lower.includes('masters'))) {
     return {
       answer: "Sageco Evergreen Company Limited is a real estate and property technology company led by CEO Asiimwe Derick (also Founder of DeryCode). The platform features: broker registration (UGX 32,000), dashboard activation (UGX 45,000), property listings with image galleries, PesaPal payment integration, mobile marketplace app with 5-tab bottom navigation, and a market page designed as a Jumia-inspired marketplace. Two apps exist: a Next.js web platform at sagecoevergreen.publicvm.com (github.com/asiimwe3/sageco-evergreen-app) using Supabase, and a React Native/Expo mobile app. Tech stack: Next.js, Supabase, PesaPal, React Native, Expo, TypeScript.",
       sources: [
