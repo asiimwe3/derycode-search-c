@@ -1,5 +1,5 @@
 // DeryCode AI Service Worker
-const CACHE_NAME = 'derycode-ai-v1';
+const CACHE_NAME = 'derycode-ai-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -15,7 +15,6 @@ self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(STATIC_ASSETS).catch(function() {
-        // If any asset fails, cache what we can
         return Promise.all(STATIC_ASSETS.map(function(url) {
           return cache.add(url).catch(function() { return; });
         }));
@@ -25,13 +24,14 @@ self.addEventListener('install', function(e) {
   self.skipWaiting();
 });
 
-// Activate - clean old caches
+// Activate - clean old caches and take control
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(names) {
       return Promise.all(names.filter(function(n) {
         return n !== CACHE_NAME;
       }).map(function(n) {
+        console.log('[SW] Deleting old cache:', n);
         return caches.delete(n);
       }));
     })
@@ -39,11 +39,14 @@ self.addEventListener('activate', function(e) {
   self.clients.claim();
 });
 
-// Fetch - network first for API, cache first for static
+// Fetch strategy:
+// - API: network only (no cache)
+// - Navigation (HTML pages): network first, fall back to cache
+// - Static assets: cache first, fall back to network
 self.addEventListener('fetch', function(e) {
   var url = new URL(e.request.url);
-  
-  // Don't cache API requests - always go to network
+
+  // API requests - always network
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request).catch(function() {
@@ -54,14 +57,35 @@ self.addEventListener('fetch', function(e) {
     );
     return;
   }
-  
-  // Cache-first for static assets
+
+  // Navigation requests (HTML pages) - network first, fall back to cache
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
+        // Cache the fresh copy
+        if (response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        // Offline - serve from cache
+        return caches.match(e.request).then(function(cached) {
+          return cached || caches.match('/');
+        });
+      })
+    );
+    return;
+  }
+
+  // Static assets - cache first, fall back to network
   e.respondWith(
     caches.match(e.request).then(function(cached) {
       if (cached) return cached;
       
       return fetch(e.request).then(function(response) {
-        // Cache successful responses
         if (response.status === 200 && url.origin === location.origin) {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function(cache) {
@@ -70,10 +94,7 @@ self.addEventListener('fetch', function(e) {
         }
         return response;
       }).catch(function() {
-        // Return cached page if available
-        if (e.request.mode === 'navigate') {
-          return caches.match('/');
-        }
+        return new Response('', { status: 404 });
       });
     })
   );
