@@ -473,7 +473,7 @@ function extractSoftwareNames(results, query) {
       
       if (inQuery || inResults) {
         // Count occurrences as a rough relevance signal
-        let count = (allText.match(new RegExp(tool.replace(/[.*+?^${}()|[\]\]/g, '\\$&'), 'g')) || []).length;
+        let count = 0; try { const escaped = tool.replace(/[.*+?^${}()|\[\]\\]/g, '\\$&'); count = (allText.match(new RegExp(escaped, 'g')) || []).length; } catch(e) {}
         if (inQuery) count += 5; // Boost if mentioned in query
         
         if (!found[tool] || found[tool].count < count) {
