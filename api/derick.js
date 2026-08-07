@@ -500,9 +500,9 @@ function extractSoftwareNames(results, query) {
   }
   
   // Flatten and return top 15
-  const result = sorted.slice(0, 15);
+  const topTools = sorted.slice(0, 15);
   
-  return result.length > 0 ? result : null;
+  return topTools.length > 0 ? topTools : null;
 }
 
 // ============ TUTORIAL SYNTHESIS ============
@@ -651,8 +651,8 @@ function synthesizeStep(query, result, stepNum, isHowTo) {
     }
   }
   
-  const result = practical.join(' ');
-  return result.length > 20 ? result : content.substring(0, 400);
+  const stepText = practical.join(' ');
+  return stepText.length > 20 ? stepText : content.substring(0, 400);
 }
 
 function generateStepTitle(result, stepNum) {
