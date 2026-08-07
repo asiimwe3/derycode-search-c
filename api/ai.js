@@ -8,7 +8,7 @@ const MAX_ANSWER_WORDS = 250;
 const MAX_ANSWER_CHARS = 1500;
 
 // Gemini API config
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash-lite';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
 
 export default async function handler(req, res) {
@@ -183,38 +183,62 @@ ${conversationHistory ? 'Conversation so far:\n' + conversationHistory : ''}
 
 Question: ${question}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  // Try flash-lite first (higher free quota), fall back to flash
+  const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  let url = `https://generativelanguage.googleapis.com/v1beta/models/${models[0]}:generateContent?key=${GEMINI_API_KEY}`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: systemPrompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 600,
-        topP: 0.9
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
-      ]
-    }),
-    signal: AbortSignal.timeout(10000)
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: systemPrompt }] }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 600,
+      topP: 0.9
+    },
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+    ]
   });
   
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error('Gemini API error:', response.status, errText);
-    return null;
+  // Try multiple models in case of rate limiting
+  for (const model of models) {
+    try {
+      const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(modelUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text.trim()
+          .replace(/^Here's .*?:/i, '')
+          .replace(/^Based on .*?:/i, '')
+          .replace(/^According to .*?:/i, '')
+          .trim();
+      }
+      
+      if (response.status === 429) {
+        // Rate limited, try next model
+        continue;
+      }
+      
+      // Other error, log and try next
+      const errText = await response.text();
+      console.error(`Gemini ${model} error:`, response.status, errText.substring(0, 200));
+      continue;
+    } catch (e) {
+      console.error(`Gemini ${model} fetch error:`, e.message);
+      continue;
+    }
   }
   
-  const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  
-  if (!text) return null;
+  return null;
   
   // Clean and truncate
   let cleaned = text.trim()
@@ -327,3 +351,4 @@ async function fetchDDGHTML(q) {
     return results;
   } catch { return []; }
 }
+// Gemini v2 - key updated Fri Aug  7 03:27:56 UTC 2026
