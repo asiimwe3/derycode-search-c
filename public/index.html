@@ -582,7 +582,6 @@ html+='</div>';
 html+='<div class="ai-content">No videos found. Try different keywords.</div>'
 }
 }
-}
 
 html+='</div></div>'}}
 chatEl.innerHTML=html;
@@ -599,11 +598,7 @@ function cleanAndEsc(s){if(!s)return'';return esc(decodeEntities(s))}
 function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
 
 // Service Worker Registration
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').then(function(r){
-console.log('[PWA] Service Worker registered');
-// Force update when new SW is available
-r.addEventListener('updatefound',function(){var nw=r.installing;if(nw){nw.addEventListener('statechange',function(){if(nw.state==='activated'&&navigator.serviceWorker.controller){console.log('[PWA] New SW activated, reloading for updates');window.location.reload()}})}})
-}).catch(function(e){console.log('[PWA] SW registration failed:',e)})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').then(function(r){console.log('[PWA] Service Worker registered')}).catch(function(e){console.log('[PWA] SW registration failed:',e)})})}
 
 // Install Prompt
 var deferredPrompt=null;
