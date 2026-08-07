@@ -1,7 +1,7 @@
 {
-  "name": "DeryCode AI",
+  "name": "DeryCode AI \u2014 Private Search Engine",
   "short_name": "DeryCode AI",
-  "description": "AI-powered search engine with 10 modes: AI, web, images, news, code, Derick, books, maps, deep web, and videos. 22 sources. No tracking.",
+  "description": "Privacy-focused search engine with 22 sources, 10 modes, AI answers, and zero tracking.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,9 +11,7 @@
   "categories": [
     "search",
     "productivity",
-    "utilities",
-    "education",
-    "books"
+    "utilities"
   ],
   "lang": "en",
   "dir": "ltr",

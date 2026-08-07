@@ -1,0 +1,93 @@
+# DeryCode AI Search Engine — robots.txt
+# Allow all search engines and AI crawlers
+
+User-agent: *
+Allow: /
+
+# Allow key assets for rendering
+Allow: /index.html
+Allow: /manifest.json
+Allow: /sw.js
+Allow: /icons/
+
+# Major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# AI crawlers — full access for AI search engine visibility
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# API endpoints — allow crawlers to discover capabilities
+Allow: /api/status
+Allow: /api/search
+Allow: /api/ai
+
+# Block SEO spam bots (save crawl budget)
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+Sitemap: https://derycode-search.vercel.app/sitemap.xml

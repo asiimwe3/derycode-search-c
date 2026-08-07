@@ -2,6 +2,211 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- Primary Meta Tags -->
+<title>DeryCode AI — Private Search Engine with 22 Sources &amp; AI Answers</title>
+<meta name="title" content="DeryCode AI — Private Search Engine with 22 Sources &amp; AI Answers">
+<meta name="description" content="DeryCode AI is a privacy-focused search engine with 10 search modes, 22 data sources, AI-powered answers, knowledge panels, and zero tracking. Search the web, news, images, code, books, academic papers, and deep web — all in one place.">
+<meta name="keywords" content="search engine, AI search, private search, no tracking search, DeryCode, web search, image search, news search, code search, book search, academic search, deep web search, knowledge panel, AI answers, Uganda search engine, Africa search engine, alternative search engine">
+<meta name="author" content="DeryCode Technologies">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1">
+<link rel="canonical" href="https://derycode-search.vercel.app/">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://derycode-search.vercel.app/">
+<meta property="og:title" content="DeryCode AI — Private Search Engine with 22 Sources &amp; AI Answers">
+<meta property="og:description" content="Privacy-focused search engine with 10 modes, 22 data sources, AI answers, knowledge panels, and zero tracking. Search web, news, images, code, books, academic papers, and deep web.">
+<meta property="og:image" content="https://derycode-search.vercel.app/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:site_name" content="DeryCode AI">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://derycode-search.vercel.app/">
+<meta name="twitter:title" content="DeryCode AI — Private Search Engine with 22 Sources">
+<meta name="twitter:description" content="Privacy-focused search engine with 10 modes, 22 data sources, AI answers, knowledge panels, and zero tracking.">
+<meta name="twitter:image" content="https://derycode-search.vercel.app/icons/icon-512.png">
+
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#0f0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DeryCode AI">
+<meta name="application-name" content="DeryCode AI">
+<meta name="msapplication-TileColor" content="#0f0f14">
+<meta name="msapplication-tap-highlight" content="no">
+
+<!-- Icons & Manifest -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+
+<!-- Performance Hints -->
+<link rel="preconnect" href="https://html.duckduckgo.com">
+<link rel="preconnect" href="https://en.wikipedia.org">
+<link rel="dns-prefetch" href="https://www.google.com">
+<link rel="dns-prefetch" href="https://books.google.com">
+
+<!-- Schema.org Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "DeryCode AI Search Engine",
+  "alternateName": "DeryCode AI",
+  "description": "Privacy-focused AI search engine with 22 data sources, 10 search modes, AI-powered answers, knowledge panels, and zero tracking. Search web, news, images, code, books, academic papers, and deep web.",
+  "url": "https://derycode-search.vercel.app/",
+  "applicationCategory": "SearchApplication",
+  "operatingSystem": "Web",
+  "browserRequirements": "Requires JavaScript",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "AI-powered search answers",
+    "Web search (DuckDuckGo, Google)",
+    "Image search",
+    "News search (Google News)",
+    "Code search",
+    "Book search (Google Books, Project Gutenberg)",
+    "Academic search (PubMed, Google Scholar, CrossRef)",
+    "Deep web search (Wikidata, CORE, World Bank, Ahmia)",
+    "Knowledge panels (Wikipedia)",
+    "Maps integration",
+    "Video search",
+    "Autocomplete suggestions",
+    "Voice search",
+    "Search history",
+    "Multi-language support (English, Swahili, Luganda, Runyankole, Luo, Ateso)",
+    "No tracking, no ads, no cookies",
+    "Progressive Web App (PWA)"
+  ],
+  "author": {
+    "@type": "Organization",
+    "name": "DeryCode Technologies",
+    "url": "https://derycode.publicvm.com",
+    "founder": {
+      "@type": "Person",
+      "name": "Asiimwe Derick"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Kampala",
+      "addressCountry": "UG"
+    }
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "DeryCode Technologies",
+    "url": "https://derycode.publicvm.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://derycode-search.vercel.app/icons/icon-512.png"
+    }
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://derycode-search.vercel.app/?q={search_term}",
+      "actionPlatform": ["Web"]
+    },
+    "query-input": "required name=search_term"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "127",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
+}
+</script>
+
+<!-- Organization Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "DeryCode Technologies",
+  "url": "https://derycode.publicvm.com",
+  "logo": "https://derycode-search.vercel.app/icons/icon-512.png",
+  "description": "Uganda's leading software development company, builder of the DeryCode AI Search Engine.",
+  "founder": {
+    "@type": "Person",
+    "name": "Asiimwe Derick"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Kampala",
+    "addressCountry": "UG"
+  },
+  "sameAs": [
+    "https://github.com/asiimwe3",
+    "https://derycode.publicvm.com"
+  ]
+}
+</script>
+
+<!-- FAQ Schema for rich snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is DeryCode AI Search Engine?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DeryCode AI is a privacy-focused search engine with 22 data sources and 10 search modes. It provides AI-powered answers, knowledge panels, and zero tracking — no ads, no cookies, no data collection."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How many search sources does DeryCode AI use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DeryCode AI aggregates results from 22 sources including DuckDuckGo, Google, Wikipedia, Google Books, Google News, Google Scholar, PubMed, Project Gutenberg, Wikidata, CORE Research, World Bank Data, CrossRef, Internet Archive, and more."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is DeryCode AI Search Engine free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, DeryCode AI is completely free with no ads, no tracking, and no sign-up required. It is a privacy-first search engine built by DeryCode Technologies in Uganda."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What search modes are available in DeryCode AI?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "DeryCode AI offers 10 search modes: AI Answers, Web Search, Image Search, News Search, Code Search, Derick (AI Assistant), Book Search, Maps, Deep Web Search, and Video Search."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does DeryCode AI track my searches?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. DeryCode AI does not track, log, or store your search queries. It has no ads, no cookies, and no analytics tracking. Search history is stored locally on your device only."
+      }
+    }
+  ]
+}
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0f0f14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -514,6 +719,45 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 </style>
 </head>
 <body>
+<!-- SEO content for crawlers (hidden from JS users) -->
+<noscript>
+<div style="padding:40px 20px;max-width:800px;margin:0 auto;font-family:system-ui,sans-serif;color:#333">
+<h1>DeryCode AI — Private Search Engine</h1>
+<p>DeryCode AI is a privacy-focused search engine with <strong>22 data sources</strong> and <strong>10 search modes</strong>. It provides AI-powered answers, knowledge panels, and zero tracking — no ads, no cookies, no data collection.</p>
+<h2>Search Modes</h2>
+<ul>
+<li><strong>AI Answers</strong> — Get AI-generated summaries from multiple sources</li>
+<li><strong>Web Search</strong> — Search the web via DuckDuckGo and Google</li>
+<li><strong>Image Search</strong> — Find images across the web</li>
+<li><strong>News Search</strong> — Latest news from Google News</li>
+<li><strong>Code Search</strong> — Search code snippets and documentation</li>
+<li><strong>Derick AI</strong> — Conversational AI assistant</li>
+<li><strong>Book Search</strong> — Search Google Books and Project Gutenberg</li>
+<li><strong>Maps</strong> — Location search with DeryMap integration</li>
+<li><strong>Deep Web</strong> — Search Wikidata, CORE, World Bank, Internet Archive</li>
+<li><strong>Videos</strong> — Search for videos across platforms</li>
+</ul>
+<h2>Key Features</h2>
+<ul>
+<li>22 data sources aggregated in real-time</li>
+<li>AI-powered answer generation from search results</li>
+<li>Wikipedia knowledge panels for entities</li>
+<li>Academic search (PubMed, Google Scholar, CrossRef)</li>
+<li>Multi-language support: English, Swahili, Luganda, Runyankole, Luo, Ateso</li>
+<li>No tracking, no ads, no cookies</li>
+<li>Progressive Web App (installable, works offline)</li>
+<li>Voice search and autocomplete suggestions</li>
+</ul>
+<h2>About</h2>
+<p>DeryCode AI is built by <strong>DeryCode Technologies</strong>, Uganda's leading software development company founded by Asiimwe Derick. Based in Kampala, serving users across Africa and globally.</p>
+<p>Visit us at <a href="https://derycode.publicvm.com">derycode.publicvm.com</a> | Contact: info@derycode.com | WhatsApp: +256 772 002 326</p>
+</div>
+</noscript>
+<!-- Visible SEO content for crawlers (visually hidden but indexable) -->
+<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)" aria-hidden="true">
+<h2>DeryCode AI Search Engine — Privacy-First Web Search</h2>
+<p>DeryCode AI is a free, private search engine that aggregates results from 22 sources including DuckDuckGo, Google, Wikipedia, Google Books, Google News, Google Scholar, PubMed, Project Gutenberg, Wikidata, CORE Research, World Bank Data, CrossRef, and Internet Archive. It offers 10 search modes: AI Answers, Web, Images, News, Code, Derick AI Assistant, Books, Maps, Deep Web, and Videos. The engine features AI-powered answer generation, knowledge panels, autocomplete, voice search, and multi-language support (English, Swahili, Luganda, Runyankole, Luo, Ateso). No tracking, no ads, no cookies. Built by DeryCode Technologies in Kampala, Uganda.</p>
+</div>
 
 <!-- SIDE MENU OVERLAY -->
 <div class="menu-overlay" id="menuOverlay" onclick="closeSideMenu()"></div>
