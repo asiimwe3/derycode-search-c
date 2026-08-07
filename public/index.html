@@ -453,30 +453,102 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 
 function searchAll(q){
 saveHistory(q);
-Promise.all([
-fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
-fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}}),
-fetch('/api/images?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
-fetch('/api/videos?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
-fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return[]})
-]).then(function(responses){
-var searchData=responses[0]||{};
-var aiData=responses[1]||{};
-var imgData=responses[2]||{};
-var vidData=responses[3]||{};
-var suggests=responses[4]||[];
-var summary=aiData.answer||'';
-var sources=[];
-if(aiData.sources&&aiData.sources.length>0)sources=aiData.sources;
-else if(searchData.results&&searchData.results.length>0)sources=searchData.results.slice(0,5).map(function(r){return{title:r.title,url:r.url}});
-var allResults=(searchData.results||[]).concat((aiData.results||[]).filter(function(r){return!(searchData.results||[]).some(function(s){return s.url===r.url})}));
-var images=imgData.images||[];
-var videos=vidData.videos||[];
-var paa=[];
-if(suggests&&suggests.length>0){paa=suggests.slice(0,4).map(function(s){return s})}
-messages.push({role:'assistant',content:summary||'',sources:sources,results:allResults,images:images,videos:videos,mode:'all',aiSummary:summary?true:false,confidence:aiData.confidence||'medium',paa:paa});
-renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
-}).catch(function(e){messages.push({role:'assistant',content:'Search failed. Please try again.',mode:'all'});renderMessages();busy=false;sendBtn.disabled=false})
+// Progressive rendering: push the AI message immediately, then fill in sections as APIs respond
+var idx=messages.length;
+messages.push({role:'assistant',content:'',sources:[],results:[],images:[],videos:[],mode:'all',aiSummary:false,confidence:'medium',paa:[],_progress:true});
+renderMessages();
+scrollToBottom();
+
+// Track which sections are done
+var done={ai:false,web:false,images:false,videos:false,paa:false};
+
+function updateSection(){
+var m=messages[idx];
+if(!m)return;
+// Set aiSummary true only when we have content
+m.aiSummary=(m.content&&m.content.length>0)?true:false;
+renderMessages();
+scrollToBottom();
+}
+
+function scrollToBottom(){
+try{chatEl.scrollTop=chatEl.scrollHeight}catch(e){}
+}
+
+function checkAllDone(){
+if(done.ai&&done.web&&done.images&&done.videos&&done.paa){
+var m=messages[idx];
+if(m){m._progress=false;renderMessages();}
+busy=false;sendBtn.disabled=false;inputEl.focus();
+}
+}
+
+// 1. AI overview (fetch first, show first)
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+data=data||{};
+var m=messages[idx];if(!m)return;
+if(data.answer){m.content=data.answer;m.aiSummary=true}
+if(data.confidence)m.confidence=data.confidence;
+if(data.sources&&data.sources.length>0){m.sources=data.sources}
+if(data.results&&data.results.length>0){m.results=m.results.concat(data.results.filter(function(r){return!m.results.some(function(s){return s.url===r.url})}))}
+done.ai=true;
+updateSection();
+checkAllDone();
+});
+
+// 2. Web results
+fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+data=data||{};
+var m=messages[idx];if(!m)return;
+if(data.results&&data.results.length>0){
+m.results=m.results.concat(data.results.filter(function(r){return!m.results.some(function(s){return s.url===r.url})}));
+}
+if((!m.sources||m.sources.length===0)&&data.results&&data.results.length>0){
+m.sources=data.results.slice(0,5).map(function(r){return{title:r.title,url:r.url}});
+}
+done.web=true;
+updateSection();
+checkAllDone();
+});
+
+// 3. Images
+fetch('/api/images?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+data=data||{};
+var m=messages[idx];if(!m)return;
+if(data.images&&data.images.length>0){m.images=data.images}
+done.images=true;
+updateSection();
+checkAllDone();
+});
+
+// 4. Videos
+fetch('/api/videos?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+data=data||{};
+var m=messages[idx];if(!m)return;
+if(data.videos&&data.videos.length>0){m.videos=data.videos}
+done.videos=true;
+updateSection();
+checkAllDone();
+});
+
+// 5. People Also Ask
+fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return []}).then(function(suggests){
+suggests=suggests||[];
+var m=messages[idx];if(!m)return;
+if(suggests.length>0){m.paa=suggests.slice(0,4)}
+done.paa=true;
+updateSection();
+checkAllDone();
+});
+
+// Safety timeout: finish after 20s no matter what
+setTimeout(function(){
+if(busy){
+var m=messages[idx];
+if(m){m._progress=false;renderMessages();}
+busy=false;sendBtn.disabled=false;inputEl.focus();
+}
+},20000);
 }
 
 function searchWeb(q){
