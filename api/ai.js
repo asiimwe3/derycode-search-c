@@ -457,6 +457,13 @@ function buildResults(wiki, ddg, webResults) {
 
 function buildEffectiveQuery(question, history) {
   let q = question.trim();
+  
+  // Strip question words for better source matching
+  q = q.replace(/^(what is the |what is a |what is an |what is |what are |what does |who is the |who is |who are |where is |where are |when was |when did |how does |how do |how is |why is |why are |why does |tell me about |tell me |explain |describe |define |give me |show me |find |search for )/i, '').trim();
+  // Remove trailing question mark
+  q = q.replace(/\?$/, '').trim();
+  
+  // Handle pronoun resolution from history
   if (history && history.length > 0) {
     const lastUser = [...history].reverse().find(m => m.role === 'user');
     if (lastUser && lastUser.content) {
