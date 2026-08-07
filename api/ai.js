@@ -470,54 +470,44 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     if (totalLength >= MAX_ANSWER_CHARS * 0.8) break;
   }
   
-  // Sort: first by source priority (Wikipedia first), then by sentence score
-  // This keeps Wikipedia's definition first, then adds relevant content from other sources
-  answerSentences.sort((a, b) => {
-    // First, group by source priority
-    if (a.sourcePriority !== b.sourcePriority) {
-      return a.sourcePriority - b.sourcePriority;
-    }
-    // Within same source, keep original order (stable sort)
-    return b.score - a.score;
-  });
+  // Don't sort! Keep original sentence order within each source
+  // Sources are already processed in priority order (Wikipedia first, then DDG, then Web)
+  // This preserves the natural reading flow of each source
+  // answerSentences is already in the right order
   
-  // But we want Wikipedia's first sentence first regardless
-  // Re-sort to put the highest-scored sentence from the best source first
-  if (answerSentences.length > 0) {
-    // Find the best "opening" sentence - one that directly answers the question
-    let bestOpening = -1;
-    let bestOpeningScore = -100;
+  // The first sentence from the best source (usually Wikipedia) should lead
+  // Only move a different sentence to first position if it's clearly a better direct answer
+  // AND comes from the same or higher priority source
+  if (answerSentences.length > 1) {
+    const first = answerSentences[0];
+    const lower = first.text.toLowerCase();
     
-    for (let i = 0; i < answerSentences.length; i++) {
-      const s = answerSentences[i];
-      const lower = s.text.toLowerCase();
-      let openScore = s.score;
-      
-      // Boost sentences that contain the query keywords early
-      const queryWords = query.toLowerCase().split(/\s+/);
-      for (const qw of queryWords) {
-        if (qw.length < 3) continue;
-        if (lower.substring(0, 100).includes(qw)) openScore += 10;
-      }
-      
-      // Boost definitive opening sentences
-      if (intent === 'definition' && /^[A-Z][a-z]+ (is|are|was|were) /.test(s.text)) {
-        openScore += 20;
-      }
-      if (intent === 'person' && /[A-Z][a-z]+ [A-Z][a-z]+ (is|was|born) /.test(s.text)) {
-        openScore += 20;
-      }
-      
-      if (openScore > bestOpeningScore) {
-        bestOpeningScore = openScore;
-        bestOpening = i;
-      }
+    // Check if first sentence is a good opening (contains query keywords and is a definition)
+    const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    let firstHasKeywords = 0;
+    for (const qw of queryWords) {
+      if (lower.substring(0, 120).includes(qw)) firstHasKeywords++;
     }
     
-    // Move the best opening sentence to first position
-    if (bestOpening > 0) {
-      const [opening] = answerSentences.splice(bestOpening, 1);
-      answerSentences.unshift(opening);
+    // If first sentence is already good, keep it
+    if (firstHasKeywords >= Math.min(2, queryWords.length) || first.sourcePriority <= 1) {
+      // First sentence is good, keep the order as is
+    } else {
+      // Try to find a better opening from the first 5 sentences
+      for (let i = 1; i < Math.min(5, answerSentences.length); i++) {
+        const s = answerSentences[i];
+        const sl = s.text.toLowerCase();
+        let kwCount = 0;
+        for (const qw of queryWords) {
+          if (sl.substring(0, 120).includes(qw)) kwCount++;
+        }
+        // If this sentence has more keywords in its opening, swap it to first
+        if (kwCount > firstHasKeywords && s.sourcePriority <= first.sourcePriority) {
+          const [better] = answerSentences.splice(i, 1);
+          answerSentences.unshift(better);
+          break;
+        }
+      }
     }
   }
   
