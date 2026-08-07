@@ -40,6 +40,8 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .header-right{display:flex;gap:6px;align-items:center}
 .lang-select{background:var(--bg4);border:1px solid rgba(255,255,255,0.08);color:var(--text3);font-size:14px;padding:7px 10px;border-radius:6px;cursor:pointer;outline:none}
 .lang-select:active{border-color:var(--gold)}
+.lang-select{max-height:200px;overflow-y:auto;-webkit-appearance:auto;appearance:auto;padding-right:24px}
+@media(max-width:380px){.lang-select{font-size:12px;padding:6px 8px;max-width:110px}}
 
 /* Mode Bar */
 .mode-bar{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);border-bottom:1px solid var(--border);scrollbar-width:none}
@@ -630,6 +632,45 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 <option value="rn">Runyoro</option>
 <option value="luo">Dholuo</option>
 <option value="te">Ateso</option>
+<option value="fr">Français</option>
+<option value="es">Español</option>
+<option value="pt">Português</option>
+<option value="de">Deutsch</option>
+<option value="it">Italiano</option>
+<option value="nl">Nederlands</option>
+<option value="ru">Русский</option>
+<option value="zh">中文</option>
+<option value="ja">日本語</option>
+<option value="ko">한국어</option>
+<option value="ar">العربية</option>
+<option value="hi">हिन्दी</option>
+<option value="bn">বাংলা</option>
+<option value="ur">اردو</option>
+<option value="fa">فارسی</option>
+<option value="tr">Türkçe</option>
+<option value="id">Bahasa Indonesia</option>
+<option value="ms">Bahasa Melayu</option>
+<option value="th">ไทย</option>
+<option value="vi">Tiếng Việt</option>
+<option value="pl">Polski</option>
+<option value="uk">Українська</option>
+<option value="ro">Română</option>
+<option value="nl">Nederlands</option>
+<option value="sv">Svenska</option>
+<option value="no">Norsk</option>
+<option value="da">Dansk</option>
+<option value="fi">Suomi</option>
+<option value="cs">Čeština</option>
+<option value="el">Ελληνικά</option>
+<option value="he">עברית</option>
+<option value="ha">Hausa</option>
+<option value="am">Amharic</option>
+<option value="yo">Yoruba</option>
+<option value="ig">Igbo</option>
+<option value="zu">Zulu</option>
+<option value="af">Afrikaans</option>
+<option value="so">Somali</option>
+<option value="rw">Kinyarwanda</option>
 </select>
 </div>
 </div>
@@ -726,7 +767,49 @@ suggests:[{icon:'💼',text:'DeryCode erimu ki?'},{icon:'👤',text:'Asiimwe Der
 luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'Web AI - 5 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe Derick en ngani?'},{icon:'💰',text:'Website ni wachne naka?'},{icon:'🌍',text:'Lok kwomi Uganda'}]},
 te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 5 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
-suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
+suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]},
+fr:{placeholder:'Demandez à DeryCode AI...',sub:'Recherche IA 22 sources. Web profond, cartes, livres, actualités. Réponses 5000 mots.',hint:'IA Web - Tous les modes - Sans suivi',send:'Envoyer',all:'Tout rechercher',search:'Rechercher sur le web',images:'Rechercher images',news:'Actualités',code:'Rechercher code',ai:'IA',history:'Recherches récentes',clearHistory:'Effacer',
+suggests:[{icon:'💼',text:'Quels services propose DeryCode?'},{icon:'👤',text:'Qui est Asiimwe Derick?'},{icon:'💰',text:'Combien coûte un site web?'},{icon:'🌍',text:'Parle-moi de l\'Ouganda'}]},
+es:{placeholder:'Pregunta a DeryCode AI...',sub:'Búsqueda IA 22 fuentes. Web profunda, mapas, libros, noticias. Respuestas 5000 palabras.',hint:'IA Web - Todos los modos - Sin rastreo',send:'Enviar',all:'Buscar todo',search:'Buscar en la web',images:'Buscar imágenes',news:'Noticias',code:'Buscar código',ai:'IA',history:'Búsquedas recientes',clearHistory:'Borrar',
+suggests:[{icon:'💼',text:'¿Qué servicios ofrece DeryCode?'},{icon:'👤',text:'¿Quién es Asiimwe Derick?'},{icon:'💰',text:'¿Cuánto cuesta un sitio web?'},{icon:'🌍',text:'Háblame de Uganda'}]},
+pt:{placeholder:'Pergunte ao DeryCode AI...',sub:'Busca IA 22 fontes. Web profundo, mapas, livros, notícias. Respostas 5000 palavras.',hint:'IA Web - Todos os modos - Sem rastreamento',send:'Enviar',all:'Buscar tudo',search:'Buscar na web',images:'Buscar imagens',news:'Notícias',code:'Buscar código',ai:'IA',history:'Buscas recentes',clearHistory:'Limpar',
+suggests:[{icon:'💼',text:'Que serviços a DeryCode oferece?'},{icon:'👤',text:'Quem é Asiimwe Derick?'},{icon:'💰',text:'Quanto custa um site?'},{icon:'🌍',text:'Fale-me sobre Uganda'}]},
+de:{placeholder:'Fragen Sie DeryCode AI...',sub:'KI-Suche mit 22 Quellen. Deep Web, Karten, Bücher, Nachrichten. 5000-Wort-Antworten.',hint:'Web KI - Alle Modi - Kein Tracking',send:'Senden',all:'Alles suchen',search:'Web durchsuchen',images:'Bilder suchen',news:'Nachrichten',code:'Code suchen',ai:'KI',history:'Letzte Suchen',clearHistory:'Löschen',
+suggests:[{icon:'💼',text:'Welche Dienste bietet DeryCode?'},{icon:'👤',text:'Wer ist Asiimwe Derick?'},{icon:'💰',text:'Was kostet eine Website?'},{icon:'🌍',text:'Erzähl mir über Uganda'}]},
+it:{placeholder:'Chiedi a DeryCode AI...',sub:'Ricerca IA 22 fonti. Web profondo, mappe, libri, notizie. Risposte 5000 parole.',hint:'IA Web - Tutte le modalità - Nessun tracciamento',send:'Invia',all:'Cerca tutto',search:'Cerca sul web',images:'Cerca immagini',news:'Notizie',code:'Cerca codice',ai:'IA',history:'Ricerche recenti',clearHistory:'Cancella',
+suggests:[{icon:'💼',text:'Quali servizi offre DeryCode?'},{icon:'👤',text:'Chi è Asiimwe Derick?'},{icon:'💰',text:'Quanto costa un sito web?'},{icon:'🌍',text:'Raccontami dell Uganda'}]},
+nl:{placeholder:'Vraag DeryCode AI...',sub:'AI-zoekmachine met 22 bronnen. Deep web, kaarten, boeken, nieuws. 5000-woord antwoorden.',hint:'Web AI - Alle modi - Geen tracking',send:'Verstuur',all:'Alles zoeken',search:'Zoek op web',images:'Zoek afbeeldingen',news:'Nieuws',code:'Zoek code',ai:'AI',history:'Recente zoekopdrachten',clearHistory:'Wissen',
+suggests:[{icon:'💼',text:'Welke diensten biedt DeryCode?'},{icon:'👤',text:'Wie is Asiimwe Derick?'},{icon:'💰',text:'Hoeveel kost een website?'},{icon:'🌍',text:'Vertel me over Uganda'}]},
+ru:{placeholder:'Спросите DeryCode AI...',sub:'ИИ-поиск 22 источника. Глубокая сеть, карты, книги, новости. Ответы 5000 слов.',hint:'Веб ИИ - Все режимы - Без отслеживания',send:'Отправить',all:'Искать всё',search:'Искать в сети',images:'Поиск изображений',news:'Новости',code:'Поиск кода',ai:'ИИ',history:'Недавние поиски',clearHistory:'Очистить',
+suggests:[{icon:'💼',text:'Какие услуги предлагает DeryCode?'},{icon:'👤',text:'Кто такой Asiimwe Derick?'},{icon:'💰',text:'Сколько стоит сайт?'},{icon:'🌍',text:'Расскажи об Уганде'}]},
+zh:{placeholder:'问 DeryCode AI...',sub:'AI搜索 22个来源。深网、地图、书籍、新闻。5000字回答。',hint:'网络AI - 全部模式 - 无追踪',send:'发送',all:'搜索全部',search:'搜索网页',images:'搜索图片',news:'新闻',code:'搜索代码',ai:'AI',history:'最近搜索',clearHistory:'清除',
+suggests:[{icon:'💼',text:'DeryCode提供哪些服务？'},{icon:'👤',text:'Asiimwe Derick是谁？'},{icon:'💰',text:'网站多少钱？'},{icon:'🌍',text:'告诉我关于乌干达'}]},
+ja:{placeholder:'DeryCode AIに質問...',sub:'AI検索22ソース。ディープウェブ、地図、書籍、ニュース。5000字回答。',hint:'ウェブAI - 全モード - 追跡なし',send:'送信',all:'すべて検索',search:'ウェブ検索',images:'画像検索',news:'ニュース',code:'コード検索',ai:'AI',history:'最近の検索',clearHistory:'クリア',
+suggests:[{icon:'💼',text:'DeryCodeのサービスは？'},{icon:'👤',text:'Asiimwe Derickは誰？'},{icon:'💰',text:'ウェブサイトの費用は？'},{icon:'🌍',text:'ウガンダについて教えて'}]},
+ko:{placeholder:'DeryCode AI에게 질문...',sub:'AI 검색 22개 소스. 딥웹, 지도, 책, 뉴스. 5000단어 답변.',hint:'웹 AI - 전체 모드 - 추적 없음',send:'보내기',all:'전체 검색',search:'웹 검색',images:'이미지 검색',news:'뉴스',code:'코드 검색',ai:'AI',history:'최근 검색',clearHistory:'삭제',
+suggests:[{icon:'💼',text:'DeryCode 서비스는?'},{icon:'👤',text:'Asiimwe Derick는 누구?'},{icon:'💰',text:'웹사이트 비용?'},{icon:'🌍',text:'우간다에 대해 알려줘'}]},
+ar:{placeholder:'اسأل DeryCode AI...',sub:'بحث ذكي 22 مصدر. الويب العميق، خرائط، كتب، أخبار. إجابات 5000 كلمة.',hint:'ويب AI - جميع الأوضاع - بلا تتبع',send:'إرسال',all:'بحث عن كل شيء',search:'بحث في الويب',images:'بحث عن صور',news:'أخبار',code:'بحث عن كود',ai:'AI',history:'عمليات البحث الأخيرة',clearHistory:'مسح',
+suggests:[{icon:'💼',text:'ما خدمات DeryCode؟'},{icon:'👤',text:'من هو Asiimwe Derick؟'},{icon:'💰',text:'كم تكلفة موقع؟'},{icon:'🌍',text:'أخبرني عن أوغندا'}]},
+hi:{placeholder:'DeryCode AI से पूछें...',sub:'AI खोज 22 स्रोत। डीप वेब, नक्शे, किताबें, समाचार। 5000 शब्द उत्तर।',hint:'वेब AI - सभी मोड - कोई ट्रैकिंग नहीं',send:'भेजें',all:'सब कुछ खोजें',search:'वेब पर खोजें',images:'चित्र खोजें',news:'समाचार',code:'कोड खोजें',ai:'AI',history:'हाल की खोज',clearHistory:'साफ़ करें',
+suggests:[{icon:'💼',text:'DeryCode कौन सी सेवाएँ देता है?'},{icon:'👤',text:'Asiimwe Derick कौन हैं?'},{icon:'💰',text:'वेबसाइट कितने की है?'},{icon:'🌍',text:'उगांडा के बारे में बताओ'}]},
+tr:{placeholder:'DeryCode AI ya sor...',sub:'AI arama 22 kaynak. Derin web, haritalar, kitaplar, haberler. 5000 kelime yanıtlar.',hint:'Web AI - Tüm modlar - İzleme yok',send:'Gönder',all:'Her şeyi ara',search:'Webde ara',images:'Görsel ara',news:'Haberler',code:'Kod ara',ai:'AI',history:'Son aramalar',clearHistory:'Temizle',
+suggests:[{icon:'💼',text:'DeryCode hangi hizmetleri sunar?'},{icon:'👤',text:'Asiimwe Derick kim?'},{icon:'💰',text:'Bir web sitesi ne kadar?'},{icon:'🌍',text:'Bana Uganda dan bahset'}]},
+id:{placeholder:'Tanya DeryCode AI...',sub:'Pencarian AI 22 sumber. Web dalam, peta, buku, berita. Jawaban 5000 kata.',hint:'Web AI - Semua mode - Tanpa pelacakan',send:'Kirim',all:'Cari semua',search:'Cari di web',images:'Cari gambar',news:'Berita',code:'Cari kode',ai:'AI',history:'Pencarian terbaru',clearHistory:'Hapus',
+suggests:[{icon:'💼',text:'Layanan apa yang ditawarkan DeryCode?'},{icon:'👤',text:'Siapa Asiimwe Derick?'},{icon:'💰',text:'Berapa biaya website?'},{icon:'🌍',text:'Ceritakan tentang Uganda'}]},
+vi:{placeholder:'Hỏi DeryCode AI...',sub:'Tìm kiếm AI 22 nguồn. Web sâu, bản đồ, sách, tin tức. Câu trả lời 5000 từ.',hint:'Web AI - Tất cả chế độ - Không theo dõi',send:'Gửi',all:'Tìm tất cả',search:'Tìm trên web',images:'Tìm hình ảnh',news:'Tin tức',code:'Tìm mã',ai:'AI',history:'Tìm kiếm gần đây',clearHistory:'Xóa',
+suggests:[{icon:'💼',text:'DeryCode cung cấp dịch vụ gì?'},{icon:'👤',text:'Asiimwe Derick là ai?'},{icon:'💰',text:'Website giá bao nhiêu?'},{icon:'🌍',text:'Kể về Uganda'}]},
+ha:{placeholder:'Tambayi DeryCode AI...',sub:'Bincake AI tushen 22. Web mai zurfi, taswira, littattafai, labarai. Amsoshi 5000 kalmomi.',hint:'Web AI - Dukkanin modes - Ba bin diddigi ba',send:'Aika',all:'Bincaka komai',search:'Bincaka yanar gizo',images:'Bincaka hotuna',news:'Labarai',code:'Bincaka lamba',ai:'AI',history:'Kwanan nan bincake',clearHistory:'Share',
+suggests:[{icon:'💼',text:'DeryCode yana ayyuka waɗanne?'},{icon:'👤',text:'Wa ne Asiimwe Derick?'},{icon:'💰',text:'Gidan yanar gizo nawa?'},{icon:'🌍',text:'Fada min game da Uganda'}]},
+am:{placeholder:'DeryCode AI-ን ጠይቅ...',sub:'AI ፍለጋ 22 ምንጮች። ጥልቅ ድር፣ ካርታዎች፣ መጻሕፍት፣ ዜና። 5000 ቃል መልሶች።',hint:'Web AI - ሁሉም ሁነታዎች - ዱካ የለም',send:'ላክ',all:'ሁሉንም ፈልግ',search:'በድር ይፈልጉ',images:'ምስሎችን ይፈልጉ',news:'ዜና',code:'ኮድ ይፈልጉ',ai:'AI',history:'የቅርብ ጊዜ ፍለጋዎች',clearHistory:'አጽዳ',
+suggests:[{icon:'💼',text:'DeryCode አገልግሎቶች ምንድናቸው?'},{icon:'👤',text:'Asiimwe Derick ማን ናቸው?'},{icon:'💰',text:'ድረ-ገጽ ስንት ነው?'},{icon:'🌍',text:'ስለ ዩጋንዳ ንገረኝ'}]},
+yo:{placeholder:'Bẹre DeryCode AI...',sub:'AI iwadi 22 orisun. Web jinlẹ, awọn maapa, awọn iwe, iroyin. Idahun ọrọ 5000.',hint:'Web AI - Gbogbo awọn ipo - Aito ipade',send:'Fi ranṣẹ',all:'Wa gbogbo nkan',search:'Wa lori web',images:'Awọn aworan wa',news:'Iroyin',code:'Wa koodu',ai:'AI',history:'Awọn iwadi tuntun',clearHistory:'Paarẹ',
+suggests:[{icon:'💼',text:'DeryCode nfunni awọn iṣẹ wo?'},{icon:'👤',text:'Ta ni Asiimwe Derick?'},{icon:'💰',text:'Elo ni website?'},{icon:'🌍',text:'Sọ fun mi nipa Uganda'}]},
+af:{placeholder:'Vra DeryCode AI...',sub:'AI-soektog 22 bronne. Diep web, kaarte, boeke, nuus. 5000-woord antwoorde.',hint:'Web AI - Alle modusse - Geen opsporing',send:'Stuur',all:'Soek alles',search:'Soek op die web',images:'Soek prente',news:'Nuus',code:'Soek kode',ai:'AI',history:'Onlangse soektogte',clearHistory:'Vee uit',
+suggests:[{icon:'💼',text:'Watter dienste bied DeryCode?'},{icon:'👤',text:'Wie is Asiimwe Derick?'},{icon:'💰',text:'Hoeveel kos n webtuiste?'},{icon:'🌍',text:'Vertel my van Uganda'}]},
+so:{placeholder:'Weydiiso DeryCode AI...',sub:'CI raadi 22 ilo. Web qoto dheer, khariirad, buugag, wararka. 5000 eray jawaab.',hint:'Web AI - Dhammaan noocyada - La raadin',send:'Dir',all:'Raadi dhammaan',search:'Raadi webka',images:'Raadi sawirada',news:'Wararka',code:'Raadi code',ai:'AI',history:'Raadiinta dhawaan',clearHistory:'Tirtir',
+suggests:[{icon:'💼',text:'DeryCode waxay bixisaa adeegyo nooce ah?'},{icon:'👤',text:'Kuma asiimwe Derick?'},{icon:'💰',text:'Website intee ayay ku qaadantahay?'},{icon:'🌍',text:'I sheeg Uganda'}]},
+rw:{placeholder:'Baza DeryCode AI...',sub:'AI gushakisha 22 inkomoko. Urubuguru rwa hafi, amakarita, ibitabo, amakuru. Ibisubizo 5000 amagambo.',hint:'Web AI - Ibisanzwe byose - Nta kugenzura',send:'Ohereza',all:'Shakisha byose',search:'Shakisha kuri urubuguru',images:'Shakisha amafoto',news:'Amakuru',code:'Shakisha code',ai:'AI',history:'Ibyo zaherewe guhishwa',clearHistory:'Gusiba',
+suggests:[{icon:'💼',text:'DeryCode itanga serivisi ariko?'},{icon:'👤',text:'Ni nde Asiimwe Derick?'},{icon:'💰',text:'Webusayiti ni amafaranga angahe?'},{icon:'🌍',text:'Mbwireho kuri Uganda'}]}
 };
 var modeNames=['all','search','images','news','code','derick','books','maps','deep','videos'];
 
@@ -1965,6 +2048,26 @@ function showToast(msg){
 // === INIT ===
 applyTheme();
 updateBookmarkCount();
+
+// Auto-detect browser language
+try{
+  var savedLang=getSetting('lang','auto');
+  if(savedLang==='auto'||!savedLang){
+    var bl=(navigator.language||navigator.userLanguage||'en').split('-')[0];
+    var supported=['en','sw','lg','rn','luo','te','fr','es','pt','de','it','nl','ru','zh','ja','ko','ar','hi','bn','ur','fa','tr','id','ms','th','vi','pl','uk','ro','sv','no','da','fi','cs','el','he','ha','am','yo','ig','zu','af','so','rw'];
+    if(supported.indexOf(bl)>=0){
+      lang=bl;
+      var sel=document.getElementById('langSelect');
+      if(sel)sel.value=bl;
+      changeLang(bl);
+    }
+  }else if(savedLang!=='auto'){
+    lang=savedLang;
+    var sel=document.getElementById('langSelect');
+    if(sel)sel.value=savedLang;
+    changeLang(savedLang);
+  }
+}catch(e){}
 // Apply default mode setting
 var savedMode=getSetting('defaultMode','all');
 if(savedMode&&savedMode!=='all')setMode(savedMode);
