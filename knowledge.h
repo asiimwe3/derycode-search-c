@@ -136,13 +136,7 @@ static const char *get_derycode_knowledge(const char *query) {
 
 /* Get DeryCode source info */
 static void add_derycode_sources(AiResponse *resp) {
-    strncpy(resp->source_titles[resp->source_count], "DeryCode Technologies Official", 511);
-    strncpy(resp->source_urls[resp->source_count], "https://derycode.com", 1023);
-    resp->source_count++;
-    
-    strncpy(resp->source_titles[resp->source_count], "DeryCode Partners", 511);
-    strncpy(resp->source_urls[resp->source_count], "https://derycode.com/partners", 1023);
-    resp->source_count++;
+    snprintf(resp->sources, 2047, "DeryCode Technologies Official (https://derycode.com), DeryCode Partners (https://derycode.com/partners)");
 }
 
 #endif

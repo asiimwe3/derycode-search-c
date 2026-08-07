@@ -1,4 +1,9 @@
 #include "languages.h"
+#include <ctype.h>
+
+/* Forward declarations from knowledge.h */
+static int is_derycode_query(const char *query);
+static const char *get_derycode_knowledge(const char *query);
 /* Search aggregation module for DeryCode Search - ENHANCED EDITION */
 #ifndef DC_SEARCH_H
 #define DC_SEARCH_H
@@ -7,7 +12,9 @@
 
 typedef struct { char *data; size_t size; } HttpResponse;
 
+#ifndef MAX_RESPONSE
 #define MAX_RESPONSE (4 * 1048576)
+#endif
 #define MAX_RESULTS 512
 #define MAX_HTTP_TIMEOUT 12
 
@@ -230,23 +237,43 @@ static void search_duckduckgo_html(const char *query, SearchResult *results, int
     while((r=fread(html+len,1,cap-len-1,fp))>0){len+=r;if(len>=cap-1){cap*=2;html=realloc(html,cap);}if(cap>1048576)break;}
     html[len]=0; pclose(fp); if(len==0){free(html);return;}
     char *p=html; int found=0;
-    while(p&&*p&&found<30&&*count<max) {
-        char *ls=strstr(p,"result__a\" href=\""); if(!ls)ls=strstr(p,"result__url\" href=\""); if(!ls)break;
-        ls+=16; char *le=strchr(ls,'"'); if(!le)break;
-        int ul=le-ls; if(ul>0&&ul<1024) {
+    while(p && *p && found<30 && *count<max) {
+        char *ls=strstr(p,"result__a\" href=\"");
+        if(!ls) ls=strstr(p,"result__url\" href=\""); 
+        if(!ls) break;
+        ls+=16; 
+        char *le=strchr(ls,'"'); 
+        if(!le) break;
+        int ul=le-ls; 
+        if(ul>0 && ul<1024) {
             char ru[1024]; strncpy(ru,ls,ul); ru[ul]=0; decode_html(ru);
-            char *ts=strchr(le,'>'); if(ts){ts++; char *te=strchr(ts,'<'); if(te){int tl=te-ts; if(tl>0&&tl<512){
-                char title[512]; strncpy(title,ts,tl); title[tl]=0; decode_html(title); strip_html(title);
-                char *ss=strstr(te,"result__snippet\">");
-                if(ss){ss+=18; char *se=strstr(ss,"</a>"); if(!se)se=strstr(ss,"</div>");
-                if(se){int sl=se-ss; if(sl>0&&sl<4096){
-                    char sn[4096]; strncpy(sn,ss,sl); sn[sl]=0; decode_html(sn); strip_html(sn);
-                    strncpy(results[*count].title,title,511); strncpy(results[*count].url,ru,1023);
-                    strncpy(results[*count].content,sn,4095);
-                    strcpy(results[*count].engine,"ddg-html"); strcpy(results[*count].source,"DuckDuckGo Web");
-                    results[*count].featured=0; (*count)++; found++;
-                }}}}
-            }}}
+            char *ts=strchr(le,'>'); 
+            if(ts) {
+                ts++; 
+                char *te=strchr(ts,'<'); 
+                if(te) {
+                    int tl=te-ts; 
+                    if(tl>0 && tl<512) {
+                        char title[512]; strncpy(title,ts,tl); title[tl]=0; decode_html(title); strip_html(title);
+                        char *ss=strstr(te,"result__snippet\">");
+                        if(ss) {
+                            ss+=18; 
+                            char *se=strstr(ss,"</a>"); 
+                            if(!se) se=strstr(ss,"</div>");
+                            if(se) {
+                                int sl=se-ss; 
+                                if(sl>0 && sl<4096) {
+                                    char sn[4096]; strncpy(sn,ss,sl); sn[sl]=0; decode_html(sn); strip_html(sn);
+                                    strncpy(results[*count].title,title,511); strncpy(results[*count].url,ru,1023);
+                                    strncpy(results[*count].content,sn,4095);
+                                    strcpy(results[*count].engine,"ddg-html"); strcpy(results[*count].source,"DuckDuckGo Web");
+                                    results[*count].featured=0; (*count)++; found++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         p=le+1;
     }
@@ -519,7 +546,7 @@ static void search_gutenberg(const char *query, SearchResult *results, int *coun
     for(int i=0;i<len&&*count<max;i++) {
         JsonValue *book=json_array_at(results_arr,i); if(!book) continue;
         const char *title=json_get_string(book,"title");
-        int book_id=0; JsonValue *id_val=json_get(book,"id");
+        int book_id=0; JsonValue *id_val=json_get_object(book,"id");
         if(id_val&&id_val->type==JSON_NUM) book_id=(int)id_val->number;
         JsonValue *authors=json_get_array(book,"authors"); char author[256]="Unknown";
         if(authors&&authors->type==JSON_ARR&&json_array_len(authors)>0) {
@@ -758,7 +785,7 @@ static AiResponse *generate_ai_answer(const char *question, SearchResponse *sear
     AiResponse *ai=calloc(1,sizeof(AiResponse));
     if(!search||search->result_count==0){snprintf(ai->answer,MAX_ANSWER_CHARS-1,"No info for \"%s\".",question);ai->has_data=0;return ai;}
     strncpy(ai->topic,question,255); ai->has_data=1;
-    extern int is_derycode_query(const char*); extern const char* get_derycode_knowledge(const char*);
+    
     if(is_derycode_query(question)){const char*k=get_derycode_knowledge(question); if(k){strncpy(ai->answer,k,MAX_ANSWER_CHARS-1);snprintf(ai->sources,2047,"DeryCode Knowledge Base");return ai;}}
     int off=0;
     off+=snprintf(ai->answer+off,MAX_ANSWER_CHARS-off,"Based on %d search sources:\n\n",search->source_count);

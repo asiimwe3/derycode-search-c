@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 /*
  * DeryCode Search - C HTTP Server with AI - ENHANCED
  * High output limits, 16 sources, book summarization, deep extraction
@@ -18,12 +19,11 @@
 
 #include "json.h"
 #include "search.h"
-#include "languages.h"
 #include "knowledge.h"
+#include "languages.h"
 
 #define PORT 8080
 #define MAX_REQUEST 131072       /* 128KB - was 64KB */
-#define MAX_RESPONSE (4*1048576)  /* 4MB - was 1MB */
 #define MAX_BODY 262144           /* 256KB - was 32KB */
 
 static volatile int running = 1;

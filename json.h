@@ -218,6 +218,15 @@ const char *json_get_string(JsonValue *obj, const char *key) {
     return NULL;
 }
 
+JsonValue *json_get_object(JsonValue *obj, const char *key) {
+    if (!obj || obj->type != JSON_OBJ) return NULL;
+    for (int i = 0; i < obj->object.count; i++) {
+        if (strcmp(obj->object.keys[i], key) == 0) {
+            return obj->object.values[i];
+        }
+    }
+    return NULL;
+}
 JsonValue *json_get_array(JsonValue *obj, const char *key) {
     if (!obj || obj->type != JSON_OBJ) return NULL;
     for (int i = 0; i < obj->object.count; i++) {
