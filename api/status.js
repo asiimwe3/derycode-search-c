@@ -9,8 +9,8 @@ export default async function handler(req, res) {
     maxQueryWords: 500,
     maxAnswerWords: 5000,
     pwa: true,
-    features: ['Google Books', 'Google News', 'Google Scholar', 'PubMed', 'Project Gutenberg', 'DeryMap', 'Deep Web Search', 'Wikidata', 'CORE Research', 'World Bank Data', 'CrossRef DOIs', 'Deep Content Extraction', 'Book Summarization'],
+    features: ['Google Books', 'Google News', 'Google Scholar', 'PubMed', 'Project Gutenberg', 'DeryMap', 'DeryCode Website Search', 'Deep Web Search', 'Wikidata', 'CORE Research', 'World Bank Data', 'CrossRef DOIs', 'Deep Content Extraction', 'Book Summarization'],
     languages: ['en', 'sw', 'lg', 'rn', 'luo', 'te'],
-    message: 'All systems operational — 22 sources active'
+    message: 'All systems operational — 23 sources active'
   });
 }

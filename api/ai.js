@@ -70,7 +70,7 @@ function getDeryCodeKnowledge(query) {
 
   if (lower.includes('search') && (lower.includes('derycode') || lower.includes('engine'))) {
     return {
-      answer: "DeryCode Search is a premium AI-powered search engine with 10 search modes and 22 sources. It features: AI Summaries (auto-generated from top results), Knowledge Panels (Wikipedia summaries), Voice Search, Autocomplete suggestions, Related searches, Search history, Deep Web search (Wikidata, CORE, World Bank, Ahmia .onion index, CrossRef, Internet Archive), Maps integration, Books search, and Code search. Privacy-focused: no tracking, no ads. Mobile responsive PWA. Live on Vercel. GitHub: github.com/asiimwe3/derycode-search-c",
+      answer: "DeryCode Search is a premium AI-powered search engine with 10 search modes and 23 sources (including DeryCode website). It features: AI Summaries (auto-generated from top results), Knowledge Panels (Wikipedia summaries), Voice Search, Autocomplete suggestions, Related searches, Search history, Deep Web search (Wikidata, CORE, World Bank, Ahmia .onion index, CrossRef, Internet Archive), Maps integration, Books search, and Code search. Privacy-focused: no tracking, no ads. Mobile responsive PWA. Live on Vercel. GitHub: github.com/asiimwe3/derycode-search-c",
       sources: [
         { title: 'DeryCode Search', url: 'https://derycode-search-c.vercel.app' },
         { title: 'GitHub Repository', url: 'https://github.com/asiimwe3/derycode-search-c' }
@@ -888,9 +888,9 @@ function handleConversational(text, lang) {
   // Who are you / What is your name
   if (lower.match(/what is your name|whats your name|what's your name|who are you|what are you|what can you do/)) {
     const responses = {
-      en: 'I am DeryCode AI, a premium search engine assistant built by Asiimwe Derick. I search 22 sources across the web, deep web, dark web, maps, books, news, images, videos, and code to give you accurate answers. I am not a regular chatbot - I actually search the internet in real-time to find real, up-to-date information for you. Try asking me anything!',
+      en: 'I am DeryCode AI, a premium search engine assistant built by Asiimwe Derick. I search 23 sources (including DeryCode website) across the web, deep web, dark web, maps, books, news, images, videos, and code to give you accurate answers. I am not a regular chatbot - I actually search the internet in real-time to find real, up-to-date information for you. Try asking me anything!',
       sw: 'Mimi ni DeryCode AI, msaidiza utafutaji wa hali ya juu aliyejengwa na Asiimwe Derick. Ninatafuta katika vyanzo 22 tofauti - mtandao, deep web, dark web, ramani, vitabu, habari, picha, video, na code. Sio chatbot ya kawaida - ninatafuta mtandao papo hapo kupata taarifa za kweli. Uliza chochote!',
-      fr: 'Je suis DeryCode AI, un assistant de recherche premium créé par Asiimwe Derick. Je recherche 22 sources: web, deep web, dark web, cartes, livres, actualités, images, vidéos et code. Je ne suis pas un simple chatbot - je recherche réellement Internet en temps réel. Demandez-moi n\'importe quoi!'
+      fr: 'Je suis DeryCode AI, un assistant de recherche premium créé par Asiimwe Derick. Je recherche 23 sources (including DeryCode website): web, deep web, dark web, cartes, livres, actualités, images, vidéos et code. Je ne suis pas un simple chatbot - je recherche réellement Internet en temps réel. Demandez-moi n\'importe quoi!'
     };
     return { 
       answer: responses[lang] || responses.en, 
@@ -936,9 +936,9 @@ function handleConversational(text, lang) {
   // Are you AI/human/robot
   if (lower.match(/are you human|are you real|are you ai|are you a robot|are you a bot|do you have feelings/)) {
     const responses = {
-      en: 'I am DeryCode AI - an intelligent search assistant. I am not human, but I am very real! I search the internet in real-time across 22 sources to find accurate, up-to-date information for you. I may not have feelings, but I genuinely enjoy helping you find what you need. What would you like to search for?',
+      en: 'I am DeryCode AI - an intelligent search assistant. I am not human, but I am very real! I search the internet in real-time across 23 sources (including DeryCode website) to find accurate, up-to-date information for you. I may not have feelings, but I genuinely enjoy helping you find what you need. What would you like to search for?',
       sw: 'Mimi ni DeryCode AI - msaidiza utafutaji mwerevu. Sio binadamu, lakini niko wa kweli kabisa! Ninatafuta mtandao papo hapo katika vyanzo 22 kupata taarifa sahihi. Labda sina hisia, lakini ninapenda kukusaidia. Unataka kutafta nini?',
-      fr: 'Je suis DeryCode AI - un assistant de recherche intelligent. Je ne suis pas humain, mais je suis bien réel! Je recherche Internet en temps réel sur 22 sources. Qu\'aimeriez-vous rechercher?'
+      fr: 'Je suis DeryCode AI - un assistant de recherche intelligent. Je ne suis pas humain, mais je suis bien réel! Je recherche Internet en temps réel sur 23 sources (including DeryCode website). Qu\'aimeriez-vous rechercher?'
     };
     return { answer: responses[lang] || responses.en, sources: [], followups: [], confidence: 'high', isGreeting: true };
   }

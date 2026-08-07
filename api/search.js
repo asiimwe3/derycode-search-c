@@ -4,6 +4,9 @@
 
 const MAX_QUERY_WORDS = 500;
 
+// DeryCode website search — indexes derycode.publicvm.com
+import { fetchDeryCodeSite } from './derycode-site.js';
+
 function isAcademicQuery(q) {
   const academic = ['research', 'paper', 'study', 'theory', 'algorithm', 'analysis',
     'physics', 'chemistry', 'biology', 'mathematics', 'quantum', 'neural',
@@ -61,6 +64,7 @@ export default async function handler(req, res) {
   const deep = req.query.deep === '1' || req.query.deep === 'true';
   
   const sources = [
+    fetchDeryCodeSite(q),
     fetchStartpage(q),
     fetchDuckDuckGo(q),
     fetchWikipedia(cleaned).then(w => w ? [{ title: w.title, url: w.url, content: (w.extract||'').substring(0,600), engine: 'wikipedia', source: 'Wikipedia', featured: true }] : []),
@@ -90,7 +94,7 @@ export default async function handler(req, res) {
   const settled = await Promise.allSettled(sources);
   const allResults = [];
   const sourcesUsed = [];
-  const sourceNames = ['startpage', 'duckduckgo', 'wikipedia', 'reddit', 'hackernews', 'stackexchange', 'arxiv', 'archive', 'openlibrary', 'semantic-scholar', 'github', 'google-books', 'google-news', 'gutenberg', 'pubmed', 'scholar', 'wikidata', 'core', 'worldbank', 'ahmia', 'unpaywall', 'archive-advanced'];
+  const sourceNames = ['derycode', 'startpage', 'duckduckgo', 'wikipedia', 'reddit', 'hackernews', 'stackexchange', 'arxiv', 'archive', 'openlibrary', 'semantic-scholar', 'github', 'google-books', 'google-news', 'gutenberg', 'pubmed', 'scholar', 'wikidata', 'core', 'worldbank', 'ahmia', 'unpaywall', 'archive-advanced'];
   let knowledgePanel = null;
   
   settled.forEach((result, idx) => {
