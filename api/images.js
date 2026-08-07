@@ -10,19 +10,16 @@ export default async function handler(req, res) {
   if (words > MAX_QUERY_WORDS) return res.status(400).json({ error: `Query too long. Max ${MAX_QUERY_WORDS} words.` });
   
   const startTime = Date.now();
+  const images = [];
   
+  // Method 1: DuckDuckGo Image Search (with Referer header - critical!)
   try {
-    // DuckDuckGo Image Search via HTML parsing
-    const url = `https://duckduckgo.com/?q=${encodeURIComponent(q)}&iax=images&ia=images`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    const ddgUrl = `https://duckduckgo.com/?q=${encodeURIComponent(q)}&iax=images&ia=images`;
+    const r = await fetch(ddgUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' }
     });
     const html = await r.text();
     
-    const images = [];
-    
-    // Try to extract image results from DDG
-    // Method 1: Look for vqd token and use image API
     const vqdMatch = html.match(/vqd=['"](\d+(?:-\d+)?)/);
     
     if (vqdMatch) {
@@ -31,7 +28,12 @@ export default async function handler(req, res) {
       
       try {
         const imgRes = await fetch(imgUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Referer': 'https://duckduckgo.com/',
+            'Accept': 'application/json'
+          },
+          signal: AbortSignal.timeout(8000)
         });
         const imgData = await imgRes.json();
         
@@ -42,67 +44,83 @@ export default async function handler(req, res) {
               thumbnail: item.thumbnail || '',
               image: item.image || '',
               url: item.url || '',
-              source: item.source || ''
+              source: item.source || 'DuckDuckGo'
             });
           }
         }
       } catch (e) {
-        // Fall through to alternative methods
+        console.error('DDG i.js error:', e.message);
       }
     }
-    
-    // Method 2: Parse embedded JSON data
-    if (images.length === 0) {
-      const jsonMatches = html.match(/"thumbnail":\s*"([^"]+)"/g);
-      if (jsonMatches) {
-        for (const m of jsonMatches.slice(0, 20)) {
-          const thumb = m.match(/"thumbnail":\s*"([^"]+)"/);
-          if (thumb) {
+  } catch (e) {
+    console.error('DDG page error:', e.message);
+  }
+  
+  // Method 2: Bing Images (parse HTML)
+  if (images.length < 6) {
+    try {
+      const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(q)}&form=HDRSC2`;
+      const r = await fetch(bingUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html',
+          'Accept-Language': 'en-US,en;q=0.5'
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      const html = await r.text();
+      
+      const murlMatches = [...html.matchAll(/murl&quot;:&quot;([^&]+)&quot;/g)];
+      
+      for (let i = 0; i < Math.min(murlMatches.length, 20); i++) {
+        const imageUrl = murlMatches[i][1];
+        if (imageUrl.startsWith('http') && !imageUrl.includes('bing.net/th')) {
+          images.push({
+            title: q,
+            thumbnail: imageUrl,
+            image: imageUrl,
+            url: '',
+            source: 'Bing'
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Bing images error:', e.message);
+    }
+  }
+  
+  // Method 3: Wikipedia images as fallback
+  if (images.length < 3) {
+    try {
+      const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=400&titles=${encodeURIComponent(q)}&redirects=1`;
+      const wikiRes = await fetch(wikiUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
+      const wikiData = await wikiRes.json();
+      const pages = wikiData?.query?.pages;
+      if (pages) {
+        for (const page of Object.values(pages)) {
+          if (page.thumbnail) {
             images.push({
-              title: q,
-              thumbnail: thumb[1].replace(/\\u002F/g, '/'),
-              image: thumb[1].replace(/\\u002F/g, '/'),
-              url: '',
-              source: ''
+              title: page.title,
+              thumbnail: page.thumbnail.source,
+              image: page.thumbnail.source,
+              url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
+              source: 'Wikipedia'
             });
           }
         }
       }
+    } catch (e) {
+      console.error('Wiki images error:', e.message);
     }
-    
-    // Method 3: Wikipedia images as fallback
-    if (images.length === 0) {
-      try {
-        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=400&titles=${encodeURIComponent(q)}&redirects=1`;
-        const wikiRes = await fetch(wikiUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' } });
-        const wikiData = await wikiRes.json();
-        const pages = wikiData?.query?.pages;
-        if (pages) {
-          for (const page of Object.values(pages)) {
-            if (page.thumbnail) {
-              images.push({
-                title: page.title,
-                thumbnail: page.thumbnail.source,
-                image: page.thumbnail.source,
-                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`,
-                source: 'Wikipedia'
-              });
-            }
-          }
-        }
-      } catch (e) {}
-    }
-    
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    res.status(200).json({
-      query: q,
-      count: images.length,
-      time: elapsed,
-      images: images.slice(0, 24),
-      limits: { maxQueryWords: MAX_QUERY_WORDS }
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Image search failed', query: q, count: 0, images: [] });
   }
+  
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+  
+  res.status(200).json({
+    query: q,
+    count: images.length,
+    time: elapsed,
+    images: images.slice(0, 24),
+    limits: { maxQueryWords: MAX_QUERY_WORDS }
+  });
 }
