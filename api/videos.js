@@ -1,5 +1,5 @@
 // DeryCode Video Search API - Vercel Serverless
-const MAX_QUERY_WORDS = 30;
+const MAX_QUERY_WORDS = 60;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

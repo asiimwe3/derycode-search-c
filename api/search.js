@@ -3,7 +3,7 @@
 // Knowledge panel: Wikipedia API
 // NO Gemini dependency
 
-const MAX_QUERY_WORDS = 30;
+const MAX_QUERY_WORDS = 60;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   // Knowledge panel
   let knowledgePanel = null;
   if (wiki) {
-    knowledgePanel = { title: wiki.title, extract: wiki.extract.substring(0, 400), url: wiki.url, source: 'Wikipedia' };
+    knowledgePanel = { title: wiki.title, extract: wiki.extract.substring(0, 800), url: wiki.url, source: 'Wikipedia' };
   }
   
   // Build final results
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     allResults.unshift({ 
       title: wiki.title, 
       url: wiki.url, 
-      content: wiki.extract?.substring(0, 300), 
+      content: wiki.extract?.substring(0, 600), 
       engine: 'wikipedia', 
       source: 'Wikipedia', 
       featured: true 
@@ -135,7 +135,7 @@ async function fetchStartpage(q) {
         results.push({
           title: title.substring(0, 200),
           url: url,
-          content: snippet.substring(0, 300),
+          content: snippet.substring(0, 500),
           engine: 'startpage',
           source: domain || 'Startpage'
         });

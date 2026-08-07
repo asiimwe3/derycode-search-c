@@ -4,9 +4,9 @@
 
 import { isDeryCodeQuery, getDeryCodeKnowledge } from './derycode-knowledge.js';
 
-const MAX_QUERY_WORDS = 30;
-const MAX_ANSWER_WORDS = 300;
-const MAX_ANSWER_CHARS = 2000;
+const MAX_QUERY_WORDS = 60;
+const MAX_ANSWER_WORDS = 600;
+const MAX_ANSWER_CHARS = 5000;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -139,7 +139,7 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     for (const r of webResults.slice(0, 3)) {
       try {
         const scraped = await scrapeUrl(r.url);
-        if (scraped && scraped.length > 100) {
+        if (scraped && scraped.length > 200) {
           const clean = cleanSnippet(scraped);
           if (!isDuplicate(usedTexts, clean)) {
             parts.push(clean);
@@ -264,16 +264,16 @@ function cleanSnippet(text) {
   }
   
   // Cap at reasonable length — find sentence boundary
-  if (clean.length > 800) {
+  if (clean.length > 2000) {
     const cutPoint = clean.lastIndexOf('. ', 700);
     if (cutPoint > 200) {
       clean = clean.substring(0, cutPoint + 1);
     } else {
-      const cutSpace = clean.lastIndexOf(' ', 700);
+      const cutSpace = clean.lastIndexOf(' ', 1800);
       if (cutSpace > 200) {
         clean = clean.substring(0, cutSpace) + '...';
       } else {
-        clean = clean.substring(0, 700) + '...';
+        clean = clean.substring(0, 1800) + '...';
       }
     }
   }
