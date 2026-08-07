@@ -177,16 +177,17 @@ function isLowQuality(text) {
   const lower = text.toLowerCase();
   
   // Filter out navigation/menu text
-  if (/^(home|about|contact|menu|search|login|sign up|register|cart|checkout|skip to)/.test(lower)) return true;
+  if (/^(home|about|contact|menu|search|login|sign up|register|cart|checkout|skip to|back to)/.test(lower)) return true;
   
   // Filter out cookie notices
-  if (/cookie|privacy policy|we use cookies|accept cookies/.test(lower)) return true;
+  if (/cookie|privacy policy|we use cookies|accept cookies|gdpr|consent/.test(lower)) return true;
   
   // Filter out UI artifacts
   if (/click here|read more|learn more|view more|see all|show more/.test(lower) && text.length < 100) return true;
   
   // Filter out forum/social junk
   if (/^(hi |hey |hello |yo |sup )/.test(lower) && text.length < 150) return true;
+  if (/\b(guys|check out|popped up|hit that|smash|like and subscribe|ring the bell)\b/.test(lower)) return true;
   
   // Filter out broken text (too many special chars)
   const specialRatio = (text.match(/[^a-zA-Z0-9\s]/g) || []).length / text.length;
@@ -194,6 +195,22 @@ function isLowQuality(text) {
   
   // Filter out URLs-only
   if (/^https?:\/\//.test(lower) && text.split(/\s+/).length < 10) return true;
+  
+  // Filter out marketing/promotional content
+  if (/\b(free trial|buy now|shop now|order now|get started today|sign up for free|limited time|act now|don't miss)\b/.test(lower)) return true;
+  
+  // Filter out YouTube/video descriptions
+  if (/\b(subscribe|hit the|ring the|smash that|notification bell|new video|check out my)\b/.test(lower)) return true;
+  
+  // Filter out GoDaddy/Squarespace/Wix promotional text
+  if (/\b(godaddy|squarespace|wix\.com|weebly|wordpress\.com)\b/i.test(text) && /\b(free|builder|template|start|create)\b/i.test(lower)) return true;
+  
+  // Filter out very repetitive text
+  const words = lower.split(/\s+/);
+  if (words.length > 10) {
+    const wordSet = new Set(words);
+    if (wordSet.size / words.length < 0.4) return true; // Too repetitive
+  }
   
   return false;
 }
@@ -280,6 +297,7 @@ function deduplicateSentences(sentences) {
 
 // === ANSWER SYNTHESIS ===
 // Builds a coherent answer from multiple sources
+// Preserves source order, prioritizes direct answers
 async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
   const intent = detectIntent(question);
   const keywords = getKeywords(query);
@@ -293,7 +311,7 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     if (wikiText.length > 30 && !isLowQuality(wikiText)) {
       snippets.push({
         text: wikiText,
-        score: scoreSnippet(wikiText, keywords, intent) + 50, // Wikipedia bonus
+        score: scoreSnippet(wikiText, keywords, intent) + 50,
         source: 'Wikipedia',
         url: wiki.url,
         priority: 1
@@ -307,7 +325,7 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     if (ddgText.length > 30 && !isLowQuality(ddgText)) {
       snippets.push({
         text: ddgText,
-        score: scoreSnippet(ddgText, keywords, intent) + 30, // DDG bonus
+        score: scoreSnippet(ddgText, keywords, intent) + 30,
         source: 'DuckDuckGo',
         url: ddg.url || '',
         priority: 2
@@ -331,10 +349,10 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     }
   }
   
-  // Priority 4: Scrape top result if we don't have enough quality content
+  // Priority 4: Scrape top result if not enough quality content
   if (snippets.filter(s => s.score > 15).length < 2 && webResults.length > 0) {
     for (const r of webResults.slice(0, 3)) {
-      if (r.engine === 'reddit' || r.engine === 'hackernews') continue; // Skip social for scraping
+      if (r.engine === 'reddit' || r.engine === 'hackernews') continue;
       try {
         const scraped = await scrapeUrl(r.url);
         if (scraped && scraped.length > 200) {
@@ -369,125 +387,142 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
     };
   }
   
-  // Extract and deduplicate sentences from all good snippets
-  let allSentences = [];
-  const sentenceSources = new Map(); // Track which source each sentence came from
-  
-  for (const snippet of goodSnippets.slice(0, 6)) {
-    const sentences = extractSentences(snippet.text);
-    for (const s of sentences) {
-      if (!isLowQuality(s) && s.length > 25) {
-        allSentences.push(s);
-        sentenceSources.set(s, snippet.source);
-      }
-    }
-  }
-  
-  // Deduplicate sentences
-  const uniqueSentences = deduplicateSentences(allSentences);
-  
-  // Score individual sentences by relevance to the question
-  const scoredSentences = uniqueSentences.map(s => {
-    let score = 0;
-    const lower = s.toLowerCase();
-    
-    // Keyword matches
-    for (const kw of keywords) {
-      if (lower.includes(kw)) score += 5;
-    }
-    
-    // Intent-specific scoring
-    if (intent === 'definition') {
-      // Prefer sentences that define or explain
-      if (/\b(is|are|was|were|refers to|means|defined as|consists of|involves)\b/.test(lower.substring(0, 80))) {
-        score += 15;
-      }
-    }
-    
-    if (intent === 'person') {
-      // Prefer sentences with personal names and biographical info
-      if (/[A-Z][a-z]+ [A-Z][a-z]+/.test(s) && /\b(born|is|was|known|founded|created|developed|led|serves|CEO|founder|director)\b/.test(lower)) {
-        score += 15;
-      }
-    }
-    
-    if (intent === 'howto') {
-      // Prefer instructional sentences
-      if (/\b(step|first|then|next|finally|use|create|build|install|configure|select|click|choose)\b/.test(lower)) {
-        score += 10;
-      }
-    }
-    
-    if (intent === 'date') {
-      // Prefer sentences with dates
-      if (/\b(in|on|since|from|until)\s+\d{4}|\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(lower)) {
-        score += 15;
-      }
-    }
-    
-    // Penalize junk sentences
-    if (/\b(cookie|subscribe|newsletter|sign up|download|privacy|terms|login|register|account)\b/.test(lower)) {
-      score -= 30;
-    }
-    
-    // Prefer longer sentences (more informative)
-    if (s.length > 100) score += 3;
-    if (s.length > 200) score += 3;
-    
-    // Penalize very short sentences
-    if (s.length < 50) score -= 5;
-    
-    return { sentence: s, score };
-  });
-  
-  // Sort by score
-  scoredSentences.sort((a, b) => b.score - a.score);
-  
-  // Build coherent answer from top sentences
-  // Take the best sentences up to the answer length limit
-  let answerParts = [];
+  // Build answer by processing each snippet in score order
+  // but preserving sentence order within each snippet
+  let answerSentences = [];
   let totalLength = 0;
-  const usedSentences = new Set();
+  const seenSentences = new Set();
   
-  for (const { sentence, score } of scoredSentences) {
-    if (score < 0) continue; // Skip negative-scored sentences
-    if (totalLength + sentence.length > MAX_ANSWER_CHARS) break;
+  for (const snippet of goodSnippets.slice(0, 5)) {
+    const sentences = extractSentences(snippet.text);
     
-    // Skip if too similar to already included sentences
-    let isSimilar = false;
-    for (const used of usedSentences) {
-      const words1 = new Set(sentence.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-      const words2 = new Set(used.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-      if (words1.size > 3 && words2.size > 3) {
-        let overlap = 0;
-        for (const w of words1) if (words2.has(w)) overlap++;
-        if (overlap / Math.min(words1.size, words2.size) > 0.5) {
-          isSimilar = true;
+    for (const s of sentences) {
+      if (totalLength + s.length > MAX_ANSWER_CHARS) break;
+      if (s.length < 30) continue;
+      if (isLowQuality(s)) continue;
+      
+      // Create a normalized key for dedup
+      const key = s.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+      
+      // Check for duplicates
+      let isDup = false;
+      for (const seen of seenSentences) {
+        const seenKey = seen.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+        if (key.substring(0, 35) === seenKey.substring(0, 35)) {
+          isDup = true;
           break;
+        }
+        // Word overlap check
+        const words1 = new Set(s.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+        const words2 = new Set(seen.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+        if (words1.size > 3 && words2.size > 3) {
+          let overlap = 0;
+          for (const w of words1) if (words2.has(w)) overlap++;
+          if (overlap / Math.min(words1.size, words2.size) > 0.6) {
+            isDup = true;
+            break;
+          }
+        }
+      }
+      
+      if (!isDup) {
+        // Score this sentence for relevance
+        let sentScore = 0;
+        const lower = s.toLowerCase();
+        for (const kw of keywords) {
+          if (lower.includes(kw)) sentScore += 5;
+        }
+        
+        // Intent-specific boosts
+        if (intent === 'definition' && /\b(is|are|was|were|refers to|means|defined as)\b/.test(lower.substring(0, 80))) {
+          sentScore += 15;
+        }
+        if (intent === 'person' && /[A-Z][a-z]+ [A-Z][a-z]+/.test(s) && /\b(born|is|was|known|founded|led|serves|CEO|founder|president|minister)\b/.test(lower)) {
+          sentScore += 15;
+        }
+        if (intent === 'howto' && /\b(step|first|then|next|finally|use|create|build|install|select|click|choose|configure)\b/.test(lower)) {
+          sentScore += 10;
+        }
+        if (intent === 'date' && /\b(in|on|since|from)\s+\d{4}|(january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(lower)) {
+          sentScore += 15;
+        }
+        
+        // Quality penalties
+        if (/\b(cookie|subscribe|newsletter|sign up|download app|free trial|get started|read more|click here)\b/.test(lower)) {
+          sentScore -= 40;
+        }
+        if (/\b(video|watch|youtube|subscribe|channel)\b/.test(lower) && intent !== 'howto') {
+          sentScore -= 15;
+        }
+        if (/\b(guys|check out|popped up|hit that|smash|like and subscribe)\b/.test(lower)) {
+          sentScore -= 30;
+        }
+        
+        // Only include if score is positive
+        if (sentScore >= -5) {
+          answerSentences.push({ text: s, score: sentScore, sourcePriority: snippet.priority });
+          seenSentences.add(s);
+          totalLength += s.length + 1;
         }
       }
     }
     
-    if (!isSimilar) {
-      answerParts.push(sentence);
-      usedSentences.add(sentence);
-      totalLength += sentence.length + 1;
+    if (totalLength >= MAX_ANSWER_CHARS * 0.8) break;
+  }
+  
+  // Sort: first by source priority (Wikipedia first), then by sentence score
+  // This keeps Wikipedia's definition first, then adds relevant content from other sources
+  answerSentences.sort((a, b) => {
+    // First, group by source priority
+    if (a.sourcePriority !== b.sourcePriority) {
+      return a.sourcePriority - b.sourcePriority;
+    }
+    // Within same source, keep original order (stable sort)
+    return b.score - a.score;
+  });
+  
+  // But we want Wikipedia's first sentence first regardless
+  // Re-sort to put the highest-scored sentence from the best source first
+  if (answerSentences.length > 0) {
+    // Find the best "opening" sentence - one that directly answers the question
+    let bestOpening = -1;
+    let bestOpeningScore = -100;
+    
+    for (let i = 0; i < answerSentences.length; i++) {
+      const s = answerSentences[i];
+      const lower = s.text.toLowerCase();
+      let openScore = s.score;
+      
+      // Boost sentences that contain the query keywords early
+      const queryWords = query.toLowerCase().split(/\s+/);
+      for (const qw of queryWords) {
+        if (qw.length < 3) continue;
+        if (lower.substring(0, 100).includes(qw)) openScore += 10;
+      }
+      
+      // Boost definitive opening sentences
+      if (intent === 'definition' && /^[A-Z][a-z]+ (is|are|was|were) /.test(s.text)) {
+        openScore += 20;
+      }
+      if (intent === 'person' && /[A-Z][a-z]+ [A-Z][a-z]+ (is|was|born) /.test(s.text)) {
+        openScore += 20;
+      }
+      
+      if (openScore > bestOpeningScore) {
+        bestOpeningScore = openScore;
+        bestOpening = i;
+      }
+    }
+    
+    // Move the best opening sentence to first position
+    if (bestOpening > 0) {
+      const [opening] = answerSentences.splice(bestOpening, 1);
+      answerSentences.unshift(opening);
     }
   }
   
-  // If we don't have enough from sentence extraction, fall back to full snippets
-  if (answerParts.length < 2 && goodSnippets.length > 0) {
-    answerParts = [];
-    totalLength = 0;
-    for (const snippet of goodSnippets.slice(0, 3)) {
-      const text = cleanSnippet(snippet.text);
-      if (totalLength + text.length > MAX_ANSWER_CHARS) break;
-      answerParts.push(text);
-      totalLength += text.length + 2;
-    }
-  }
-  
-  let answer = answerParts.join(' ');
+  // Build the final answer
+  let answer = answerSentences.map(s => s.text).join(' ');
   
   // Determine confidence
   let confidence = 'low';
@@ -501,7 +536,7 @@ async function synthesizeAnswer(question, wiki, ddg, webResults, query) {
   }
   
   // Final cleanup
-  answer = answer.replace(/^[.…•·]+\s*/, '');
+  answer = answer.replace(/^[.\u2026\u2022\u00b7]+\s*/, '');
   answer = answer.replace(/^\.\s+/, '');
   answer = answer.replace(/\s+/g, ' ').trim();
   
