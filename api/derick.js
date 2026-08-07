@@ -39,6 +39,7 @@ export default async function handler(req, res) {
       steps: guide.steps,
       tips: guide.tips,
       warnings: guide.warnings,
+      tools: guide.tools,
       step_count: guide.steps.length,
       has_data: guide.has_data,
       agent: 'Derick',
@@ -380,73 +381,201 @@ async function fetchGitHub(q) {
   } catch { return []; }
 }
 
-// ============ DERICK GUIDE GENERATOR ============
 
-function generateDerickGuide(query, searchData, knowledgePanel) {
-  const results = searchData.results;
-  const sourcesUsed = searchData.sourcesUsed;
+// ============ SOFTWARE NAME EXTRACTION ============
+
+const SOFTWARE_CATEGORIES = {
+  'code editor': ['vs code', 'visual studio code', 'sublime text', 'atom', 'neovim', 'vim', 'emacs', 'jetbrains', 'intellij', 'webstorm', 'phpstorm', 'pycharm', 'eclipse', 'netbeans', 'xcode', 'cursor'],
+  'web framework': ['react', 'next.js', 'nextjs', 'vue', 'vue.js', 'nuxt', 'angular', 'svelte', 'sveltekit', 'express', 'express.js', 'django', 'flask', 'laravel', 'rails', 'ruby on rails', 'spring', 'spring boot', 'asp.net', 'fastapi', 'gatsby', 'remix', 'astro', 'solid.js', 'solidjs'],
+  'language': ['python', 'javascript', 'typescript', 'java', 'c++', 'c#', 'go', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'dart', 'scala', 'r', 'matlab', 'perl', 'elixir', 'clojure', 'haskell', 'lua', 'objective-c', 'solidity', 'golang'],
+  'database': ['mysql', 'postgresql', 'postgres', 'mongodb', 'mongo', 'redis', 'sqlite', 'firebase', 'supabase', 'dynamodb', 'elasticsearch', 'mariadb', 'oracle', 'cassandra', 'influxdb', 'neo4j', 'prisma', 'drizzle'],
+  'cloud': ['aws', 'amazon web services', 'azure', 'google cloud', 'gcp', 'vercel', 'netlify', 'heroku', 'digitalocean', 'cloudflare', 'render', 'railway', 'fly.io', 'docker', 'kubernetes', 'terraform', 'ansible'],
+  'css': ['tailwind', 'tailwindcss', 'bootstrap', 'sass', 'scss', 'less', 'styled-components', 'material-ui', 'mui', 'chakra', 'ant-design', 'bulma', 'css-in-js'],
+  'mobile': ['flutter', 'react native', 'expo', 'kotlin', 'swift', 'xamarin', 'ionic', 'capacitor', 'cordova', 'phonegap'],
+  'design': ['figma', 'adobe xd', 'sketch', 'canva', 'gimp', 'inkscape', 'framer', 'photoshop', 'illustrator', 'blender'],
+  'devops': ['docker', 'kubernetes', 'jenkins', 'github actions', 'gitlab ci', 'circleci', 'travis', 'terraform', 'ansible', 'vagrant', 'prometheus', 'grafana', 'nginx', 'apache', 'caddy', 'traefik'],
+  'blockchain': ['solidity', 'ethereum', 'hardhat', 'truffle', 'ganache', 'web3.js', 'web3js', 'ethers.js', 'ethers', 'metamask', 'infura', 'alchemy', 'moralis', 'foundry', 'brownie', 'openzeppelin', 'ipfs', 'polygon', 'solana', 'anchor', 'cosmos', 'polkadot', 'substrate'],
+  'ai/ml': ['pytorch', 'tensorflow', 'scikit-learn', 'sklearn', 'keras', 'opencv', 'pandas', 'numpy', 'jupyter', 'huggingface', 'hugging face', 'transformers', 'langchain', 'openai', 'anthropic', 'ollama', 'llama', 'stable diffusion', 'midjourney'],
+  'cms': ['wordpress', 'drupal', 'joomla', 'shopify', 'webflow', 'ghost', 'strapi', 'sanity', 'contentful', 'wix', 'squarespace', 'magento'],
+  'orm': ['prisma', 'drizzle', 'typeorm', 'sequelize', 'mongoose', 'sqlalchemy', 'gorm', 'hibernate', 'entity framework'],
+  'testing': ['jest', 'mocha', 'cypress', 'playwright', 'selenium', 'puppeteer', 'vitest', 'testing-library', 'pytest', 'unittest', 'jasmine', 'karma', 'cucumber'],
+  'api': ['rest', 'graphql', 'apollo', 'postman', 'insomnia', 'swagger', 'openapi', 'grpc', 'tRPC', 'trpc', 'hasura', 'supabase'],
+  'version control': ['git', 'github', 'gitlab', 'bitbucket', 'mercurial', 'svn'],
+  'package manager': ['npm', 'yarn', 'pnpm', 'pip', 'poetry', 'cargo', 'maven', 'gradle', 'composer', 'nuget', 'brew', 'apt', 'nix'],
+  'build tool': ['webpack', 'vite', 'rollup', 'esbuild', 'parcel', 'turbo', 'turboRepo', 'nx', 'gulp', 'grunt', 'make', 'cmake', 'bazel'],
+};
+
+const TOOL_LINKS = {
+  'vs code': 'https://code.visualstudio.com', 'visual studio code': 'https://code.visualstudio.com',
+  'react': 'https://react.dev', 'next.js': 'https://nextjs.org', 'nextjs': 'https://nextjs.org',
+  'vue': 'https://vuejs.org', 'vue.js': 'https://vuejs.org', 'nuxt': 'https://nuxt.com',
+  'angular': 'https://angular.io', 'svelte': 'https://svelte.dev', 'sveltekit': 'https://kit.svelte.dev',
+  'express': 'https://expressjs.com', 'express.js': 'https://expressjs.com',
+  'django': 'https://djangoproject.com', 'flask': 'https://flask.palletsprojects.com',
+  'laravel': 'https://laravel.com', 'rails': 'https://rubyonrails.org', 'ruby on rails': 'https://rubyonrails.org',
+  'spring boot': 'https://spring.io/projects/spring-boot', 'fastapi': 'https://fastapi.tiangolo.com',
+  'gatsby': 'https://gatsbyjs.com', 'remix': 'https://remix.run', 'astro': 'https://astro.build',
+  'python': 'https://python.org', 'typescript': 'https://typescriptlang.org',
+  'javascript': 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+  'rust': 'https://rust-lang.org', 'go': 'https://go.dev', 'golang': 'https://go.dev',
+  'node.js': 'https://nodejs.org', 'nodejs': 'https://nodejs.org',
+  'mysql': 'https://mysql.com', 'postgresql': 'https://postgresql.org', 'postgres': 'https://postgresql.org',
+  'mongodb': 'https://mongodb.com', 'mongo': 'https://mongodb.com', 'redis': 'https://redis.io',
+  'sqlite': 'https://sqlite.org', 'firebase': 'https://firebase.google.com', 'supabase': 'https://supabase.com',
+  'dynamodb': 'https://aws.amazon.com/dynamodb', 'prisma': 'https://prisma.io', 'drizzle': 'https://orm.drizzle.team',
+  'docker': 'https://docker.com', 'kubernetes': 'https://kubernetes.io',
+  'tailwind': 'https://tailwindcss.com', 'tailwindcss': 'https://tailwindcss.com',
+  'bootstrap': 'https://getbootstrap.com', 'sass': 'https://sass-lang.com',
+  'flutter': 'https://flutter.dev', 'react native': 'https://reactnative.dev', 'expo': 'https://expo.dev',
+  'figma': 'https://figma.com', 'canva': 'https://canva.com',
+  'wordpress': 'https://wordpress.org', 'shopify': 'https://shopify.com', 'webflow': 'https://webflow.com',
+  'strapi': 'https://strapi.io', 'sanity': 'https://sanity.io',
+  'github': 'https://github.com', 'gitlab': 'https://gitlab.com',
+  'npm': 'https://npmjs.com', 'yarn': 'https://yarnpkg.com', 'pnpm': 'https://pnpm.io',
+  'vite': 'https://vitejs.dev', 'webpack': 'https://webpack.js.org',
+  'jest': 'https://jestjs.io', 'cypress': 'https://cypress.io', 'playwright': 'https://playwright.dev',
+  'puppeteer': 'https://pptr.dev', 'vitest': 'https://vitest.dev',
+  'rest': 'https://restfulapi.net', 'graphql': 'https://graphql.org',
+  'apollo': 'https://apollographql.com', 'postman': 'https://postman.com',
+  'solidity': 'https://soliditylang.org', 'ethereum': 'https://ethereum.org',
+  'hardhat': 'https://hardhat.org', 'foundry': 'https://getfoundry.sh',
+  'pytorch': 'https://pytorch.org', 'tensorflow': 'https://tensorflow.org',
+  'scikit-learn': 'https://scikit-learn.org', 'sklearn': 'https://scikit-learn.org',
+  'pandas': 'https://pandas.pydata.org', 'numpy': 'https://numpy.org',
+  'jupyter': 'https://jupyter.org', 'huggingface': 'https://huggingface.co',
+  'langchain': 'https://langchain.com', 'vercel': 'https://vercel.com',
+  'netlify': 'https://netlify.com', 'cloudflare': 'https://cloudflare.com',
+  'wix': 'https://wix.com', 'squarespace': 'https://squarespace.com',
+  'digitalocean': 'https://digitalocean.com', 'heroku': 'https://heroku.com',
+  'render': 'https://render.com',
+  'android studio': 'https://developer.android.com/studio',
+  'c++': 'https://isocpp.org', 'c#': 'https://dotnet.microsoft.com',
+  'php': 'https://php.net', 'ruby': 'https://ruby-lang.org',
+  'swift': 'https://swift.org', 'kotlin': 'https://kotlinlang.org',
+  'dart': 'https://dart.dev', 'scala': 'https://scala-lang.org',
+};
+
+function extractSoftwareNames(results, query) {
+  const found = {};
+  const queryLower = query.toLowerCase();
+  const allText = results.map(r => (r.title || '') + ' ' + (r.content || '')).join(' ').toLowerCase();
   
-  if (!results || results.length === 0) {
-    return { topic: query, intro: `No results found for "${query}". Try different keywords.`, steps: [], tips: '', warnings: '', has_data: false, sourcesUsed, totalResults: 0 };
+  // Detect query intent
+  const isHowTo = /^(how to|how do|how can|how do i|how to make|how to build|how to create|what tools|best tools|which tools|recommend|what software)/i.test(query.trim());
+  const isComparison = /(vs|versus|or|compare|better|alternative)/i.test(query);
+  const isLearning = /^(what is|what are|explain|learn|understand|introduction to|getting started)/i.test(query.trim());
+  
+  for (const [category, tools] of Object.entries(SOFTWARE_CATEGORIES)) {
+    for (const tool of tools) {
+      // Check if tool is mentioned in results or query
+      const inQuery = queryLower.includes(tool);
+      const inResults = allText.includes(tool);
+      
+      if (inQuery || inResults) {
+        // Count occurrences as a rough relevance signal
+        let count = (allText.match(new RegExp(tool.replace(/[.*+?^${}()|[\]\]/g, '\\$&'), 'g')) || []).length;
+        if (inQuery) count += 5; // Boost if mentioned in query
+        
+        if (!found[tool] || found[tool].count < count) {
+          found[tool] = {
+            name: tool.charAt(0).toUpperCase() + tool.slice(1),
+            category: category,
+            count: count,
+            url: TOOL_LINKS[tool] || null,
+            inQuery: inQuery
+          };
+        }
+      }
+    }
   }
   
-  // Build intro
-  let intro = '';
-  if (knowledgePanel && knowledgePanel.extract && knowledgePanel.extract.length > 50) {
-    intro = `Here's a practical breakdown of "${query}":\n\n${extractKeySentences(knowledgePanel.extract, 2)}`;
-  } else if (results[0]?.content && results[0].content.length > 30 && (results[0]._score || 0) > 10) {
-    intro = `Here's a practical breakdown of "${query}":\n\n${extractKeySentences(results[0].content, 2)}`;
-  } else {
-    intro = `Here's a practical, step-by-step breakdown of "${query}" based on what I found across ${sourcesUsed.length} sources on the web.`;
+  // Sort by count (most mentioned first)
+  const sorted = Object.values(found).sort((a, b) => b.count - a.count);
+  
+  // Group by category, take top tools per category
+  const byCategory = {};
+  for (const t of sorted) {
+    if (!byCategory[t.category]) byCategory[t.category] = [];
+    if (byCategory[t.category].length < 4) byCategory[t.category].push(t);
   }
   
+  // Flatten and return top 15
+  const result = sorted.slice(0, 15);
+  
+  return result.length > 0 ? result : null;
+}
+
+// ============ TUTORIAL SYNTHESIS ============
+
+function generateTutorialSteps(query, results, knowledgePanel) {
   const steps = [];
   const usedUrls = new Set();
+  const queryLower = query.toLowerCase();
   
-  // Step 1: Understanding (knowledge panel if available)
-  if (knowledgePanel && knowledgePanel.extract && knowledgePanel.extract.length > 50) {
-    steps.push({
-      step: 1,
-      title: 'Understand the basics',
-      content: `Before diving in, here's what you need to know:\n${extractKeySentences(knowledgePanel.extract, 3)}`,
-      source_url: knowledgePanel.url,
-      source_name: 'Wikipedia'
-    });
-    usedUrls.add(knowledgePanel.url);
+  // Detect intent type
+  const isHowTo = /^(how to|how do|how can|how do i|how to make|how to build|how to create|how to setup|how to install|how to configure|how to deploy)/i.test(query.trim());
+  const isWhatIs = /^(what is|what are|what does|explain|describe|tell me about)/i.test(query.trim());
+  const isBestTools = /(best tools|what tools|which tools|recommend.*tool|what software|best software|top tools)/i.test(query);
+  const isComparison = /(vs|versus|compare|better|alternative|or)/i.test(query);
+  const isLearning = /^(learn|understand|introduction to|getting started|beginner|start)/i.test(query.trim());
+  
+  // Step 1: Concept overview (from knowledge panel or top result)
+  if (isHowTo) {
+    if (knowledgePanel && knowledgePanel.extract) {
+      steps.push({
+        step: 1,
+        title: 'Prerequisites & Overview',
+        content: synthesizeOverview(query, knowledgePanel.extract, results),
+        source_url: knowledgePanel.url,
+        source_name: 'Wikipedia'
+      });
+      usedUrls.add(knowledgePanel.url);
+    } else {
+      const top = results.find(r => r.content && r.content.length > 80 && (r._score || 0) > 5);
+      if (top) {
+        steps.push({
+          step: 1,
+          title: 'Prerequisites & Overview',
+          content: synthesizeOverview(query, top.content, results),
+          source_url: top.url,
+          source_name: top.source
+        });
+        usedUrls.add(top.url);
+      }
+    }
   }
   
-  // Steps 2+: Use relevance-scored results
-  const practicalIndicators = ['step', 'first', 'then', 'next', 'after', 'begin', 'start',
-    'install', 'create', 'build', 'configure', 'use', 'require', 'need', 'must',
-    'should', 'important', 'option', 'choose', 'select', 'click', 'run', 'type',
-    'code', 'command', 'example', 'tutorial', 'guide', 'how to', 'setup', 'deploy', 'implement'];
+  // Extract practical steps from results
+  const practicalResults = results
+    .filter(r => r.content && r.content.length > 50)
+    .filter(r => !usedUrls.has(r.url))
+    .sort((a, b) => (b._score || 0) - (a._score || 0));
   
   let stepNum = steps.length + 1;
+  const maxSteps = isHowTo ? 10 : 8;
   
-  // First pass: high-relevance + practical results
-  for (const r of results) {
-    if (steps.length >= 12) break;
-    if (usedUrls.has(r.url)) continue;
-    if (!r.content || r.content.length < 30) continue;
-    if (r.featured && steps.length === 1) continue;
+  for (const r of practicalResults) {
+    if (steps.length >= maxSteps) break;
     
-    const score = r._score || 0;
-    const contentLower = (r.content || '').toLowerCase();
-    const titleLower = (r.title || '').toLowerCase();
-    const isPractical = practicalIndicators.some(p => contentLower.includes(p) || titleLower.includes(p));
-    
-    // Only use results with decent relevance (score >= 10) OR practical content
-    if (score < 10 && !isPractical) continue;
+    // Synthesize tutorial content from this result
+    const tutorialContent = synthesizeStep(query, r, stepNum, isHowTo);
+    if (!tutorialContent) continue;
     
     let stepTitle = (r.title || '').substring(0, 80);
     stepTitle = stepTitle.replace(/\s*-\s*(Wikipedia|GitHub|Reddit|Hacker News|Stack Overflow|ArXiv|Internet Archive|Open Library|Semantic Scholar|Book).*$/i, '');
     stepTitle = stepTitle.replace(/\s*\[r\/\w+\].*$/i, '');
+    
+    // For how-to queries, generate action-oriented titles
+    if (isHowTo && stepNum > 1) {
+      stepTitle = generateStepTitle(r, stepNum);
+    }
+    
     if (stepTitle.length > 75) stepTitle = stepTitle.substring(0, 72) + '...';
     
     steps.push({
       step: stepNum,
       title: stepTitle,
-      content: extractKeySentences(r.content, 4),
+      content: tutorialContent,
       source_url: r.url,
       source_name: r.source
     });
@@ -454,35 +583,174 @@ function generateDerickGuide(query, searchData, knowledgePanel) {
     stepNum++;
   }
   
-  // Second pass: if still not enough steps, use ALL remaining results
-  if (steps.length < 4) {
-    for (const r of results) {
-      if (steps.length >= 10) break;
-      if (usedUrls.has(r.url)) continue;
-      if (!r.content || r.content.length < 30) continue;
-      
-      let stepTitle = (r.title || '').substring(0, 80);
-      stepTitle = stepTitle.replace(/\s*-\s*(Wikipedia|GitHub|Reddit|Hacker News|Stack Overflow|ArXiv|Internet Archive|Open Library|Semantic Scholar|Book).*$/i, '');
-      if (stepTitle.length > 75) stepTitle = stepTitle.substring(0, 72) + '...';
-      
-      steps.push({
-        step: steps.length + 1,
-        title: stepTitle,
-        content: extractKeySentences(r.content, 4),
-        source_url: r.url,
-        source_name: r.source
-      });
-      usedUrls.add(r.url);
+  return steps;
+}
+
+function synthesizeOverview(query, baseContent, allResults) {
+  // Build a 2-3 sentence overview from the best content
+  let overview = extractKeySentences(baseContent, 3);
+  
+  // Add context from other results if overview is short
+  if (overview.length < 100) {
+    for (const r of allResults.slice(0, 3)) {
+      if (r.content && r.content.length > 50) {
+        overview += ' ' + extractKeySentences(r.content, 1);
+        if (overview.length > 300) break;
+      }
     }
+  }
+  
+  // Clean up
+  overview = overview.replace(/\s+/g, ' ').trim();
+  if (overview.length > 500) overview = overview.substring(0, 497) + '...';
+  
+  return overview;
+}
+
+function synthesizeStep(query, result, stepNum, isHowTo) {
+  let content = result.content || '';
+  
+  // Clean HTML and entities
+  content = content.replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // Extract the most practical sentences
+  const sentences = content.split(/(?<=[.!?])\s+/);
+  const practical = [];
+  let totalLen = 0;
+  
+  for (const s of sentences) {
+    const t = s.trim();
+    if (t.length < 20 || t.length > 500) continue;
+    if (totalLen > 600) break;
+    
+    // Prioritize sentences with action words / practical indicators
+    const lower = t.toLowerCase();
+    const hasAction = /^(first|then|next|after|start|begin|create|install|configure|build|setup|run|open|click|select|choose|use|add|write|type|enter|download|deploy|set|define|import|include|require|make|write|test|check|verify|ensure)/i.test(t);
+    const hasCode = /(npm|pip|yarn|git|docker|cd|mkdir|sudo|apt|brew|cargo|go get|python|node|ruby gem)/.test(t);
+    const hasNumber = /^(step\s*\d|\d+\.)/i.test(t);
+    
+    if (hasAction || hasCode || hasNumber || (isHowTo && t.length > 40 && t.length < 300)) {
+      practical.push(t);
+      totalLen += t.length;
+      if (practical.length >= 4) break;
+    }
+  }
+  
+  // If no practical sentences found, fall back to first few good sentences
+  if (practical.length === 0) {
+    for (const s of sentences) {
+      const t = s.trim();
+      if (t.length > 30 && t.length < 400 && totalLen < 400) {
+        practical.push(t);
+        totalLen += t.length;
+        if (practical.length >= 3) break;
+      }
+    }
+  }
+  
+  const result = practical.join(' ');
+  return result.length > 20 ? result : content.substring(0, 400);
+}
+
+function generateStepTitle(result, stepNum) {
+  const title = (result.title || '').toLowerCase();
+  const content = (result.content || '').toLowerCase();
+  
+  // Try to generate action-oriented titles based on content
+  const actionWords = {
+    'install': 'Install Required Tools',
+    'setup': 'Set Up Your Environment',
+    'configure': 'Configure Settings',
+    'create': 'Create Your Project',
+    'build': 'Build the Application',
+    'deploy': 'Deploy & Go Live',
+    'test': 'Test & Debug',
+    'design': 'Design the Interface',
+    'database': 'Set Up the Database',
+    'frontend': 'Build the Frontend',
+    'backend': 'Build the Backend',
+    'api': 'Create the API',
+    'auth': 'Add Authentication',
+    'style': 'Style with CSS',
+    'optimize': 'Optimize Performance',
+    'learn': 'Learn the Basics',
+    'start': 'Get Started',
+    'begin': 'Getting Started'
+  };
+  
+  for (const [key, label] of Object.entries(actionWords)) {
+    if (title.includes(key) || content.includes(key)) {
+      return label;
+    }
+  }
+  
+  // Default: use cleaned title
+  let cleanTitle = (result.title || '').substring(0, 70);
+  cleanTitle = cleanTitle.replace(/\s*-\s*(Wikipedia|GitHub|Reddit|Stack Overflow|Hacker News|ArXiv).*$/i, '');
+  return cleanTitle || `Step ${stepNum}`;
+}
+
+
+// ============ DERICK GUIDE GENERATOR ============
+
+function generateDerickGuide(query, searchData, knowledgePanel) {
+  const results = searchData.results;
+  const sourcesUsed = searchData.sourcesUsed;
+  
+  if (!results || results.length === 0) {
+    return { topic: query, intro: `No results found for "${query}". Try different keywords.`, steps: [], tips: '', warnings: '', has_data: false, sourcesUsed, totalResults: 0, tools: null };
+  }
+  
+  // Extract recommended software/tools from results
+  const tools = extractSoftwareNames(results, query);
+  
+  // Generate tutorial-style steps (not just search result links)
+  const steps = generateTutorialSteps(query, results, knowledgePanel);
+  
+  // Build intro
+  let intro = '';
+  const queryType = detectQueryType(query);
+  
+  if (queryType === 'how-to') {
+    intro = `Here's a practical, step-by-step tutorial for "${query}":`;
+    if (tools && tools.length > 0) {
+      intro += ` I found ${tools.length} relevant tools across the results.`;
+    }
+  } else if (queryType === 'what-is') {
+    intro = `Here's what you need to know about "${query}":`;
+  } else if (queryType === 'best-tools') {
+    intro = `Here are the best tools and software for "${query}":`;
+  } else if (queryType === 'learning') {
+    intro = `Here's a beginner-friendly guide to "${query}":`;
+  } else {
+    intro = `Here's a practical breakdown of "${query}" based on ${sourcesUsed.length} web sources.`;
+  }
+  
+  if (knowledgePanel && knowledgePanel.extract && knowledgePanel.extract.length > 50) {
+    intro += `\n\n${extractKeySentences(knowledgePanel.extract, 2)}`;
+  } else if (results[0]?.content && results[0].content.length > 30 && (results[0]._score || 0) > 10) {
+    intro += `\n\n${extractKeySentences(results[0].content, 2)}`;
   }
   
   const tips = `Pro tips:\n- Search for "${query} tutorial" on YouTube for visual walkthroughs\n- Check Reddit and Hacker News for real-world experiences\n- Stack Overflow has detailed technical answers\n- Try rephrasing if you need different results`;
   const warnings = `This guide is auto-generated from ${sourcesUsed.length} web sources. Always verify critical steps with the original sources linked in each step.`;
   
   return {
-    topic: query, intro, steps, tips, warnings,
+    topic: query, intro, steps, tips, warnings, tools,
     has_data: steps.length > 0, sourcesUsed, totalResults: results.length
   };
+}
+
+function detectQueryType(query) {
+  const q = query.trim().toLowerCase();
+  if (/^(how to|how do|how can|how do i|how to make|how to build|how to create|how to setup|how to install|how to configure|how to deploy)/i.test(q)) return 'how-to';
+  if (/(best tools|what tools|which tools|recommend.*tool|what software|best software|top tools|top.*frameworks|best.*libraries)/i.test(q)) return 'best-tools';
+  if (/^(what is|what are|what does|explain|describe|tell me about)/i.test(q)) return 'what-is';
+  if (/^(learn|understand|introduction to|getting started|beginner|start)/i.test(q)) return 'learning';
+  return 'general';
 }
 
 function extractKeySentences(text, maxSentences) {
