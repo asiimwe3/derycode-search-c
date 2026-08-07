@@ -58,6 +58,7 @@ export default async function handler(req, res) {
   
   const academic = isAcademicQuery(q);
   const keywords = getKeywords(q);
+  const deep = req.query.deep === '1' || req.query.deep === 'true';
   
   const sources = [
     fetchStartpage(q),
@@ -76,13 +77,20 @@ export default async function handler(req, res) {
     fetchGoogleNews(q).then(d => d.results || []),
     fetchGutenberg(q).then(d => d.results || []),
     fetchPubMed(q),
-    fetchScholar(q)
+    fetchScholar(q),
+    // Deep Web sources - always included when deep=1, otherwise conditional
+    deep ? fetchWikidata(q) : Promise.resolve([]),
+    deep ? fetchCORE(q) : Promise.resolve([]),
+    deep ? fetchWorldBank(q) : Promise.resolve([]),
+    deep ? fetchAhmia(q) : Promise.resolve([]),
+    deep ? fetchUnpaywall(q) : Promise.resolve([]),
+    deep ? fetchArchiveOrgAdvanced(q) : Promise.resolve([])
   ];
   
   const settled = await Promise.allSettled(sources);
   const allResults = [];
   const sourcesUsed = [];
-  const sourceNames = ['startpage', 'duckduckgo', 'wikipedia', 'reddit', 'hackernews', 'stackexchange', 'arxiv', 'archive', 'openlibrary', 'semantic-scholar', 'github'];
+  const sourceNames = ['startpage', 'duckduckgo', 'wikipedia', 'reddit', 'hackernews', 'stackexchange', 'arxiv', 'archive', 'openlibrary', 'semantic-scholar', 'github', 'google-books', 'google-news', 'gutenberg', 'pubmed', 'scholar', 'wikidata', 'core', 'worldbank', 'ahmia', 'unpaywall', 'archive-advanced'];
   let knowledgePanel = null;
   
   settled.forEach((result, idx) => {
@@ -114,7 +122,9 @@ export default async function handler(req, res) {
     query: q, knowledgePanel,
     results: deduped,
     count: deduped.length, sources: sourcesUsed, time: elapsed,
-    limits: { maxQueryWords: MAX_QUERY_WORDS }
+    limits: { maxQueryWords: MAX_QUERY_WORDS },
+    deep: deep || false,
+    deep_sources: deep ? ["Wikidata","CORE","World Bank","Ahmia (.onion)","CrossRef/Unpaywall","Internet Archive Advanced"] : []
   });
 }
 
@@ -396,6 +406,173 @@ async function fetchScholar(q) {
     return results;
   } catch { return []; }
 }
+
+
+// === DEEP WEB SOURCES ===
+
+// Wikidata - structured knowledge graph
+async function fetchWikidata(q) {
+  try {
+    const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(q)}&language=en&limit=8&format=json`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const d = await r.json();
+    const results = [];
+    for (const item of (d.search || [])) {
+      results.push({
+        title: item.label || 'Wikidata Entity',
+        url: `https://www.wikidata.org/wiki/${item.id}`,
+        content: (item.description || 'Wikidata knowledge graph entry') + ` [ID: ${item.id}]`,
+        engine: 'wikidata',
+        source: 'Wikidata',
+        deep: true
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
+// CORE - Open access research papers aggregator
+async function fetchCORE(q) {
+  try {
+    const url = `https://api.core.ac.uk:443/v3/search/works?q=${encodeURIComponent(q)}&limit=8`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0', 'Accept': 'application/json' }, signal: AbortSignal.timeout(12000) });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const results = [];
+    for (const item of (d.results || []).slice(0, 8)) {
+      const work = item._source || item;
+      results.push({
+        title: work.title || 'CORE Research Paper',
+        url: work.download_url || work.url || `https://core.ac.uk/search?q=${encodeURIComponent(q)}`,
+        content: (work.abstract || work.description || 'Open access research paper from CORE repository').substring(0, 800),
+        engine: 'core',
+        source: 'CORE',
+        deep: true
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
+// World Bank Open Data API
+async function fetchWorldBank(q) {
+  try {
+    const url = `https://api.worldbank.org/v2/countries/all/indicators?format=json&per_page=8&prefix=`;
+    // Search for indicators matching the query
+    const searchUrl = `https://api.worldbank.org/v2/sources/2/search?q=${encodeURIComponent(q)}&format=json&per_page=8`;
+    const r = await fetch(searchUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const results = [];
+    const items = d[1] || d.source || [];
+    for (const item of (Array.isArray(items) ? items : []).slice(0, 8)) {
+      const concept = item.concepts || item;
+      results.push({
+        title: item.name || 'World Bank Data Indicator',
+        url: `https://data.worldbank.org/indicator/${item.id || ''}`,
+        content: (item.sourceNote || item.description || 'World Bank open data indicator') + (item.id ? ` [Code: ${item.id}]` : ''),
+        engine: 'worldbank',
+        source: 'World Bank Data',
+        deep: true
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
+// Ahmia - Clearnet search engine for .onion sites (Dark Web index)
+async function fetchAhmia(q) {
+  try {
+    const url = `https://ahmia.fi/search/?q=${encodeURIComponent(q)}`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }, signal: AbortSignal.timeout(12000) });
+    if (!r.ok) return [];
+    const html = await r.text();
+    const results = [];
+    // Parse Ahmia search results (they use li.result elements)
+    const blocks = html.split('<li class="result"').slice(1, 9);
+    for (const block of blocks) {
+      const titleMatch = block.match(/<h4[^>]*>([\s\S]*?)<\/h4>/);
+      const linkMatch = block.match(/href="([^"]*\.onion[^"]*)"/);
+      const descMatch = block.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+      if (titleMatch || linkMatch) {
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : 'Onion Site';
+        const link = linkMatch ? linkMatch[1] : '';
+        const desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : 'Indexed .onion site';
+        results.push({
+          title: title,
+          url: link || `https://ahmia.fi/search/?q=${encodeURIComponent(q)}`,
+          content: '[DARK WEB] ' + desc.substring(0, 600),
+          engine: 'ahmia',
+          source: 'Ahmia (.onion)',
+          deep: true,
+          dark: true
+        });
+      }
+    }
+    if (results.length === 0) {
+      results.push({
+        title: 'No .onion results found via Ahmia',
+        url: `https://ahmia.fi/search/?q=${encodeURIComponent(q)}`,
+        content: 'Ahmia indexed no .onion pages for this query. Visit ahmia.fi to search directly.',
+        engine: 'ahmia',
+        source: 'Ahmia (.onion)',
+        deep: true,
+        dark: true
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
+// Unpaywall - Open access scholarly papers
+async function fetchUnpaywall(q) {
+  try {
+    // Use Unpaywall's search via DOI lookup - we use CrossRef to find DOIs first
+    const crossrefUrl = `https://api.crossref.org/works?query=${encodeURIComponent(q)}&rows=8&select=DOI,title,abstract,author,published-print,URL`;
+    const r = await fetch(crossrefUrl, { headers: { 'User-Agent': 'DeryCodeSearch/1.0 (mailto:info@derycode.com)' }, signal: AbortSignal.timeout(12000) });
+    if (!r.ok) return [];
+    const d = await r.json();
+    const results = [];
+    for (const item of (d.message?.items || []).slice(0, 8)) {
+      const doi = item.DOI || '';
+      const authors = (item.author || []).slice(0, 3).map(a => `${a.given || ''} ${a.family || ''}`.trim()).join(', ');
+      const year = item['published-print']?.['date-parts']?.[0]?.[0] || '';
+      const abstract = (item.abstract || '').replace(/<[^>]+>/g, '').substring(0, 600);
+      results.push({
+        title: (item.title || ['CrossRef Paper'])[0],
+        url: item.URL || `https://doi.org/${doi}`,
+        content: `[DOI: ${doi}] ${authors} ${year ? '(' + year + ')' : ''} - ${abstract || 'Scholarly paper with DOI'}`.substring(0, 800),
+        engine: 'unpaywall',
+        source: 'CrossRef/Unpaywall',
+        deep: true,
+        doi: doi
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
+// Internet Archive Advanced Search (deeper than basic archive search)
+async function fetchArchiveOrgAdvanced(q) {
+  try {
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=title&fl[]=description&fl[]=date&fl[]=mediatype&fl[]=creator&rows=8&output=json`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'DeryCodeSearch/1.0' }, signal: AbortSignal.timeout(10000) });
+    const d = await r.json();
+    const results = [];
+    for (const doc of (d.response?.docs || []).slice(0, 8)) {
+      results.push({
+        title: doc.title || 'Internet Archive Item',
+        url: `https://archive.org/details/${doc.identifier}`,
+        content: (doc.description || 'Archived digital content') + ` [Type: ${doc.mediatype || 'unknown'}, Date: ${doc.date || '?'}]`,
+        engine: 'archive-advanced',
+        source: 'Internet Archive',
+        deep: true
+      });
+    }
+    return results;
+  } catch { return []; }
+}
+
 
 function decodeHtml(s) {
   if (!s) return '';

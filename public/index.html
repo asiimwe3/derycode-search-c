@@ -114,6 +114,15 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .map-btn-osm{background:rgba(122,143,64,0.15);border:1px solid rgba(122,143,64,0.3);color:#7a8f40}
 .map-btn-osm:hover{background:rgba(122,143,64,0.25)}
 
+.deep-stats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.deep-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600}
+.deep-surface{background:rgba(255,255,255,0.08);color:var(--text3)}
+.deep-deep{background:rgba(74,0,128,0.2);border:1px solid rgba(138,43,226,0.3);color:#a855f7}
+.deep-dark{background:rgba(139,0,0,0.15);border:1px solid rgba(139,0,0,0.3);color:#ff4444}
+.deep-level-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 8px;border-radius:12px;font-size:9px;font-weight:700;letter-spacing:0.5px;color:#fff;margin-left:4px}
+.dark-result{border-color:rgba(139,0,0,0.2)!important;background:rgba(139,0,0,0.03)!important}
+.dark-warning{background:rgba(255,200,0,0.08);border:1px solid rgba(255,200,0,0.2);border-radius:6px;padding:6px 10px;margin-top:6px;font-size:11px;color:#ffc444}
+
 .book-cover{width:60px;height:90px;border-radius:6px;object-fit:cover;flex-shrink:0}
 .book-info{flex:1;min-width:0}
 .book-title{color:var(--text);font-size:17px;font-weight:700;line-height:1.35;margin-bottom:4px}
@@ -392,6 +401,7 @@ html{font-size:14px}
 <button class="mode-btn" id="mode-derick" onclick="setMode('derick')"><span class="mi">🧑‍🏫</span> Derick</button>
 <button class="mode-btn" id="mode-books" onclick="setMode('books')"><span class="mi">📚</span> Books</button>
 <button class="mode-btn" id="mode-maps" onclick="setMode('maps')"><span class="mi">🗺️</span> Maps</button>
+<button class="mode-btn" id="mode-deep" onclick="setMode('deep')"><span class="mi">🌑</span> Deep</button>
 <button class="mode-btn" id="mode-videos" onclick="setMode('videos')"><span class="mi">📺</span> Videos</button>
 <div style="display:flex;justify-content:flex-end;padding:4px 12px;background:var(--bg2);border-bottom:1px solid var(--border)"><button class="deep-toggle" id="deepToggle" onclick="toggleDeep()">🔬 Deep Search</button></div>
 </div>
@@ -399,7 +409,7 @@ html{font-size:14px}
 <div class="chat-container" id="chat">
 <div class="welcome" id="welcome">
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
-<div class="welcome-sub" id="welcomeSub">16-source AI search. Maps, books, news, deep extraction. 5000-word answers.</div>
+<div class="welcome-sub" id="welcomeSub">22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.</div>
 <div class="welcome-features">
 <span class="welcome-feature"><span>6</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
@@ -423,7 +433,7 @@ html{font-size:14px}
 </div>
 <button class="send-btn" id="send" onclick="send()">Send</button>
 </div>
-<div class="input-hint" id="inputHint">16 sources | 512 results | 5000-word answers | Maps + Books + News + Deep Search</div>
+<div class="input-hint" id="inputHint">22 sources | 512 results | 5000-word answers | Deep Web + Dark Web + Maps + Books + News</div>
 </div>
 
 <script>
@@ -434,7 +444,7 @@ var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'16-source AI search. Maps, books, news, deep extraction. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
 sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
@@ -447,7 +457,7 @@ suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe 
 te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 5 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
-var modeNames=['all','search','images','news','code','derick','books','maps','videos'];
+var modeNames=['all','search','images','news','code','derick','books','maps','deep','videos'];
 
 inputEl.focus();
 renderWelcome();
@@ -461,7 +471,7 @@ function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeh
 
 function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code,derick:'Derick'};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
-function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',derick:'Ask Derick for step-by-step...',books:'Search books and summaries...',videos:(lb.videos||'Search videos')+'...',maps:'Search places and directions...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'Search everything...',search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',derick:'Ask Derick for step-by-step...',books:'Search books and summaries...',videos:(lb.videos||'Search videos')+'...',maps:'Search places and directions...',deep:'Search the deep web - archives, papers, data, .onion...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
 
 function quickAsk(q){inputEl.value=q;send()}
 
@@ -484,6 +494,7 @@ else if(mode==='derick'){askDerick(q)}
 else if(mode==='books'){searchBooks(q)}
 else if(mode==='videos'){searchVideos(q)}
 else if(mode==='maps'){searchMaps(q)}
+else if(mode==='deep'){searchDeep(q)}
 }
 
 function askAI(q){
@@ -698,6 +709,20 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 
+
+function searchDeep(q){
+saveHistory(q);
+fetch("/api/search?q="+encodeURIComponent(q)+"&deep=1")
+.then(function(r){return r.json()})
+.then(function(data){
+var deepResults=data.results||[];
+var deepSources=data.deep_sources||[];
+messages.push({role:"assistant",content:"",results:deepResults,deep_sources:deepSources,deep:true,mode:"deep"});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+})
+.catch(function(e){messages.push({role:"assistant",content:"Deep search failed.",mode:"deep"});renderMessages();busy=false;sendBtn.disabled=false})
+}
+
 // Search History
 function saveHistory(q){
 try{
@@ -737,7 +762,7 @@ var histHtml='';
 if(h.length>0){
 histHtml='<div class="history-section"><div class="history-header"><span class="history-title">🕒 '+historyTitle+'</span><button class="history-clear" onclick="clearHistory()">'+clearLabel+'</button></div><div class="history-list">';
 h.slice(0,8).forEach(function(item){
-var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑\u200d🏫',books:'📚',maps:'🗺️',videos:'📺'}[item.mode||'all']||'✨';
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑\u200d🏫',books:'📚',maps:'🗺️',deep:'🌑',videos:'📺'}[item.mode||'all']||'✨';
 histHtml+='<button class="history-item" onclick="quickAsk(\''+item.q.replace(/'/g,"\\'")+'\')"><span class="history-icon">'+modeIcon+'</span><span class="history-text">'+esc(item.q)+'</span><span class="history-time">'+timeAgo(item.t)+'</span></button>';
 });
 histHtml+='</div></div>';
@@ -761,7 +786,7 @@ var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑\u200d🏫',books:'📚',maps:'🗺️',videos:'📺'}[m.mode||'search']||'🔍';
+var modeIcon={all:'✨',search:'🔍',images:'🖼️',news:'📰',code:'⚡',derick:'🧑\u200d🏫',books:'📚',maps:'🗺️',deep:'🌑',videos:'📺'}[m.mode||'search']||'🔍';
 html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
 html+='<div class="msg msg-ai">';if(m.mode==='derick'){html+='<div class="ai-avatar" style="background:linear-gradient(135deg,#d4af37,#b8941f)">🧑\u200d🏫</div><div class="ai-bubble"><div class="ai-name">Derick Agent <span style="font-size:11px;color:var(--text3);font-weight:400">Step-by-Step Guide</span></div>'}else{html+='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI';
@@ -809,6 +834,35 @@ html+='</div>';
 });
 html+='</div>'
 }else{html+='<div class="ai-content">No places found. Try a different location search.</div>'}
+}
+
+// Deep mode - Deep Web Search
+if(m.mode==="deep"){
+var dr=m.results||[];
+if(dr&&dr.length>0){
+var deepCount=dr.length;
+var surfaceCount=0,deepWebCount=0,darkCount=0;
+dr.forEach(function(r){if(r.dark)darkCount++;else if(r.deep)deepWebCount++;else surfaceCount++;});
+html+='<div class="search-section"><div class="search-section-title">\ud83c\uddf1 Deep Web Results ('+deepCount+' found)</div>';
+html+='<div class="deep-stats"><span class="deep-badge deep-surface">\ud83d\udc41 Surface ('+surfaceCount+')</span><span class="deep-badge deep-deep">\ud83d\udd29 Deep Web ('+deepWebCount+')</span><span class="deep-badge deep-dark">\ud83c\udf10 Dark ('+darkCount+')</span></div>';
+dr.forEach(function(r){
+var icon=r.dark?'\ud83c\udf10':(r.deep?'\ud83d\udd29':'\ud83d\udc41');
+var badgeColor=r.dark?'#8B0000':(r.deep?'#4a0080':'#444');
+var badgeText=r.dark?'DARK WEB':(r.deep?'DEEP WEB':'SURFACE');
+var engine=r.engine||'web';
+var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',arxiv:'#b31b1b',archive:'#000',wikidata:'#006699',core:'#00a651',worldbank:'#002244',ahmia:'#8B0000',unpaywall:'#f69',pubmed:'#205493','google-scholar':'#4285f4','archive-advanced':'#000',startpage:'#3050ff',openlibrary:'#007185','semantic-scholar':'#1857b'}[engine]||badgeColor;
+var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',arxiv:'arXiv',archive:'IA',wikidata:'WikiData',core:'CORE',worldbank:'WB',ahmia:'AHMIA',unpaywall:'DOI',pubmed:'PubMed','google-scholar':'Scholar',startpage:'Web',openlibrary:'OL','semantic-scholar':'SS',gutenberg:'Gut',books:'Books',news:'News',gutenberg:'Gut'}[engine]||engine;
+html+='<div class="result-card'+(r.dark?' dark-result':'')+'">';
+html+='<div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span>';
+html+='<span class="deep-level-badge" style="background:'+badgeColor+'">'+icon+' '+badgeText+'</span>';
+html+='<span class="result-url">'+formatUrl(r.url)+'</span></div>';
+html+='<a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';
+if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,500))+'</p>';
+if(r.dark)html+='<div class="dark-warning">\u26a0\ufe0f This result is from an indexed .onion site. DeryCode does not access .onion content directly.</div>';
+html+='</div>';
+});
+html+='</div>'
+}else{html+='<div class="ai-content">No deep web results found. Try a different search term.</div>'}
 }
 
 // Books mode
