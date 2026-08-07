@@ -199,8 +199,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 </div>
 
 <div class="mode-bar" id="modeBar">
-<button class="mode-btn active" id="mode-ai" onclick="setMode('ai')"><span class="mi">💬</span> AI</button>
-<button class="mode-btn" id="mode-search" onclick="setMode('search')"><span class="mi">🔍</span> Web</button>
+<button class="mode-btn active" id="mode-search" onclick="setMode('search')"><span class="mi">🔍</span> Web</button>
 <button class="mode-btn" id="mode-images" onclick="setMode('images')"><span class="mi">🖼️</span> Images</button>
 <button class="mode-btn" id="mode-news" onclick="setMode('news')"><span class="mi">📰</span> News</button>
 <button class="mode-btn" id="mode-code" onclick="setMode('code')"><span class="mi">⚡</span> Code</button>
@@ -210,7 +209,7 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 <div class="chat-container" id="chat">
 <div class="welcome" id="welcome">
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
-<div class="welcome-sub" id="welcomeSub">Web-powered AI search. 6 modes. Current info.</div>
+<div class="welcome-sub" id="welcomeSub">Web-powered AI search. 5 modes. Current info.</div>
 <div class="welcome-features">
 <span class="welcome-feature"><span>6</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
@@ -238,14 +237,14 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 </div>
 
 <script>
-var mode='ai';var messages=[];var busy=false;
+var mode='search';var messages=[];var busy=false;
 var lang='en';var maxWords=30;
 var inputEl=document.getElementById('input');
 var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. 6 modes. Current info.',hint:'Web AI - 6 Modes - No tracking',send:'Send',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'Web-powered AI search. 5 modes. Current info.',hint:'Web AI - 5 Modes - No tracking',send:'Send',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
 sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
@@ -253,12 +252,12 @@ lg:{placeholder:'Buuza DeryCode AI kyonna...',sub:'Yambi yo eya AI. Buuza kyonna
 suggests:[{icon:'💼',text:'DeryCode ebalwa ki?'},{icon:'👤',text:'Asiimwe Derick ali ani?'},{icon:'💰',text:'Tovuti egula ssente mmeka?'},{icon:'🌍',text:'Gamba ku Uganda'}]},
 rn:{placeholder:'Buuza DeryCode AI ekintu kyona...',sub:'Omutambi wo wa AI. Buuza ekintu kyona.',hint:'Web AI - Endimi 6 - Tihariho kuronda',send:'Ruma',search:'Rondora ku mtandao',images:'Rondora ebiishushani',news:'Amakuru',code:'Rondora code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode erimu ki?'},{icon:'👤',text:'Asiimwe Derick naiwe?'},{icon:'💰',text:'Webusaiti erimu nkaingana?'},{icon:'🌍',text:'Nkora kuganya ku Uganda'}]},
-luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'Web AI - 6 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
+luo:{placeholder:'Penj DeryCode AI gin mang\'eyo...',sub:'Maromi me AI. Penj gin mang\'eyo.',hint:'Web AI - 5 lok - Pe ki yubo',send:'Cwal',search:'Yiye ku wang kakube',images:'Yiye cal',news:'Yiye lok anywbe',code:'Yiye code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode miyo gin ma?'},{icon:'👤',text:'Asiimwe Derick en ngani?'},{icon:'💰',text:'Website ni wachne naka?'},{icon:'🌍',text:'Lok kwomi Uganda'}]},
-te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 6 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
+te:{placeholder:'Kopus DeryCode AI aki akongun...',sub:'Ekamolo naikot AI. Kopus akongun.',hint:'Web AI - Aki 5 - Pe itoria',send:'Rukor',search:'Loka koku i internet',images:'Loka ekonere',news:'Amorijingan',code:'Loka code',ai:'AI',
 suggests:[{icon:'💼',text:'DeryCode ekai ikaiyese?'},{icon:'👤',text:'Asiimwe Derick eongere?'},{icon:'💰',text:'Webusaiti aroropy Iiyo naka?'},{icon:'🌍',text:'Akanz Uganda'}]}
 };
-var modeNames=['ai','search','images','news','code','videos'];
+var modeNames=['search','images','news','code','videos'];
 
 inputEl.focus();
 inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
@@ -269,9 +268,9 @@ function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document
 
 function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
 
-function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.ai,search:lb.search,images:lb.images,news:lb.news,code:lb.code};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
+function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
-function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={ai:lb.placeholder,search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m];inputEl.focus()}
+function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getElementById('mode-'+x);if(btn)btn.className='mode-btn'+(x===m?' active':'')});var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search+'...',images:lb.images+'...',news:lb.news+'...',code:lb.code+'...',videos:(lb.videos||'Search videos')+'...'};inputEl.placeholder=labels[m]||lb.placeholder;inputEl.focus()}
 
 function quickAsk(q){inputEl.value=q;send()}
 
@@ -284,8 +283,7 @@ if(w>maxWords){alert('Maximum '+maxWords+' words. You used '+w+'.');return}
 busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';
 messages.push({role:'user',content:q,mode:mode});
 renderMessages();inputEl.value='';showTyping();
-if(mode==='ai'){askAI(q)}
-else if(mode==='search'){searchWeb(q)}
+if(mode==='search'){searchWeb(q)}
 else if(mode==='images'){searchImages(q)}
 else if(mode==='news'){searchNews(q)}
 else if(mode==='code'){searchCode(q)}
@@ -304,13 +302,20 @@ renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 }
 
 function searchWeb(q){
-fetch('/api/search?q='+encodeURIComponent(q))
-.then(function(r){return r.json()})
-.then(function(data){
-var answer=data.knowledgePanel?data.knowledgePanel.extract:'';
-if(data.aiSummary)answer=data.aiSummary;
-if(!answer&&data.results&&data.results.length>0)answer=data.results[0].content;
-messages.push({role:'assistant',content:answer||'No results found.',sources:(data.results||[]).slice(0,5).map(function(r){return{title:r.title,url:r.url}}),results:data.results||[],mode:'search'});
+// Fetch both web results AND AI summary in parallel
+Promise.all([
+fetch('/api/search?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{}}),
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}})
+]).then(function(responses){
+var searchData=responses[0]||{};
+var aiData=responses[1]||{};
+var summary=aiData.answer||'';
+var sources=[];
+// Combine sources from both
+if(aiData.sources&&aiData.sources.length>0)sources=aiData.sources;
+else if(searchData.results&&searchData.results.length>0)sources=searchData.results.slice(0,5).map(function(r){return{title:r.title,url:r.url}});
+var allResults=(searchData.results||[]).concat((aiData.results||[]).filter(function(r){return!(searchData.results||[]).some(function(s){return s.url===r.url})}));
+messages.push({role:'assistant',content:summary||'',sources:sources,results:allResults,mode:'search',aiSummary:summary?true:false});
 renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
 })
 .catch(function(e){messages.push({role:'assistant',content:'Search failed.',mode:'search'});renderMessages();busy=false;sendBtn.disabled=false})
@@ -361,7 +366,7 @@ var html='';
 for(var i=0;i<messages.length;i++){
 var m=messages[i];
 if(m.role==='user'){
-var modeIcon={ai:'💬',search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[m.mode||'ai']||'💬';
+var modeIcon={search:'🔍',images:'🖼️',news:'📰',code:'⚡',videos:'📺'}[m.mode||'search']||'🔍';
 html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.content)+'</div></div>'
 }else{
 html+='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div>';
@@ -376,9 +381,10 @@ if(m.results&&m.results.length>0){html+='<div class="search-section"><div class=
 
 // Web search mode
 if(m.mode==='search'){
+if(m.aiSummary&&m.content)html+='<div class="search-section-title" style="margin:0 0 8px;color:var(--gold);font-size:12px;font-weight:600">AI Summary</div>';
 if(m.content)html+='<div class="ai-content">'+esc(m.content)+'</div>';
 if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>35)title=title.substring(0,32)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+esc(title)+'</a>'});html+='</div>'}
-if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,6).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
+if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">Web results</div>';m.results.slice(0,8).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div><a href="'+r.url+'" target="_blank" class="result-title">'+esc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+esc(r.content.substring(0,150))+'</p>';html+='</div>'});html+='</div>'}
 }
 
 // Images mode
