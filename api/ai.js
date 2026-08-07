@@ -183,7 +183,9 @@ async function askGemini(question, webContext, history, lang) {
     }
   }
   
-  const prompt = `You are DeryCode AI, a helpful search assistant. ${langInstruction} Keep your answer concise (max 200 words). Be direct and informative. Do not include meta instructions or formatting markers in your response.
+  const prompt = `You are DeryCode AI, a helpful search assistant. ${langInstruction} Keep your answer concise (max 200 words). Be direct and informative.
+
+IMPORTANT: Only output the answer itself. Do not include any meta commentary, word counts, self-checks, formatting notes, or thinking process. Just give the answer directly.
 
 ${webContext ? 'Web context for grounding:\n' + webContext : ''}
 ${conversationHistory ? 'Conversation so far:\n' + conversationHistory : ''}
@@ -219,9 +221,22 @@ Answer:`;
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text && text.trim().length > 10) {
           let cleaned = cleanText(text);
-          // Remove meta instruction artifacts
-          cleaned = cleaned.replace(/^.*?(?:Tone|Language|Instructions)[::].*$/im, '').trim();
-          cleaned = cleaned.replace(/^DeryCode AI.*$/im, '').trim();
+          // Remove all meta artifacts (Gemini sometimes outputs thinking process)
+          const metaPatterns = [
+            /^(?:Word count|Draft|Direct|Tone|Language|Matches|Self-check|Checked|Yes|No|Persona|Instructions)[::]?\s*.*$/gim,
+            /^\*[^*]*\*\s*$/gim,
+            /^\d+\.\s*(?:Yes|No|Checked)\s*$/gim,
+            /^.*?(?:meta instructions|formatting markers).*$/gim
+          ];
+          for (const p of metaPatterns) {
+            cleaned = cleaned.replace(p, '').trim();
+          }
+          // Remove bold markers
+          cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+          // Remove bullet markers
+          cleaned = cleaned.replace(/^[-*•]\s+/gm, '');
+          // Clean up extra whitespace
+          cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
           if (cleaned.length > 10) {
             return truncateWords(cleaned, MAX_ANSWER_WORDS, MAX_ANSWER_CHARS);
           }
