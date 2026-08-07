@@ -129,8 +129,6 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .book-author{color:var(--text3);font-size:14px;margin-bottom:6px}
 .book-desc{color:#aaa;font-size:14px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .book-meta{color:#777;font-size:13px;margin-top:6px}
-.deep-toggle{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg4);border:1px solid rgba(255,255,255,0.06);border-radius:12px;font-size:13px;color:var(--text3);cursor:pointer;flex-shrink:0}
-.deep-toggle.active{background:rgba(212,175,55,0.15);color:var(--gold);border-color:rgba(212,175,55,0.3)}
 .result-card:active{border-color:rgba(212,175,55,0.2)}
 .result-meta{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
 .engine-badge{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase}
@@ -403,7 +401,7 @@ html{font-size:14px}
 <button class="mode-btn" id="mode-maps" onclick="setMode('maps')"><span class="mi">🗺️</span> Maps</button>
 <button class="mode-btn" id="mode-deep" onclick="setMode('deep')"><span class="mi">🌑</span> Deep</button>
 <button class="mode-btn" id="mode-videos" onclick="setMode('videos')"><span class="mi">📺</span> Videos</button>
-<div style="display:flex;justify-content:flex-end;padding:4px 12px;background:var(--bg2);border-bottom:1px solid var(--border)"><button class="deep-toggle" id="deepToggle" onclick="toggleDeep()">🔬 Deep Search</button></div>
+
 </div>
 
 <div class="chat-container" id="chat">
@@ -411,7 +409,7 @@ html{font-size:14px}
 <div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
 <div class="welcome-sub" id="welcomeSub">22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.</div>
 <div class="welcome-features">
-<span class="welcome-feature"><span>6</span> Modes</span>
+<span class="welcome-feature"><span>10</span> Modes</span>
 <span class="welcome-feature"><span>6</span> Languages</span>
 <span class="welcome-feature">Web Powered</span>
 <span class="welcome-feature">No Tracking</span>
@@ -462,10 +460,12 @@ var modeNames=['all','search','images','news','code','derick','books','maps','de
 inputEl.focus();
 renderWelcome();
 inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()});
+sendBtn.addEventListener('touchend',function(e){e.preventDefault();if(!busy)send()});
+sendBtn.addEventListener('touchend',function(e){e.preventDefault();if(!busy)send()});
 inputEl.addEventListener('input',checkWordCount);
 renderSuggests();
 
-function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
+function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
 
 function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
 
@@ -476,7 +476,7 @@ function setMode(m){mode=m;modeNames.forEach(function(x){var btn=document.getEle
 function quickAsk(q){inputEl.value=q;send()}
 
 function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
-function toggleDeep(){deepSearch=!deepSearch;var btn=document.getElementById("deepToggle");if(btn){btn.className="deep-toggle"+(deepSearch?" active":"")}}
+// Deep Search is now a mode button - toggle removed
 
 function send(){
 if(busy)return;var q=inputEl.value.trim();if(!q)return;
