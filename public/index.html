@@ -823,7 +823,7 @@ renderSuggests();
 
 function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
 
-function changeLang(l){lang=l;var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
+function changeLang(l){lang=l;try{localStorage.setItem('dc_lang',l)}catch(e){};var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
 
 function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={search:lb.search,images:lb.images,news:lb.news,code:lb.code,derick:'Derick'};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
@@ -2051,7 +2051,7 @@ updateBookmarkCount();
 
 // Auto-detect browser language
 try{
-  var savedLang=getSetting('lang','auto');
+  var savedLang='auto';try{savedLang=localStorage.getItem('dc_lang')||'auto'}catch(e){}
   if(savedLang==='auto'||!savedLang){
     var bl=(navigator.language||navigator.userLanguage||'en').split('-')[0];
     var supported=['en','sw','lg','rn','luo','te','fr','es','pt','de','it','nl','ru','zh','ja','ko','ar','hi','bn','ur','fa','tr','id','ms','th','vi','pl','uk','ro','sv','no','da','fi','cs','el','he','ha','am','yo','ig','zu','af','so','rw'];
