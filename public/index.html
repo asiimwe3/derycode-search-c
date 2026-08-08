@@ -1409,15 +1409,30 @@ messages.push({role:'assistant',content:'',sources:[],results:[],images:[],video
 renderMessages();
 scrollToBottom();
 
-// Use XMLHttpRequest instead of fetch to avoid service worker issues
-var done=false;
-function finish(data){
-if(done)return;done=true;
-data=data||{};
+// Generate greeting locally — no network call needed
+var hour=new Date().getUTCHours()+3; // EAT timezone
+var timeGreeting='Hello';
+if(hour>=5&&hour<12)timeGreeting='Good morning';
+else if(hour>=12&&hour<17)timeGreeting='Good afternoon';
+else if(hour>=17&&hour<21)timeGreeting='Good evening';
+
+var greetings={
+en:timeGreeting+'! I am DeryCode AI, your personal search assistant. I can search the web, find images, news, books, maps, code, and even the deep web. What would you like to know today?',
+sw:timeGreeting+'! Mimi ni DeryCode AI, msaidizi wako wa utafutaji. Naweza kutafuta mtandao, picha, habari, vitabu, ramani, code, na hata deep web. Unataka kujua nini leo?',
+fr:timeGreeting+'! Je suis DeryCode AI, votre assistant de recherche personnel. Je peux rechercher sur le web, images, actualités, livres, cartes, code et même le deep web. Que voulez-vous savoir aujourd\'hui?',
+es:timeGreeting+'! Soy DeryCode AI, tu asistente de búsqueda personal. Puedo buscar en la web, imágenes, noticias, libros, mapas, código e incluso la deep web. ¿Qué quieres saber hoy?',
+lg:timeGreeting+'! Nze DeryCode AI, yakuyamba mu kunoonya. Nnyinza okunoonya ku mtandao, ebifaananyi, amawulire, ebitabo, maapu, code, n\'ebisangibwa mu deep web. Oyagala okumanya ki leero?',
+ar:timeGreeting+'! أنا DeryCode AI، مساعدك الشخصي للبحث. يمكنني البحث في الويب والصور والأخبار والكتب والخرائط والكود وحتى الويب العميق. ماذا تريد أن تعرف اليوم؟'
+};
+
+var followups=['What can DeryCode AI do?','Search for latest technology news','Who is Asiimwe Derick?'];
+
+// Small delay for typing animation
+setTimeout(function(){
 var m=messages[idx];if(!m)return;
-if(data.answer){m.content=data.answer;m.aiSummary=true}
-if(data.confidence)m.confidence=data.confidence;
-if(data.followups)m.followups=data.followups;
+m.content=greetings[lang]||greetings.en;
+m.aiSummary=true;
+m.followups=followups;
 m.sources=[];
 m.results=[];
 m.images=[];
@@ -1426,26 +1441,7 @@ m.paa=[];
 m._progress=false;
 renderMessages();
 busy=false;sendBtn.disabled=false;inputEl.focus();
-}
-function fallback(){
-if(done)return;done=true;
-var m=messages[idx];if(m){m.content='Good day! I am DeryCode AI, your personal search assistant. I can search the web, find images, news, books, maps, code, and even the deep web. What would you like to know today?';m.aiSummary=true;m.followups=['What can DeryCode AI do?','Search for latest technology news','Who is Asiimwe Derick?'];m._progress=false;renderMessages()}
-busy=false;sendBtn.disabled=false;inputEl.focus();
-}
-
-var xhr=new XMLHttpRequest();
-xhr.open('POST','/api/ai',true);
-xhr.setRequestHeader('Content-Type','application/json');
-xhr.timeout=8000;
-xhr.onload=function(){
-try{finish(JSON.parse(xhr.responseText))}catch(e){fallback()}
-};
-xhr.ontimeout=function(){fallback()};
-xhr.onerror=function(){fallback()};
-xhr.send(JSON.stringify({question:q,lang:lang}));
-
-// Safety timeout - if nothing happens in 10s, show fallback
-setTimeout(function(){if(!done){fallback()}},10000);
+},600);
 }
 
 function searchWeb(q){
