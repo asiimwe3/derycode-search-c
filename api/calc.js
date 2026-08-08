@@ -56,3 +56,4 @@ export default async function handler(req, res) {
     res.status(200).json({ error: 'Could not calculate: ' + expr, query: expr });
   }
 }
+// v2
