@@ -235,6 +235,9 @@ a{text-decoration:none;color:inherit}
 button{font-family:inherit;-webkit-appearance:none;appearance:none}
 input{font-family:inherit;-webkit-appearance:none;appearance:none}
 :root{--gold:#d4af37;--gold-dark:#b8941f;--bg:#0f0f14;--bg2:#13131a;--bg3:#1a1a24;--bg4:#22222e;--text:#e8e8e8;--text2:#c8c8c8;--text3:#888;--border:rgba(255,255,255,0.06)}
+:root.light-theme{--gold:#b8860b;--gold-dark:#9c7509;--bg:#f5f5f8;--bg2:#ffffff;--bg3:#eef0f4;--bg4:#e0e2e8;--text:#1a1a24;--text2:#33333e;--text3:#777;--border:rgba(0,0,0,0.1)}
+.theme-toggle{background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.theme-toggle:active{background:rgba(212,175,55,0.15)}
 .safe-top{padding-top:env(safe-area-inset-top,0)}
 .safe-bottom{padding-bottom:env(safe-area-inset-bottom,0)}
 
@@ -420,6 +423,33 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .word-warn{color:#e85d3a !important}
 
 /* Input */
+.weather-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin:8px 0}
+.weather-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.weather-location{font-size:18px;font-weight:700;color:var(--text)}
+.weather-current{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.weather-temp{font-size:42px;font-weight:800;color:var(--gold)}
+.weather-info{flex:1}
+.weather-condition{font-size:16px;font-weight:600;color:var(--text2)}
+.weather-meta{font-size:14px;color:var(--text3);margin-top:4px}
+.weather-details{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.weather-detail{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:var(--bg4);border-radius:8px}
+.weather-detail-label{font-size:12px;color:var(--text3);font-weight:600}
+.weather-detail-value{font-size:15px;font-weight:700;color:var(--text)}
+.weather-forecast{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.weather-forecast-day{flex:1;min-width:90px;text-align:center;padding:10px 8px;background:var(--bg4);border-radius:10px}
+.weather-forecast-date{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:4px}
+.weather-forecast-temp{font-size:16px;font-weight:700;color:var(--gold)}
+.weather-forecast-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.calc-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin:8px 0;text-align:center}
+.calc-expr{font-size:16px;color:var(--text3);margin-bottom:8px}
+.calc-result{font-size:36px;font-weight:800;color:var(--gold)}
+.autocomplete-container{position:relative;width:100%}
+.autocomplete-list{position:absolute;bottom:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--border);border-bottom:none;border-radius:12px 12px 0 0;max-height:220px;overflow-y:auto;z-index:200;display:none;box-shadow:0 -4px 20px rgba(0,0,0,0.3)}
+.autocomplete-list.show{display:block}
+.autocomplete-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text2);font-size:15px;transition:background 0.1s}
+.autocomplete-item:active,.autocomplete-item:hover{background:var(--bg4)}
+.autocomplete-icon{color:var(--text3);font-size:14px;flex-shrink:0}
+.autocomplete-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .input-area{padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0));border-top:1px solid var(--border);background:var(--bg2)}
 .input-wrapper{max-width:680px;margin:0 auto;display:flex;gap:8px;align-items:center}
 .input-box{flex:1;display:flex;align-items:center;background:var(--bg4);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:8px 12px;gap:6px;transition:border-color 0.15s;position:relative}
@@ -478,6 +508,33 @@ html{font-size:16px}
 .video-views{font-size:12px}
 .video-date{font-size:12px}
 .vid-duration{font-size:9px;padding:1px 4px}
+.weather-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin:8px 0}
+.weather-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.weather-location{font-size:18px;font-weight:700;color:var(--text)}
+.weather-current{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.weather-temp{font-size:42px;font-weight:800;color:var(--gold)}
+.weather-info{flex:1}
+.weather-condition{font-size:16px;font-weight:600;color:var(--text2)}
+.weather-meta{font-size:14px;color:var(--text3);margin-top:4px}
+.weather-details{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.weather-detail{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:var(--bg4);border-radius:8px}
+.weather-detail-label{font-size:12px;color:var(--text3);font-weight:600}
+.weather-detail-value{font-size:15px;font-weight:700;color:var(--text)}
+.weather-forecast{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.weather-forecast-day{flex:1;min-width:90px;text-align:center;padding:10px 8px;background:var(--bg4);border-radius:10px}
+.weather-forecast-date{font-size:12px;color:var(--text3);font-weight:600;margin-bottom:4px}
+.weather-forecast-temp{font-size:16px;font-weight:700;color:var(--gold)}
+.weather-forecast-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.calc-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin:8px 0;text-align:center}
+.calc-expr{font-size:16px;color:var(--text3);margin-bottom:8px}
+.calc-result{font-size:36px;font-weight:800;color:var(--gold)}
+.autocomplete-container{position:relative;width:100%}
+.autocomplete-list{position:absolute;bottom:100%;left:0;right:0;background:var(--bg3);border:1px solid var(--border);border-bottom:none;border-radius:12px 12px 0 0;max-height:220px;overflow-y:auto;z-index:200;display:none;box-shadow:0 -4px 20px rgba(0,0,0,0.3)}
+.autocomplete-list.show{display:block}
+.autocomplete-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text2);font-size:15px;transition:background 0.1s}
+.autocomplete-item:active,.autocomplete-item:hover{background:var(--bg4)}
+.autocomplete-icon{color:var(--text3);font-size:14px;flex-shrink:0}
+.autocomplete-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .input-area{padding:8px 10px}
 .input-box{padding:10px 12px}
 #input{font-size:15px}
@@ -998,6 +1055,7 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 </div>
 
 <div class="input-area safe-bottom">
+<div class="autocomplete-container"><div class="autocomplete-list" id="autocompleteList"></div></div>
 <div class="input-wrapper">
 <div class="input-box">
 <input type="text" id="input" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -1079,6 +1137,11 @@ inputEl.addEventListener('keydown',function(e){if(e.key==='Enter'&&!busy)send()}
 sendBtn.addEventListener('touchend',function(e){e.preventDefault();if(!busy)send()});
 sendBtn.addEventListener('touchend',function(e){e.preventDefault();if(!busy)send()});
 inputEl.addEventListener('input',checkWordCount);
+inputEl.addEventListener('input',handleAutocomplete);
+inputEl.addEventListener('keydown',function(e){if(e.key==='ArrowDown'&&autoList.classList.contains('show')){e.preventDefault();var items=autoList.querySelectorAll('.autocomplete-item');if(autoIdx<items.length-1){autoIdx++;items[autoIdx].classList.add('selected')}}else if(e.key==='ArrowUp'&&autoList.classList.contains('show')){e.preventDefault();var items=autoList.querySelectorAll('.autocomplete-item');if(autoIdx>0){autoIdx--;items[autoIdx].classList.add('selected')}}else if(e.key==='Tab'&&autoList.classList.contains('show')){e.preventDefault();selectAutocomplete(autoIdx)}});
+var autoList=document.getElementById('autocompleteList');
+var autoIdx=-1;
+var autoTimer=null;
 renderSuggests();
 
 function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
@@ -1117,11 +1180,61 @@ function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(functio
 
 function send(){
 if(busy)return;var q=inputEl.value.trim();if(!q)return;
+closeAutocomplete();
 var w=q.split(/\s+/).filter(function(x){return x.length>0}).length;
 if(w>maxWords){alert('Maximum '+maxWords+' words. You used '+w+'.');return}
 busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';
 messages.push({role:'user',content:q,mode:mode});
 renderMessages();inputEl.value='';showTyping();
+
+// Quick answers: weather and calculator
+if(isCalcQuery(q)){
+fetchCalc(q).then(function(data){
+var idx=messages.length;
+var card=renderCalcCard(data);
+if(card){
+messages.push({role:'assistant',content:'',mode:'all',calcCard:card});
+renderMessages();busy=false;sendBtn.disabled=false;inputEl.focus()
+}else{
+searchAll(q)
+}
+})
+return
+}
+if(isWeatherQuery(q)){
+var idx=messages.length;
+messages.push({role:'assistant',content:'',mode:'all',weatherLoading:true});
+renderMessages();
+fetchWeather(q).then(function(data){
+var m=messages[idx];
+if(data&&!data.error&&data.temp){
+m.weatherLoading=false;
+m.weatherCard=renderWeatherCard(data);
+m.content='Current weather for '+(data.location||'')+': '+data.temp+', '+data.condition+'. Feels like '+data.feelsLike+'.';
+m.aiSummary=true;
+// Also do a normal search for more context
+renderMessages();
+// Trigger normal search alongside
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,history:[],lang:lang})}).then(function(r){return r.json()}).then(function(aiData){
+if(aiData&&aiData.answer){m.content=aiData.answer}
+if(aiData&&aiData.sources){m.sources=aiData.sources}
+if(aiData&&aiData.results){m.results=aiData.results.slice(0,8)}
+renderMessages()
+}).catch(function(){})
+// Also fetch images
+fetch('/api/images?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(imgData){
+if(imgData&&imgData.images){m.images=imgData.images.slice(0,6);renderMessages()}
+}).catch(function(){})
+busy=false;sendBtn.disabled=false;inputEl.focus()
+}else{
+// Weather failed, fall back to normal search
+messages.splice(idx,1);
+searchAll(q)
+}
+})
+return
+}
+
 if(mode==='all'){searchAll(q)}
 else if(mode==='search'){searchWeb(q)}
 else if(mode==='images'){searchImages(q)}
@@ -1430,6 +1543,15 @@ html+='<div class="msg msg-ai">';if(m.mode==='derick'){html+='<div class="ai-ava
 if(m.confidence&&m.confidence!=='high'){var cc={high:['High','#4caf50'],medium:['Medium','#ffc107'],low:['Low','#ff9800'],none:['None','#f44336']}[m.confidence]||['Medium','#ffc107'];html+=' <span class="confidence-badge confidence-'+(m.confidence||'medium')+'"><span class="confidence-dot"></span>'+cc[0]+' confidence</span>'}
 html+='</div>';}
 
+// Weather loading indicator
+if(m.weatherLoading){html+='<div class="ai-content">🌤️ Fetching weather data...</div>'}
+
+// Weather card
+if(m.weatherCard){html+=m.weatherCard}
+
+// Calculator card
+if(m.calcCard){html+=m.calcCard}
+
 // AI mode
 if(m.mode==='ai'||!m.mode){
 if(m.content)html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>';
@@ -1644,6 +1766,94 @@ function showTyping(){var t=document.createElement('div');t.className='msg msg-a
 function startVoice(){try{var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice not supported');return}var rec=new SR();rec.lang=lang==='sw'?'sw-KE':lang==='lg'?'lg-UG':'en-US';rec.continuous=false;rec.interimResults=false;rec.onresult=function(e){inputEl.value=e.results[0][0].transcript;send()};rec.start()}catch(e){}}
 
 function decodeEntities(s){if(!s)return'';var e=document.createElement('div');e.innerHTML=s;return e.textContent||e.innerText||''}
+
+// === THEME TOGGLE ===
+function toggleTheme(){
+var root=document.documentElement;
+root.classList.toggle('light-theme');
+var isLight=root.classList.contains('light-theme');
+try{localStorage.setItem('derycode-theme',isLight?'light':'dark')}catch(e){}
+var toggle=document.getElementById('themeToggle');
+if(toggle){toggle.innerHTML=isLight?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'}
+}
+(function initTheme(){try{var t=localStorage.getItem('derycode-theme');if(t==='light'){document.documentElement.classList.add('light-theme');var tog=document.getElementById('themeToggle');if(tog)tog.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'}}catch(e){}})();
+
+// === AUTOCOMPLETE SUGGESTIONS ===
+function handleAutocomplete(){
+var q=inputEl.value.trim();
+if(q.length<2){closeAutocomplete();return}
+if(autoTimer)clearTimeout(autoTimer);
+autoTimer=setTimeout(function(){
+fetch('/api/suggest?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(suggestions){
+showAutocomplete(suggestions,q)}).catch(function(){closeAutocomplete()})
+},250)
+}
+function showAutocomplete(suggestions,currentQ){
+if(!suggestions||suggestions.length===0){closeAutocomplete();return}
+autoIdx=-1;
+var html='';
+suggestions.forEach(function(s,i){
+html+='<div class="autocomplete-item" onclick="selectAutocomplete('+i+')" data-idx="'+i+'"><span class="autocomplete-icon">🔍</span><span class="autocomplete-text">'+esc(s)+'</span></div>'
+});
+autoList.innerHTML=html;
+autoList.classList.add('show')
+}
+function selectAutocomplete(idx){
+var items=autoList.querySelectorAll('.autocomplete-item');
+if(idx>=0&&idx<items.length){
+var text=items[idx].querySelector('.autocomplete-text').textContent;
+inputEl.value=text;inputEl.focus();send()
+}
+closeAutocomplete()
+}
+function closeAutocomplete(){autoList.classList.remove('show');autoIdx=-1}
+
+// === WEATHER QUICK ANSWER ===
+function isWeatherQuery(q){
+return /\bweather\b/i.test(q)&&!/\bcode\b/i.test(q)
+}
+function fetchWeather(q){
+return fetch('/api/weather?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{error:true}})
+}
+function renderWeatherCard(data){
+if(data.error)return'';
+var html='<div class="weather-card">';
+html+='<div class="weather-header"><div class="weather-location">📍 '+esc(data.location||'')+(data.country?', '+esc(data.country):'')+'</div></div>';
+html+='<div class="weather-current">';
+html+='<div class="weather-temp">'+esc(data.temp||'')+'</div>';
+html+='<div class="weather-info"><div class="weather-condition">'+esc(data.condition||'')+'</div>';
+html+='<div class="weather-meta">Feels like '+esc(data.feelsLike||'')+' • '+esc(data.humidity||'')+' humidity</div></div></div>';
+html+='<div class="weather-details">';
+html+='<div class="weather-detail"><span class="weather-detail-label">Wind</span><span class="weather-detail-value">'+esc(data.windSpeed||'')+' '+esc(data.windDir||'')+'</span></div>';
+html+='<div class="weather-detail"><span class="weather-detail-label">Visibility</span><span class="weather-detail-value">'+esc(data.visibility||'')+'</span></div>';
+html+='<div class="weather-detail"><span class="weather-detail-label">UV Index</span><span class="weather-detail-value">'+esc(data.uvIndex||'')+'</span></div>';
+html+='<div class="weather-detail"><span class="weather-detail-label">Pressure</span><span class="weather-detail-value">'+esc(data.pressure||'')+'</span></div>';
+html+='</div>';
+if(data.forecast&&data.forecast.length>0){
+html+='<div class="weather-forecast">';
+data.forecast.forEach(function(day){
+var d=day.date||'';var parts=d.match(/(\d{4})-(\d{2})-(\d{2})/);
+var label=d;if(parts){var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];label=parts[3]+' '+months[parseInt(parts[2])-1]}
+html+='<div class="weather-forecast-day"><div class="weather-forecast-date">'+esc(label)+'</div><div class="weather-forecast-temp">'+esc(day.maxTemp)+' / '+esc(day.minTemp)+'</div><div class="weather-forecast-desc">'+esc(day.desc||'')+'</div></div>'
+});
+html+='</div>'
+}
+html+='</div>';
+return html
+}
+
+// === CALCULATOR QUICK ANSWER ===
+function isCalcQuery(q){
+var cleaned=q.toLowerCase().replace(/what\s+is\s+/,'').replace(/calculate\s+/,'').replace(/compute\s+/,'').replace(/\?/g,'').trim();
+return /^[\d\s+\-*/%.()x]+$/.test(cleaned)&&/[+\-*/x]/.test(cleaned)&&/\d/.test(cleaned)||/^\d+\s*(plus|minus|times|divided by)\s*\d+/i.test(q)
+}
+function fetchCalc(q){
+return fetch('/api/calc?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{error:true}})
+}
+function renderCalcCard(data){
+if(data.error||!data.result)return'';
+return '<div class="calc-card"><div class="calc-expr">'+esc(data.expression||'')+' =</div><div class="calc-result">'+esc(data.result)+'</div></div>'
+}
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function cleanAndEsc(s){if(!s)return'';return esc(decodeEntities(s))}
 function formatUrl(u){try{return new URL(u).hostname.replace('www.','')}catch(e){return u}}
