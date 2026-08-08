@@ -1352,7 +1352,7 @@ checkAllDone();
 });
 
 // 5. People Also Ask
-fetch('https://suggestqueries.google.com/complete/search?client=firefox&q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return []}).then(function(data){var suggests=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];
+new Promise(function(resolve){if(window._dcScript2)document.body.removeChild(window._dcScript2);window._dcPAACB=function(data){var suggests=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];resolve(suggests);if(window._dcScript2){document.body.removeChild(window._dcScript2);window._dcScript2=null}};var s=document.createElement('script');window._dcScript2=s;s.src='https://suggestqueries.google.com/complete/search?client=firefox&callback=window._dcPAACB&q='+encodeURIComponent(q);s.onerror=function(){resolve([])};document.body.appendChild(s)}).then(function(suggests){
 var m=messages[idx];if(!m)return;
 if(suggests.length>0){m.paa=suggests.slice(0,4)}
 done.paa=true;
@@ -1783,7 +1783,13 @@ var q=inputEl.value.trim();
 if(q.length<2){closeAutocomplete();return}
 if(autoTimer)clearTimeout(autoTimer);
 autoTimer=setTimeout(function(){
-fetch('https://suggestqueries.google.com/complete/search?client=firefox&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(data){var suggestions=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];showAutocomplete(suggestions,q)}).catch(function(){closeAutocomplete()})
+if(window._dcScript)document.body.removeChild(window._dcScript);
+window._dcSuggestCB=function(data){var suggestions=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];showAutocomplete(suggestions,q);if(window._dcScript){document.body.removeChild(window._dcScript);window._dcScript=null}};
+var s=document.createElement('script');
+window._dcScript=s;
+s.src='https://suggestqueries.google.com/complete/search?client=firefox&callback=window._dcSuggestCB&q='+encodeURIComponent(q);
+s.onerror=function(){closeAutocomplete();if(window._dcScript){document.body.removeChild(window._dcScript);window._dcScript=null}};
+document.body.appendChild(s)
 },250)
 }
 function showAutocomplete(suggestions,currentQ){
