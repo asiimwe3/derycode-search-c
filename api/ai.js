@@ -19,19 +19,19 @@ const GREETING_PATTERNS = [
   /^(bonjour|salut|coucou|bonsoir|bonne\s+(matin|nuit))\b/i, // French
   /^(hola|buenos d|buenas|qué tal|que tal)\b/i, // Spanish
   /^(ciao|pronto|salve)\b/i, // Italian
-  ^(ola|olá|bom dia|boa tarde|boa noite)\b/i, // Portuguese
-  ^(hallo|guten\s+(morgen|tag|abend)|moin|na)\b/i, // German
-  ^(привет|здравствуй|здравствуйте|доброе\s+утро|добрый\s+(вечер|день))\b/i, // Russian
-  ^(你好|您好|早上好|晚上好|大家好)\b/i, // Chinese
-  ^(こんにちは|こんばんは|おはよう)\b/i, // Japanese
-  ^(안녕|안녕하세요)\b/i, // Korean
-  ^(مرحبا|السلام|أهلا|اهلا)\b/i, // Arabic
-  ^(नमस्ते|नमस्कार|हैलो)\b/i, // Hindi
-  ^(বাংলা|হ্যালো|নমস্কার)\b/i, // Bengali
-  ^(হাই|আসসালামু|নমস্কার)\b/i, // Bengali2
-  ^(merhaba|selam|selamlar)\b/i, // Turkish
-  ^(สวัสดี|หวัดดี)\b/i, // Thai
-  ^(xin chào|chào)\b/i, // Vietnamese
+  /^(ola|olá|bom dia|boa tarde|boa noite)\b/i, // Portuguese
+  /^(hallo|guten\s+(morgen|tag|abend)|moin|na)\b/i, // German
+  /^(привет|здравствуй|здравствуйте|доброе\s+утро|добрый\s+(вечер|день))\b/i, // Russian
+  /^(你好|您好|早上好|晚上好|大家好)\b/i, // Chinese
+  /^(こんにちは|こんばんは|おはよう)\b/i, // Japanese
+  /^(안녕|안녕하세요)\b/i, // Korean
+  /^(مرحبا|السلام|أهلا|اهلا)\b/i, // Arabic
+  /^(नमस्ते|नमस्कार|हैलो)\b/i, // Hindi
+  /^(বাংলা|হ্যালো|নমস্কার)\b/i, // Bengali
+  /^(হাই|আসসালামু|নমস্কার)\b/i, // Bengali2
+  /^(merhaba|selam|selamlar)\b/i, // Turkish
+  /^(สวัสดี|หวัดดี)\b/i, // Thai
+  /^(xin chào|chào)\b/i, // Vietnamese
 ];
 
 function isGreeting(query) {
