@@ -1601,6 +1601,7 @@ html+='<div class="msg msg-user"><div class="bubble">'+modeIcon+' '+esc(m.conten
 html+='<div class="msg msg-ai">';if(m.mode==='derick'){html+='<div class="ai-avatar" style="background:linear-gradient(135deg,#d4af37,#b8941f)">🧑\u200d🏫</div><div class="ai-bubble"><div class="ai-name">Derick Agent <span style="font-size:11px;color:var(--text3);font-weight:400">Step-by-Step Guide</span></div>'}else{html+='<div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI';
 if(m.confidence&&m.confidence!=='high'){var cc={high:['High','#4caf50'],medium:['Medium','#ffc107'],low:['Low','#ff9800'],none:['None','#f44336']}[m.confidence]||['Medium','#ffc107'];html+=' <span class="confidence-badge confidence-'+(m.confidence||'medium')+'"><span class="confidence-dot"></span>'+cc[0]+' confidence</span>'}
 html+='</div>';}
+if(m._progress){html+='<div class="typing"><span></span><span></span><span></span></div>'}
 
 // Weather loading indicator
 if(m.weatherLoading){html+='<div class="ai-content">🌤️ Fetching weather data...</div>'}
