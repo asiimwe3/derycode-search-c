@@ -1178,6 +1178,35 @@ function bmBtn(url,title,engine){
 function checkWordCount(){var w=inputEl.value.trim().split(/\s+/).filter(function(x){return x.length>0}).length;if(w>maxWords){inputEl.style.color='#e85d3a';var remaining=maxWords-w;if(remaining<=-5)inputEl.value=inputEl.value.split(/\s+/).slice(0,maxWords).join(' ')}else{inputEl.style.color=''}}
 // Deep Search is now a mode button - toggle removed
 
+
+// Greeting detection — only show AI overview, no links/images/videos
+function isGreeting(q){
+var trimmed=q.trim().toLowerCase();
+var wordCount=trimmed.split(/\s+/).filter(function(w){return w.length>0}).length;
+if(wordCount>4)return false;
+var patterns=[
+/^(hi|hello|hey|hallo|hola|yo|sup|greetings|good\s+(morning|afternoon|evening|night)|howdy|hiya|wazzup|what's up|whats up|hello there|hi there|hey there)\b/i,
+/^(gm|gn)\b/i,
+/^(ssebo|nyabo|kulika|gyebale|nbuuna|webale|muli mutya|oli otya|buli gye|agandi)\b/i,
+/^(jambo|hujambo|mambo|vipi|habari|niaje|salama)\b/i,
+/^(bonjour|salut|coucou|bonsoir|bonne\s+(matin|nuit))\b/i,
+/^(hola|buenos d|buenas|qué tal|que tal)\b/i,
+/^(ciao|pronto|salve)\b/i,
+/^(ola|olá|bom dia|boa tarde|boa noite)\b/i,
+/^(hallo|guten\s+(morgen|tag|abend)|moin|na)\b/i,
+/^(привет|здравствуй|здравствуйте|доброе\s+утро|добрый\s+(вечер|день))\b/i,
+/^(你好|您好|早上好|晚上好|大家好)\b/i,
+/^(こんにちは|こんばんは|おはよう)\b/i,
+/^(안녕|안녕하세요)\b/i,
+/^(مرحبا|السلام|أهلا|اهلا)\b/i,
+/^(नमस्ते|नमस्कार|हैलो)\b/i,
+/^(merhaba|selam|selamlar)\b/i,
+/^(สวัสดี|หวัดดี)\b/i,
+/^(xin chào|chào)\b/i
+];
+return patterns.some(function(p){return p.test(trimmed)});
+}
+
 function send(){
 if(busy)return;var q=inputEl.value.trim();if(!q)return;
 closeAutocomplete();
@@ -1235,6 +1264,7 @@ searchAll(q)
 return
 }
 
+if(isGreeting(q)){searchGreeting(q);return}
 if(mode==='all'){searchAll(q)}
 else if(mode==='search'){searchWeb(q)}
 else if(mode==='images'){searchImages(q)}
@@ -1368,6 +1398,36 @@ if(m){m._progress=false;renderMessages();}
 busy=false;sendBtn.disabled=false;inputEl.focus();
 }
 },20000);
+}
+
+
+// Greeting-only search: AI overview only, no web results/images/videos/PAA
+function searchGreeting(q){
+saveHistory(q);
+var idx=messages.length;
+messages.push({role:'assistant',content:'',sources:[],results:[],images:[],videos:[],mode:'all',aiSummary:false,confidence:'high',_progress:true});
+renderMessages();
+scrollToBottom();
+
+// Only fetch AI overview — nothing else
+fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,lang:lang})}).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
+data=data||{};
+var m=messages[idx];if(!m)return;
+if(data.answer){m.content=data.answer;m.aiSummary=true}
+if(data.confidence)m.confidence=data.confidence;
+// No sources, no results, no images, no videos, no PAA for greetings
+m.sources=[];
+m.results=[];
+m.images=[];
+m.videos=[];
+m.paa=[];
+m._progress=false;
+renderMessages();
+busy=false;sendBtn.disabled=false;inputEl.focus();
+}).catch(function(e){
+var m=messages[idx];if(m){m.content='Hello! I am DeryCode AI. Ask me anything and I will search 22 sources for you.';m.aiSummary=true;m._progress=false;renderMessages()}
+busy=false;sendBtn.disabled=false;inputEl.focus();
+});
 }
 
 function searchWeb(q){

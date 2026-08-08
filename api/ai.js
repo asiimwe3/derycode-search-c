@@ -9,6 +9,67 @@ const MAX_ANSWER_CHARS = 5000;
 // === Inlined from derycode-knowledge.js ===
 // DeryCode Tech Knowledge Base - Built-in responses
 
+
+// === Greeting Detection ===
+const GREETING_PATTERNS = [
+  /^(hi|hello|hey|hallo|hola|yo|sup|greetings|good\s+(morning|afternoon|evening|night)|howdy|hiya|wazzup|what's up|whats up|hello there|hi there|hey there)\b/i,
+  /^(gm|gn)\b/i, // crypto-style greetings
+  /^(ssebo|nyabo|kulika|gyebale|nbuuna|webale|muli mutya|oli otya|buli gye|agandi)\b/i, // Ugandan greetings
+  /^(jambo|hujambo|mambo|vipi|habari|niaje|salama)\b/i, // Swahili greetings
+  /^(bonjour|salut|coucou|bonsoir|bonne\s+(matin|nuit))\b/i, // French
+  /^(hola|buenos d|buenas|qué tal|que tal)\b/i, // Spanish
+  /^(ciao|pronto|salve)\b/i, // Italian
+  ^(ola|olá|bom dia|boa tarde|boa noite)\b/i, // Portuguese
+  ^(hallo|guten\s+(morgen|tag|abend)|moin|na)\b/i, // German
+  ^(привет|здравствуй|здравствуйте|доброе\s+утро|добрый\s+(вечер|день))\b/i, // Russian
+  ^(你好|您好|早上好|晚上好|大家好)\b/i, // Chinese
+  ^(こんにちは|こんばんは|おはよう)\b/i, // Japanese
+  ^(안녕|안녕하세요)\b/i, // Korean
+  ^(مرحبا|السلام|أهلا|اهلا)\b/i, // Arabic
+  ^(नमस्ते|नमस्कार|हैलो)\b/i, // Hindi
+  ^(বাংলা|হ্যালো|নমস্কার)\b/i, // Bengali
+  ^(হাই|আসসালামু|নমস্কার)\b/i, // Bengali2
+  ^(merhaba|selam|selamlar)\b/i, // Turkish
+  ^(สวัสดี|หวัดดี)\b/i, // Thai
+  ^(xin chào|chào)\b/i, // Vietnamese
+];
+
+function isGreeting(query) {
+  const trimmed = query.trim().toLowerCase();
+  // Only treat short queries as greetings (max 4 words)
+  const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
+  if (wordCount > 4) return false;
+  return GREETING_PATTERNS.some(p => p.test(trimmed));
+}
+
+function getGreetingResponse(query, lang) {
+  const lower = query.trim().toLowerCase();
+  const hour = new Date().getUTCHours() + 3; // Approximate EAT (UTC+3)
+  const adj = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+  
+  const responses = {
+    en: `Hello! 👋 I'm DeryCode AI — your 22-source AI search engine. I can search the web, deep web, images, videos, news, books, maps, and more — all at once. Ask me anything and I'll give you a comprehensive AI-powered answer. What would you like to know?`,
+    sw: `Jambo! 👋 Mimi ni DeryCode AI — injini ya utafutaji wa AI yenye vyanzo 22. Naweza kutafuta mtandao, picha, video, habari, vitabu, ramani, na zaidi. Uliza chochote na nitakupa jibu la kina. Unataka kujua nini?`,
+    lg: `Kulika! 👋 Nze DeryCode AI — enjini y'okunonya eya AI erina emobozi 22. Nnyinza okunonya ku mtandaga, ebiwanvu, video, amawulire, ebitabo, emapeera, n'ebirala. Buuza ekirala kya oyagala okumanya?`,
+    fr: `Bonjour! 👋 Je suis DeryCode AI — votre moteur de recherche AI avec 22 sources. Je peux rechercher le web, les images, les vidéos, les actualités, les livres, les cartes et plus encore. Posez-moi n'importe quelle question et je vous donnerai une réponse complète. Que voulez-vous savoir?`,
+    es: `¡Hola! 👋 Soy DeryCode AI — tu motor de búsqueda AI con 22 fuentes. Puedo buscar en la web, imágenes, videos, noticias, libros, mapas y más. Pregúntame lo que quieras y te daré una respuesta completa. ¿Qué quieres saber?`,
+    pt: `Olá! 👋 Sou DeryCode AI — seu motor de busca AI com 22 fontes. Posso pesquisar na web, imagens, vídeos, notícias, livros, mapas e mais. Pergunte-me qualquer coisa e eu darei uma resposta completa. O que você quer saber?`,
+    de: `Hallo! 👋 Ich bin DeryCode AI — deine AI-Suchmaschine mit 22 Quellen. Ich kann das Web, Bilder, Videos, Nachrichten, Bücher, Karten und mehr durchsuchen. Frag mich alles und ich gebe dir eine umfassende Antwort. Was möchtest du wissen?`,
+  };
+  
+  // Check for Ugandan local language greetings
+  if (/^(ssebo|nyabo|gyebale|muli mutya|oli otya|buli gye|agandi)/i.test(lower)) {
+    return responses.lg || responses.en;
+  }
+  if (/^(jambo|hujambo|mambo|vipi|habari|niaje|salama)/i.test(lower)) {
+    return responses.sw || responses.en;
+  }
+  
+  const langMap = { en: 'en', sw: 'sw', lg: 'lg', fr: 'fr', es: 'es', pt: 'pt', de: 'de', runyoro: 'lg', dholuo: 'en', ateso: 'en' };
+  const key = langMap[lang] || 'en';
+  return responses[key] || responses.en;
+}
+
 function isDeryCodeQuery(query) {
   const keywords = [
     'derycode', 'dery code', 'asiimwe derick', 'derick asiimwe', 'traderderick',
@@ -1030,6 +1091,21 @@ export default async function handler(req, res) {
         lang
       });
     }
+  }
+
+  // 1b. Handle greetings — return conversational response only
+  if (isGreeting(question)) {
+    return res.status(200).json({
+      question,
+      answer: getGreetingResponse(question, lang),
+      sources: [],
+      followups: [],
+      results: [],
+      model: 'DeryCode-Greeting',
+      confidence: 'high',
+      lang,
+      isGreeting: true
+    });
   }
   
   // 2. Fetch from multiple sources in parallel
