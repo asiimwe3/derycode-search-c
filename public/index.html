@@ -1813,7 +1813,14 @@ function isWeatherQuery(q){
 return /\bweather\b/i.test(q)&&!/\bcode\b/i.test(q)
 }
 function fetchWeather(q){
-return fetch('/api/weather?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{error:true}})
+var location=q.toLowerCase().replace(/what.?s?\s+the\s+weather\s+(in|at|for)?\s*/i,'').replace(/weather\s+(in|at|for)\s*/i,'').replace(/\?/g,'').replace(/weather/gi,'').trim();
+if(!location)location=q.replace(/weather/gi,'').trim()||q;
+return fetch('https://wttr.in/'+encodeURIComponent(location)+'?format=j1',{headers:{'Accept':'application/json'}}).then(function(r){return r.json()}).then(function(data){
+var c=data.current_condition&&data.current_condition[0];if(!c)throw new Error('no data');
+var area=data.nearest_area&&data.nearest_area[0];
+var forecast=[];if(data.weather){data.weather.slice(0,3).forEach(function(day){forecast.push({date:day.date,maxTemp:day.maxtempC+'\u00b0C',minTemp:day.mintempC+'\u00b0C',desc:day.hourly&&day.hourly[4]?day.hourly[4].weatherDesc[0].value:''})})}
+return{location:area?area.areaName[0].value:location,region:area?area.region[0].value:'',country:area?area.country[0].value:'',temp:c.temp_C+'\u00b0C',feelsLike:c.FeelsLikeC+'\u00b0C',condition:c.weatherDesc[0].value,humidity:c.humidity+'%',windSpeed:c.windspeedKmph+' km/h',windDir:c.winddir16Point,visibility:c.visibility+' km',uvIndex:c.uvIndex,cloudCover:c.cloudcover+'%',pressure:c.pressure+' hPa',forecast:forecast,source:'wttr.in'}
+}).catch(function(){return{error:true}})
 }
 function renderWeatherCard(data){
 if(data.error)return'';
@@ -1848,7 +1855,16 @@ var cleaned=q.toLowerCase().replace(/what\s+is\s+/,'').replace(/calculate\s+/,''
 return /^[\d\s+\-*/%.()x]+$/.test(cleaned)&&/[+\-*/x]/.test(cleaned)&&/\d/.test(cleaned)||/^\d+\s*(plus|minus|times|divided by)\s*\d+/i.test(q)
 }
 function fetchCalc(q){
-return fetch('/api/calc?q='+encodeURIComponent(q)).then(function(r){return r.json()}).catch(function(){return{error:true}})
+return new Promise(function(resolve){
+try{
+var mathExpr=q.toLowerCase().replace(/what\s+is\s+/,'').replace(/calculate\s+/,'').replace(/compute\s+/,'').replace(/\?/g,'').replace(/plus/g,'+').replace(/minus/g,'-').replace(/times|multiplied by/g,'*').replace(/divided by/g,'/').replace(/x(?=\s*\d)/g,'*').replace(/mod/g,'%').replace(/squared/g,'**2').replace(/cubed/g,'**3').replace(/square root of/g,'Math.sqrt').replace(/sqrt/g,'Math.sqrt').replace(/pi/gi,'Math.PI').trim();
+if(!/^[\d\s+\-*/%.()MathsqrbtciEPI]+$/.test(mathExpr)){resolve({error:true});return}
+var result=Function('"use strict"; return ('+mathExpr+')')();
+if(typeof result!=='number'||!isFinite(result)){resolve({error:true});return}
+var formatted=result.toString();if(result%1!==0)formatted=(Math.round(result*1000000)/1000000).toString();
+resolve({expression:q,result:formatted})
+}catch(e){resolve({error:true})}
+})
 }
 function renderCalcCard(data){
 if(data.error||!data.result)return'';
