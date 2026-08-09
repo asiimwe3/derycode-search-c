@@ -276,6 +276,33 @@ input{font-family:inherit;-webkit-appearance:none;appearance:none}
 .suggest-card-icon{font-size:24px;margin-bottom:8px}
 .suggest-card-text{color:var(--text2);font-size:15px;line-height:1.4;font-weight:500}
 
+/* Hero Search (centered home) */
+.hero-search{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;min-height:calc(100vh - 52px);min-height:calc(100dvh - 52px)}
+.hero-search.active{display:flex}
+.hero-logo{font-size:42px;font-weight:800;text-align:center;margin-bottom:6px}
+.hero-logo .d{color:var(--gold)}.hero-logo .a{color:var(--text)}
+.hero-logo .ai-badge{font-size:14px;font-weight:700;color:var(--gold);background:rgba(212,175,55,0.15);padding:2px 8px;border-radius:6px;margin-left:4px;vertical-align:middle}
+.hero-sub{color:var(--text3);font-size:15px;text-align:center;margin-bottom:28px;max-width:400px;line-height:1.5}
+.hero-input-wrapper{width:100%;max-width:580px;display:flex;gap:8px;align-items:center;margin-bottom:16px}
+.hero-input-box{flex:1;display:flex;align-items:center;background:var(--bg3);border:1px solid rgba(212,175,55,0.2);border-radius:28px;padding:12px 18px;gap:8px;transition:border-color 0.2s,box-shadow 0.2s}
+.hero-input-box:focus-within{border-color:rgba(212,175,55,0.5);box-shadow:0 0 0 4px rgba(212,175,55,0.08)}
+.hero-input-box input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:17px;min-width:0}
+.hero-input-box input::placeholder{color:var(--text3)}
+.hero-send-btn{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:var(--bg);border:none;padding:12px 24px;border-radius:28px;font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity 0.15s}
+.hero-send-btn:active{opacity:0.8}
+.hero-modes{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:580px;margin-bottom:24px}
+.hero-modes .mode-btn{padding:7px 14px;font-size:13px;border-radius:20px}
+.hero-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px}
+.hero-features .welcome-feature{padding:6px 12px;font-size:12px}
+.hero-suggest{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;max-width:520px;width:100%}
+/* Chat state: hide hero, show chat layout */
+body.searching .hero-search{display:none !important}
+body.searching .chat-container{display:block}
+body:not(.searching) .chat-container{display:none}
+body:not(.searching) .input-area{display:none}
+body:not(.searching) .mode-bar{display:none}
+
+
 /* Messages */
 .msg{margin-bottom:16px;animation:fadeIn 0.25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -936,7 +963,7 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 
 
 <div class="header safe-top">
-<div class="header-left" onclick="location.reload()">
+<div class="header-left" onclick="navHome()">
 <span class="header-logo"><span class="d">Dery</span><span class="a">Code</span></span>
 <span class="header-badge">AI</span>
 </div>
@@ -1006,18 +1033,41 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 
 </div>
 
+
+<!-- HERO SEARCH (centered home screen) -->
+<div class="hero-search active" id="heroSearch">
+  <div class="hero-logo"><span class="d">Dery</span><span class="a">Code</span><span class="ai-badge">AI</span></div>
+  <div class="hero-sub" id="heroSub">22-source AI search engine. Deep web, dark web, maps, books, news, code. 5000-word answers.</div>
+  <div class="hero-input-wrapper">
+    <div class="hero-input-box">
+      <input type="text" id="heroInput" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="voice-btn" onclick="startVoice()" aria-label="Voice search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+    </div>
+    <button class="hero-send-btn" id="heroSend" onclick="heroSend()">Search</button>
+  </div>
+  <div class="hero-modes" id="heroModes">
+    <button class="mode-btn active" onclick="setMode('all')" id="hmode-all"><span class="mi">✨</span> All</button>
+    <button class="mode-btn" onclick="setMode('search')" id="hmode-search"><span class="mi">🔍</span> Web</button>
+    <button class="mode-btn" onclick="setMode('images')" id="hmode-images"><span class="mi">🖼️</span> Images</button>
+    <button class="mode-btn" onclick="setMode('news')" id="hmode-news"><span class="mi">📰</span> News</button>
+    <button class="mode-btn" onclick="setMode('code')" id="hmode-code"><span class="mi">⚡</span> Code</button>
+    <button class="mode-btn" onclick="setMode('derick')" id="hmode-derick"><span class="mi">🧑‍🏫</span> Derick</button>
+    <button class="mode-btn" onclick="setMode('books')" id="hmode-books"><span class="mi">📚</span> Books</button>
+    <button class="mode-btn" onclick="setMode('maps')" id="hmode-maps"><span class="mi">🗺️</span> Maps</button>
+    <button class="mode-btn" onclick="setMode('deep')" id="hmode-deep"><span class="mi">🌑</span> Deep</button>
+    <button class="mode-btn" onclick="setMode('videos')" id="hmode-videos"><span class="mi">📺</span> Videos</button>
+  </div>
+  <div class="hero-features">
+    <span class="welcome-feature"><span>10</span> Modes</span>
+    <span class="welcome-feature"><span>6</span> Languages</span>
+    <span class="welcome-feature">Web Powered</span>
+    <span class="welcome-feature">No Tracking</span>
+  </div>
+  <div class="hero-suggest" id="heroSuggest"></div>
+</div>
+
 <div class="chat-container" id="chat">
-<div class="welcome" id="welcome">
-<div class="welcome-logo"><span class="d">Dery</span><span class="a">Code</span> AI</div>
-<div class="welcome-sub" id="welcomeSub">22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.</div>
-<div class="welcome-features">
-<span class="welcome-feature"><span>10</span> Modes</span>
-<span class="welcome-feature"><span>6</span> Languages</span>
-<span class="welcome-feature">Web Powered</span>
-<span class="welcome-feature">No Tracking</span>
-</div>
-<div class="suggest-cards" id="suggestCards"></div>
-</div>
+<div class="welcome" id="welcome" style="display:none"></div>
 </div>
 
 <div class="default-browser-banner" id="defaultBrowserBanner" onclick="setDefaultBrowser()">
@@ -1073,6 +1123,36 @@ var inputEl=document.getElementById('input');
 var sendBtn=document.getElementById('send');
 var chatEl=document.getElementById('chat');
 var welcomeEl=document.getElementById('welcome');
+var heroInput=document.getElementById('heroInput');
+var heroSendBtn=document.getElementById('heroSend');
+var heroSearchEl=document.getElementById('heroSearch');
+
+// Hero search: type in centered input, send triggers search
+function heroSend(){
+var q=(heroInput?heroInput.value:'').trim();
+if(!q)return;
+inputEl.value=q;
+document.body.classList.add('searching');
+heroSearchEl.classList.remove('active');
+send();
+heroInput.value='';
+}
+if(heroInput){
+heroInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();heroSend()}});
+// Transfer autocomplete to hero input
+heroInput.addEventListener('input',function(){inputEl.value=heroInput.value;triggerAutocomplete(heroInput)});
+heroInput.addEventListener('focus',function(){openAutocomplete(heroInput)});
+}
+
+// Override setMode to sync hero mode buttons too
+var _oldSetMode=setMode;
+setMode=function(m){_oldSetMode(m);
+var hms=document.getElementById('heroModes');
+if(hms){
+hms.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+var hm=document.getElementById('hmode-'+m);if(hm)hm.classList.add('active');
+}
+};
 var langLabels={
 en:{placeholder:'Ask DeryCode AI anything...',sub:'22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
@@ -1142,11 +1222,12 @@ inputEl.addEventListener('keydown',function(e){if(e.key==='ArrowDown'&&autoList.
 var autoList=document.getElementById('autocompleteList');
 var autoIdx=-1;
 var autoTimer=null;
-renderSuggests();
+renderSuggests();renderHeroSuggests();
 
+function renderHeroSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('heroSuggest');if(!sc)return;sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){heroInput.value=s.text;heroSend()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
 function renderSuggests(){var lb=langLabels[lang]||langLabels.en;var sc=document.getElementById('suggestCards');sc.innerHTML='';lb.suggests.forEach(function(s){var d=document.createElement('div');d.className='suggest-card';d.onclick=function(){inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.ontouchend=function(e){e.preventDefault();inputEl.value=s.text;send()};d.innerHTML='<div class="suggest-card-icon">'+s.icon+'</div><div class="suggest-card-text">'+s.text+'</div>';sc.appendChild(d)})}
 
-function changeLang(l){lang=l;try{localStorage.setItem('dc_lang',l)}catch(e){};var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();updateModeLabels();inputEl.focus()}
+function changeLang(l){lang=l;try{localStorage.setItem('dc_lang',l)}catch(e){};var lb=langLabels[l]||langLabels.en;inputEl.placeholder=lb.placeholder;document.getElementById('welcomeSub').textContent=lb.sub;document.getElementById('inputHint').textContent=lb.hint;sendBtn.textContent=lb.send;renderSuggests();renderHeroSuggests();updateModeLabels();inputEl.focus()}
 
 function updateModeLabels(){var lb=langLabels[lang]||langLabels.en;var labels={all:lb.all||'All',search:lb.search,images:lb.images,news:lb.news,code:lb.code,derick:'Derick',books:lb.books||'Books',maps:lb.maps||'Maps',deep:lb.deep||'Deep',videos:lb.videos||'Videos'};modeNames.forEach(function(m){var btn=document.getElementById('mode-'+m);if(btn){var icon=btn.querySelector('.mi').textContent;btn.innerHTML='<span class="mi">'+icon+'</span> '+labels[m]}})}
 
@@ -1212,7 +1293,7 @@ if(busy)return;var q=inputEl.value.trim();if(!q)return;
 closeAutocomplete();
 var w=q.split(/\s+/).filter(function(x){return x.length>0}).length;
 if(w>maxWords){alert('Maximum '+maxWords+' words. You used '+w+'.');return}
-busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';
+busy=true;sendBtn.disabled=true;welcomeEl.style.display='none';document.body.classList.add('searching');heroSearchEl.classList.remove('active');
 messages.push({role:'user',content:q,mode:mode});
 renderMessages();inputEl.value='';showTyping();
 
@@ -1853,6 +1934,8 @@ if(toggle){toggle.innerHTML=isLight?'<svg width="16" height="16" viewBox="0 0 24
 (function initTheme(){try{var t=localStorage.getItem('derycode-theme');if(t==='light'){document.documentElement.classList.add('light-theme');var tog=document.getElementById('themeToggle');if(tog)tog.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'}}catch(e){}})();
 
 // === AUTOCOMPLETE SUGGESTIONS ===
+function triggerAutocomplete(el){inputEl.value=el.value;handleAutocomplete()}
+function openAutocomplete(el){inputEl.value=el.value;handleAutocomplete()}
 function handleAutocomplete(){
 var q=inputEl.value.trim();
 if(q.length<2){closeAutocomplete();return}
@@ -1881,7 +1964,10 @@ function selectAutocomplete(idx){
 var items=autoList.querySelectorAll('.autocomplete-item');
 if(idx>=0&&idx<items.length){
 var text=items[idx].querySelector('.autocomplete-text').textContent;
-inputEl.value=text;inputEl.focus();send()
+inputEl.value=text;
+if(heroInput)heroInput.value=text;
+if(document.body.classList.contains('searching')){inputEl.focus();send()}
+else{heroInput.focus();heroSend()}
 }
 closeAutocomplete()
 }
@@ -2600,8 +2686,12 @@ function removeHighlights(){
 function newSearch(){
   inputEl.value='';
   document.getElementById('chat').innerHTML='';
-  document.getElementById('welcome').style.display='flex';
-  inputEl.focus();
+  messages=[];
+  document.body.classList.remove('searching');
+  heroSearchEl.classList.add('active');
+  if(heroInput)heroInput.value='';
+  if(heroInput)heroInput.focus();
+  renderHeroSuggests();
 }
 function showHistory(){
   var h=getHistory();
