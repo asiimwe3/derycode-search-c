@@ -1,5 +1,5 @@
 // DeryCode AI Service Worker
-const CACHE_NAME = 'derycode-ai-v12';
+const CACHE_NAME = 'derycode-ai-v13';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

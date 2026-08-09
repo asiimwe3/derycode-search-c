@@ -645,7 +645,22 @@ html{font-size:14px}
 .video-card{gap:6px}
 #input{font-size:13px}
 .send-btn{font-size:10px;padding:6px 8px}
-}
+.hero-search{padding:12px 10px}
+.hero-logo{font-size:24px}
+.hero-sub{font-size:10px;margin-bottom:12px;max-width:240px}
+.hero-input-wrapper{gap:4px;margin-bottom:10px}
+.hero-input-box{padding:7px 10px}
+.hero-input-box input{font-size:13px}
+.hero-send-btn{padding:7px 10px;font-size:11px}
+.hero-modes{gap:3px;margin-bottom:12px}
+.hero-modes .mode-btn{padding:4px 8px;font-size:10px}
+.hero-modes .mode-btn .mi{font-size:11px}
+.hero-features{gap:4px;margin-bottom:12px}
+.hero-features .welcome-feature{padding:3px 7px;font-size:9px}
+.hero-suggest{grid-template-columns:repeat(2,1fr);gap:5px}
+.suggest-card{padding:8px 6px}
+.suggest-card-icon{font-size:14px}
+.suggest-card-text{font-size:10px}}
 
 /* Unified All-Mode Search */
 .unified-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
@@ -2685,6 +2700,29 @@ function newSearch(){
   if(heroInput)heroInput.value='';
   if(heroInput)heroInput.focus();
   renderHeroSuggests();
+}
+function renderHistory(h){
+  var lb=langLabels[lang]||langLabels.en;
+  document.body.classList.add('searching');
+  heroSearchEl.classList.remove('active');
+  var c=document.getElementById('chat');
+  var html='<div class="msg msg-ai"><div class="ai-avatar">DC</div><div class="ai-bubble"><div class="ai-name">DeryCode AI</div>';
+  html+='<div class="ai-content">'+(lb.history||'Recent Searches')+' ('+h.length+')</div>';
+  html+='<div style="margin-top:12px">';
+  h.forEach(function(item){
+    var safeQ=item.q.replace(/'/g,"\\'");
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;margin:6px 0;background:var(--bg3);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:background 0.15s" onclick="inputEl.value=\''+safeQ+'\';send();">';
+    html+='<span style="font-size:18px">🕒</span>';
+    html+='<span style="flex:1;color:var(--text);font-size:15px">'+item.q+'</span>';
+    html+='<span style="font-size:12px;color:var(--text3)">'+timeAgo(item.t)+'</span>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<div style="margin-top:16px"><button class="ai-followup" style="background:var(--bg4);color:var(--text3)" onclick="clearHistory();newSearch();">'+(lb.clearHistory||'Clear History')+'</button></div>';
+  html+='</div></div>';
+  c.innerHTML=html;
+  var welcomeEl=document.getElementById('welcome');
+  if(welcomeEl)welcomeEl.style.display='none';
 }
 function showHistory(){
   var h=getHistory();
