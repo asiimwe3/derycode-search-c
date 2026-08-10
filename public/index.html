@@ -892,6 +892,12 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 /* Show bottom nav only when installed (standalone) or on mobile */
 @media(display-mode:standalone){.bottom-nav{display:flex}}
 @media(max-width:600px){.bottom-nav{display:flex}}
+
+.kp-card{background:rgba(212,175,55,0.05);border:1px solid rgba(212,175,55,0.15);border-radius:12px;padding:16px;margin:0 0 12px}
+.kp-title{font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px}
+.kp-extract{color:var(--text2,#ccc);font-size:14px;line-height:1.6;margin-bottom:10px}
+.kp-link{display:inline-block;color:var(--gold);font-size:13px;text-decoration:none;margin-bottom:8px}
+.kp-source{font-size:11px;color:var(--text3,#666);margin-top:4px}
 </style>
 </head>
 <body>
@@ -1127,7 +1133,7 @@ body.has-bottom-nav .input-hint{margin-bottom:0}
 <!-- HERO SEARCH (centered home screen) -->
 <div class="hero-search active" id="heroSearch">
   <div class="hero-logo"><span class="d">Dery</span><span class="a">Code</span><span class="ai-badge">AI</span></div>
-  <div class="hero-sub" id="heroSub">22-source AI search engine. Deep web, dark web, maps, books, news, code. 5000-word answers.</div>
+  <div class="hero-sub" id="heroSub">23-source AI search engine. Deep web, dark web, maps, books, news, code. 5000-word answers.</div>
   <div class="hero-input-wrapper">
     <div class="hero-input-box">
       <input type="text" id="heroInput" placeholder="Ask DeryCode AI anything..." autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -1244,7 +1250,7 @@ var hm=document.getElementById('hmode-'+m);if(hm)hm.classList.add('active');
 }
 };
 var langLabels={
-en:{placeholder:'Ask DeryCode AI anything...',sub:'22-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
+en:{placeholder:'Ask DeryCode AI anything...',sub:'23-source AI search. Deep web, dark web, maps, books, news. 5000-word answers.',hint:'Web AI - All Modes - No tracking',send:'Send',all:'Search everything',search:'Search the web',images:'Search images',news:'Search news',code:'Search code',ai:'AI',history:'Recent Searches',clearHistory:'Clear',
 suggests:[{icon:'💼',text:'What services does DeryCode offer?'},{icon:'👤',text:'Who is Asiimwe Derick?'},{icon:'💰',text:'How much does a website cost?'},{icon:'🌍',text:'Tell me about Uganda'}]},
 sw:{placeholder:'Uliza DeryCode AI chochote...',sub:'Msaidizi wako wa AI. Uliza chochote.',hint:'Web AI - Lugha 6 - Hakuna ufuatiliaji',send:'Tuma',search:'Tafuta mtandao',images:'Tafuta picha',news:'Tafuta habari',code:'Tafuta code',ai:'AI',
 suggests:[{icon:'💼',text:'Huduma gani anazitoa DeryCode?'},{icon:'👤',text:'Ni nani Asiimwe Derick?'},{icon:'💰',text:'Bei ya tovuti ni ngapi?'},{icon:'🌍',text:'Niambie kuhusu Uganda'}]},
@@ -1476,7 +1482,7 @@ function searchAll(q){
 saveHistory(q);
 // Progressive rendering: push the AI message immediately, then fill in sections as APIs respond
 var idx=messages.length;
-messages.push({role:'assistant',content:'',sources:[],results:[],images:[],videos:[],mode:'all',aiSummary:false,confidence:'medium',paa:[],_progress:true});
+messages.push({role:'assistant',content:'',sources:[],results:[],images:[],videos:[],mode:'all',aiSummary:false,confidence:'medium',paa:[],knowledgePanel:null,_progress:true});
 renderMessages();
 scrollToBottom();
 
@@ -1521,6 +1527,7 @@ checkAllDone();
 fetch('/api/search?q='+encodeURIComponent(q)+(deepSearch?'&deep=1':'')).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
 data=data||{};
 var m=messages[idx];if(!m)return;
+if(data.knowledgePanel){m.knowledgePanel=data.knowledgePanel}
 if(data.results&&data.results.length>0){
 m.results=m.results.concat(data.results.filter(function(r){return!m.results.some(function(s){return s.url===r.url})}));
 }
@@ -1788,6 +1795,7 @@ if(m.results&&m.results.length>0){html+='<div class="search-section"><div class=
 
 // Unified All mode - AI overview + web results + images + videos + links
 if(m.mode==='all'){
+if(m.knowledgePanel){html+='<div class="search-section"><div class="search-section-title">📊 Knowledge Panel</div><div class="kp-card"><div class="kp-title">'+esc(m.knowledgePanel.title)+'</div><p class="kp-extract">'+cleanAndEsc(m.knowledgePanel.extract)+'</p>';if(m.knowledgePanel.url){html+='<a href="'+m.knowledgePanel.url+'" target="_blank" class="kp-link">'+formatUrl(m.knowledgePanel.url)+'</a>'}html+='<div class="kp-source">Source: '+esc(m.knowledgePanel.source||'Wikipedia')+'</div></div></div>'}
 if(m.aiSummary&&m.content){html+='<div class="search-section-title" style="margin:0 0 8px;color:var(--gold);font-size:13px;font-weight:700">✨ AI Overview</div>';html+='<div class="ai-content">'+cleanAndEsc(m.content)+'</div>'}
 if(m.sources&&m.sources.length>0){html+='<div class="ai-sources">';m.sources.forEach(function(s){var url=s.url||'';var title=(s.title||url||'Source');if(title.length>50)title=title.substring(0,47)+'...';html+='<a href="'+url+'" target="_blank" class="ai-source">'+cleanAndEsc(title)+'</a>'});html+='</div>'}
 if(m.results&&m.results.length>0){html+='<div class="search-section"><div class="search-section-title">🔍 Web Results</div>';m.results.slice(0,12).forEach(function(r){var c={duckduckgo:'#de5833',wikipedia:'#3366cc',github:'#181717',startpage:'#3050ff',web:'#3050ff'}[r.engine]||'#444';var l={duckduckgo:'DDG',wikipedia:'Wiki',github:'GH',startpage:'Web',web:'Web'}[r.engine]||r.engine;html+='<div class="result-card"><div class="result-meta"><span class="engine-badge" style="background:'+c+'">'+l+'</span><span class="result-url">'+formatUrl(r.url)+'</span></div>'+bmBtn(r.url,r.title,r.engine)+'<a href="'+r.url+'" target="_blank" class="result-title">'+cleanAndEsc(r.title)+'</a>';if(r.content)html+='<p class="result-content">'+cleanAndEsc(r.content.substring(0,400))+'</p>';html+='</div>'});html+='</div>'}

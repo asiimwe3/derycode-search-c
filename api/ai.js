@@ -80,6 +80,21 @@ function getDeryCodeKnowledge(query) {
     };
   }
 
+
+  // General DeryCode fallback — company overview
+  if (lower.includes('derycode') || lower.includes('dery code')) {
+    return {
+      answer: "DeryCode Technologies is a software development company founded by Asiimwe Derick in 2021, headquartered in Kampala, Uganda. The company specializes in full-stack web development, mobile apps, fintech and banking systems (SACCO software), blockchain and Web3 solutions, AI and automation, digital libraries, and ERP systems. DeryCode has built 21+ projects including the DeryCode Search Engine (AI-powered search with 23 sources), Tropical Gardens Hotel PWA, Sageco Evergreen (real estate platform), Property Masters (property listing platform with Pesapal payments), Peters Medicare Services (healthcare platform), SACCO Wallet (multi-vendor e-commerce and digital banking), AgroLink Uganda (Flutter app for farmers), Tooro Music (artist showcase platform), and DeryCoin (ERC-20 token case study). The company serves clients across Uganda and globally, with pricing starting from UGX 750,000 for business websites. Contact: info@derycode.com | WhatsApp: +256 772 002 326 / +256 762 306 675 | Website: derycode.publicvm.com | GitHub: github.com/asiimwe3",
+      sources: [
+        { title: 'DeryCode Technologies', url: 'https://derycode.publicvm.com' },
+        { title: 'About DeryCode', url: 'https://derycode.publicvm.com/about.html' },
+        { title: 'GitHub Profile', url: 'https://github.com/asiimwe3' },
+        { title: 'DeryCode Search Engine', url: 'https://derycode-search-c.vercel.app' }
+      ],
+      followups: ['What services does DeryCode offer?', 'Who is the founder of DeryCode?', 'What projects has DeryCode built?', 'How can I contact DeryCode?']
+    };
+  }
+
   return null;
 }
 

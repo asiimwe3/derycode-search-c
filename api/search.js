@@ -47,6 +47,31 @@ function relevanceScore(result, keywords) {
   return Math.max(0, Math.min(100, score));
 }
 
+
+// Filter out obviously irrelevant results for known entity queries
+function isNoiseResult(result, query) {
+  const lower = query.toLowerCase().trim();
+  const titleLower = (result.title || '').toLowerCase();
+  const contentLower = (result.content || '').toLowerCase();
+  const urlLower = (result.url || '').toLowerCase();
+  
+  // For "derycode" queries, filter out known noise patterns
+  if (lower.includes('derycode') || lower.includes('dery code')) {
+    // Irrelevant URLs that match on partial word fragments
+    const noiseUrls = ['cern.ch', 'derrynh.gov', 'deri.io', 'derythm'];
+    for (const noise of noiseUrls) {
+      if (urlLower.includes(noise)) return true;
+    }
+    // Irrelevant title patterns
+    if (titleLower.includes('code enforcement') && titleLower.includes('derry')) return true;
+    if (titleLower.includes('theoretical physics')) return true;
+    if (titleLower.includes('deri protocol')) return true;
+    if (titleLower.includes('derythm')) return true;
+  }
+  
+  return false;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const q = req.query.q || '';
@@ -97,9 +122,20 @@ export default async function handler(req, res) {
   const sourceNames = ['derycode', 'startpage', 'duckduckgo', 'wikipedia', 'reddit', 'hackernews', 'stackexchange', 'arxiv', 'archive', 'openlibrary', 'semantic-scholar', 'github', 'google-books', 'google-news', 'gutenberg', 'pubmed', 'scholar', 'wikidata', 'core', 'worldbank', 'ahmia', 'unpaywall', 'archive-advanced'];
   let knowledgePanel = null;
   
+  // DeryCode knowledge panel for DeryCode-related queries
+  const lowerQ = q.toLowerCase();
+  if (lowerQ.includes('derycode') || lowerQ.includes('dery code') || lowerQ.includes('asiimwe')) {
+    knowledgePanel = {
+      title: 'DeryCode Technologies',
+      extract: 'DeryCode Technologies is a software development company founded by Asiimwe Derick in 2021, headquartered in Kampala, Uganda. The company specializes in full-stack web development, mobile apps, fintech and banking systems, blockchain and Web3 solutions, AI and automation, digital libraries, and ERP systems. Notable projects include the DeryCode Search Engine, Tropical Gardens Hotel PWA, Sageco Evergreen, Property Masters, Peters Medicare Services, SACCO Wallet, AgroLink Uganda, and Tooro Music. Contact: info@derycode.com | WhatsApp: +256 772 002 326 / +256 762 306 675',
+      url: 'https://derycode.publicvm.com',
+      source: 'DeryCode Knowledge Base'
+    };
+  }
+  
   settled.forEach((result, idx) => {
     if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
-      if (idx === 2) {
+      if (idx === 2 && !knowledgePanel) {
         const wiki = result.value[0];
         knowledgePanel = { title: wiki.title, extract: wiki.content, url: wiki.url, source: 'Wikipedia' };
       }
@@ -119,6 +155,35 @@ export default async function handler(req, res) {
     seen.add(r.url);
     return true;
   });
+  
+  // Filter out noise results for known entity queries
+  const filtered = deduped.filter(r => !isNoiseResult(r, q));
+  
+  // For single-word queries, filter out results with zero keyword matches in title
+  if (q.trim().split(/\s+/).length === 1 && keywords.length > 0) {
+    const singleKw = keywords[0];
+    const boosted = filtered.filter(r => {
+      const titleLower = (r.title || '').toLowerCase();
+      const urlLower = (r.url || '').toLowerCase();
+      return titleLower.includes(singleKw) || urlLower.includes(singleKw);
+    });
+    const rest = filtered.filter(r => {
+      const titleLower = (r.title || '').toLowerCase();
+      const urlLower = (r.url || '').toLowerCase();
+      return !titleLower.includes(singleKw) && !urlLower.includes(singleKw);
+    });
+    // Put exact matches first, then the rest sorted by score
+    const final = boosted.concat(rest);
+    const elapsed2 = ((Date.now() - startTime) / 1000).toFixed(2);
+    return res.status(200).json({
+      query: q, knowledgePanel,
+      results: final.slice(0, 30),
+      count: final.length, sources: sourcesUsed, time: elapsed2,
+      limits: { maxQueryWords: MAX_QUERY_WORDS },
+      deep: deep || false,
+      deep_sources: deep ? ["Wikidata","CORE","World Bank","Ahmia (.onion)","CrossRef/Unpaywall","Internet Archive Advanced"] : []
+    });
+  }
   
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   
