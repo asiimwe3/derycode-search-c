@@ -1,68 +1,51 @@
-# DeryCode Search (C Edition) - Enhanced v2.0
+# DeryCode AI Search Engine
 
-A premium search engine built in **pure C** - zero frameworks, zero dependencies.
+A privacy-focused AI search engine with 23 data sources, 10 search modes, and zero tracking. Built by [DeryCode Technologies](https://derycode.publicvm.com), founded by [Asiimwe Derick](https://github.com/asiimwe3) in Kampala, Uganda.
 
-## What's New in v2.0
+## Live Demo
 
-- **16 Search Sources** (was 11) - now includes Google Books, Google News, Google Scholar, PubMed, Project Gutenberg
-- **512 results per query** (was 128)
-- **5000 word AI answers** (was 200) - comprehensive, detailed responses
-- **500 word queries** (was 30) - ask complex questions
-- **Book search + summarization** - find books across Google Books, Open Library, and Project Gutenberg
-- **Deep content extraction** - fetches full page content from top results
-- **Real-time news** - stays up to date with Google News RSS
-- **30 step-by-step guides** (was 15) - more comprehensive Derick Agent
-- **10 related searches** (was 6)
-
-## All 16 Sources
-
-1. DuckDuckGo Instant Answers
-2. DuckDuckGo Full Web Results (HTML scraping - ALL results)
-3. Wikipedia + Knowledge Panels
-4. GitHub Repositories
-5. Reddit (forum discussions)
-6. Hacker News (tech discussions)
-7. Stack Exchange / Stack Overflow (Q&A)
-8. ArXiv (academic preprints)
-9. Internet Archive (archived/deleted content)
-10. Open Library (books)
-11. Semantic Scholar (research papers)
-12. **Google Books** (full book content + descriptions) *NEW*
-13. **Google News** (real-time news) *NEW*
-14. **Project Gutenberg** (free full books) *NEW*
-15. **PubMed** (medical research) *NEW*
-16. **Google Scholar** (academic papers) *NEW*
+Try it at: https://derycode-search-c.vercel.app
 
 ## Features
-- AI Summaries (auto-generated from top results)
-- Knowledge Panels (Wikipedia summaries with thumbnails)
-- Voice Search (Web Speech API)
-- Autocomplete suggestions
-- Related searches (10 suggestions)
-- Search history (localStorage)
-- Derick Agent - Step-by-step practical guides (up to 30 steps)
-- Book search and summarization
-- Real-time news aggregation
-- Deep content extraction (full page content)
-- No filtering, no censorship, no safe search
-- Privacy-focused: no tracking, no ads
-- DeryCode dark/gold branding
-- 6 African + international languages
-- Mobile responsive
+
+- 10 search modes: AI Answers, Web, Images, News, Code, Derick AI, Books, Maps, Deep Web, Videos
+- 23 data sources aggregated in real-time
+- AI-powered answer generation from search results
+- Wikipedia knowledge panels for entities
+- Academic search (PubMed, Google Scholar, CrossRef)
+- Multi-language support: English, Swahili, Luganda, Runyankole, Luo, Ateso
+- Voice search and autocomplete suggestions
+- No tracking, no ads, no cookies
+- Installable Progressive Web App (PWA)
+
+## Technology Stack
+
+- **Core Engine:** C (POSIX sockets, fork concurrency)
+- **Serverless APIs:** JavaScript (Vercel functions)
+- **Frontend:** Vanilla HTML/CSS/JS (zero frameworks)
+- **Deployment:** Vercel (production), Docker (self-hosted)
 
 ## API Endpoints
-- `/api/search?q=QUERY` - Full search (16 sources, 512 results)
-- `/api/search?q=QUERY&deep=1` - Deep search (includes full page extraction)
-- `/api/ai` - AI chat with high-output answers (POST: {question, lang, history})
-- `/api/derick` - Step-by-step practical guide (POST: {question, deep})
-- `/api/books?q=QUERY` - Book search with summaries
-- `/api/news?q=QUERY` - Real-time news
-- `/api/suggest?q=QUERY` - Autocomplete suggestions
-- `/api/languages` - List supported languages
-- `/api/health` - Health check
 
-## Build and Run
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/search?q=QUERY` | GET | Full search (23 sources) |
+| `/api/ai` | POST | AI chat with high-output answers |
+| `/api/derick` | POST | Step-by-step practical guides |
+| `/api/books?q=QUERY` | GET | Book search with summaries |
+| `/api/news?q=QUERY` | GET | Real-time news |
+| `/api/images?q=QUERY` | GET | Image search |
+| `/api/videos?q=QUERY` | GET | Video search |
+| `/api/status` | GET | Health check |
+
+## Local Development
+
 ```bash
+# Serverless (Vercel)
+npm install -g vercel
+vercel dev
+
+# Or build from C source
 make
 ./derycode-search 8080
 ```
@@ -70,20 +53,30 @@ make
 Then open http://localhost:8080
 
 ## Architecture
-- `server.c` - HTTP server using POSIX sockets with fork() for concurrency
-- `json.h` - Hand-written JSON parser (zero dependencies)
-- `search.h` - Search aggregation from 16 sources + AI + Derick Agent
-- `languages.h` - 6 languages + high output limits (500 query / 5000 answer words)
-- `knowledge.h` - Built-in DeryCode knowledge base
-- `public/index.html` - Single-page frontend with embedded CSS/JS
 
-## Deployment
+- `server.c` — HTTP server using POSIX sockets with fork() for concurrency
+- `json.h` — Hand-written JSON parser (zero dependencies)
+- `search.h` — Search aggregation from 23 sources + AI + Derick Agent
+- `languages.h` — 6 languages + high output limits (500 query / 5000 answer words)
+- `knowledge.h` — Built-in DeryCode knowledge base
+- `api/` — Vercel serverless functions (production deployment)
+- `public/index.html` — Single-page frontend with embedded CSS/JS
+
+## Docker
+
 ```bash
 docker build -t derycode-search .
 docker run -p 8080:8080 derycode-search
 ```
 
-## License
-MIT
+## Author
 
-Built in C by DeryCode Tech - Kyenjojo, Uganda
+**Asiimwe Derick** — Founder, DeryCode Technologies
+- GitHub: [@asiimwe3](https://github.com/asiimwe3)
+- Website: [derycode.publicvm.com](https://derycode.publicvm.com)
+- Email: info@derycode.com
+- WhatsApp: +256 772 002 326
+
+## License
+
+MIT — see [LICENSE](LICENSE) file.

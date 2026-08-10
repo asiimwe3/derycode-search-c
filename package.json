@@ -1,7 +1,7 @@
 {
   "name": "derycode-search",
   "version": "2.0.0",
-  "description": "DeryCode AI Search Engine v2.1 - 22 sources, 10 modes, no tracking",
+  "description": "DeryCode AI Search Engine v2.1 - 23 sources, 10 modes, no tracking",
   "private": true,
   "type": "module"
 }

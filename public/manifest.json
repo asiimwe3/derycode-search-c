@@ -1,7 +1,7 @@
 {
   "name": "DeryCode AI \u2014 Private Search Engine",
   "short_name": "DeryCode AI",
-  "description": "Privacy-focused search engine with 22 sources, 10 modes, AI answers, and zero tracking.",
+  "description": "Privacy-focused search engine with 23 sources, 10 modes, AI answers, and zero tracking.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
