@@ -1,5 +1,5 @@
 // DeryCode AI Service Worker
-const CACHE_NAME = 'derycode-ai-v19';
+const CACHE_NAME = 'derycode-ai-v20';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -78,6 +78,18 @@ self.addEventListener('fetch', function(e) {
           }).catch(function() {
             return caches.match('/');
           });
+        })
+      );
+      return;
+    }
+    
+    // Search queries (?q=) - always serve fresh (no cache)
+    if (requestUrl.searchParams.has('q')) {
+      e.respondWith(
+        fetch(e.request).then(function(response) {
+          return response;
+        }).catch(function() {
+          return caches.match('/');
         })
       );
       return;

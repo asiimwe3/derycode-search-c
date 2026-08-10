@@ -2967,21 +2967,21 @@ initBottomNav();
 window.addEventListener('resize',initBottomNav);
 
 // Auto-search from URL parameter (?q=query)
-window.addEventListener('load',function(){
+(function(){
 var urlParams=new URLSearchParams(window.location.search);
 var urlQuery=urlParams.get('q');
 if(urlQuery&&urlQuery.trim().length>0){
 setTimeout(function(){
 var q=urlQuery.trim();
-heroInput.value=q;
-inputEl.value=q;
-document.body.classList.add('searching');
-heroSearchEl.classList.remove('active');
-if(welcomeEl)welcomeEl.style.display='none';
-searchAll(q);
-},500);
+if(typeof heroInput!=='undefined')heroInput.value=q;
+if(typeof inputEl!=='undefined')inputEl.value=q;
+if(typeof heroSearchEl!=='undefined')heroSearchEl.classList.remove('active');
+var w=document.getElementById('welcome');
+if(w)w.style.display='none';
+if(typeof searchAll==='function')searchAll(q);
+},800);
 }
-});
+})();
 
 </script>
 <!-- Footer for SEO + Internal Linking -->
