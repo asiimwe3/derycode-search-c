@@ -1239,6 +1239,20 @@ heroInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDe
 heroInput.addEventListener('input',function(){inputEl.value=heroInput.value;triggerAutocomplete(heroInput)});
 heroInput.addEventListener('focus',function(){openAutocomplete(heroInput)});
 }
+// Auto-search from URL ?q= parameter
+var _urlQ=new URLSearchParams(window.location.search).get('q');
+if(_urlQ&&_urlQ.trim().length>0){
+setTimeout(function(){
+var _q=_urlQ.trim();
+heroInput.value=_q;
+inputEl.value=_q;
+document.body.classList.add('searching');
+if(heroSearchEl)heroSearchEl.classList.remove('active');
+var _w=document.getElementById('welcome');
+if(_w)_w.style.display='none';
+searchAll(_q);
+},1000);
+}
 
 // Override setMode to sync hero mode buttons too
 var _oldSetMode=setMode;
@@ -2966,22 +2980,7 @@ initBottomNav();
 // Re-init on resize
 window.addEventListener('resize',initBottomNav);
 
-// Auto-search from URL parameter (?q=query)
-(function(){
-var urlParams=new URLSearchParams(window.location.search);
-var urlQuery=urlParams.get('q');
-if(urlQuery&&urlQuery.trim().length>0){
-setTimeout(function(){
-var q=urlQuery.trim();
-if(typeof heroInput!=='undefined')heroInput.value=q;
-if(typeof inputEl!=='undefined')inputEl.value=q;
-if(typeof heroSearchEl!=='undefined')heroSearchEl.classList.remove('active');
-var w=document.getElementById('welcome');
-if(w)w.style.display='none';
-if(typeof searchAll==='function')searchAll(q);
-},800);
-}
-})();
+// Auto-search handled in heroSend init
 
 </script>
 <!-- Footer for SEO + Internal Linking -->
