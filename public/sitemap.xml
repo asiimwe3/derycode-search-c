@@ -68,6 +68,19 @@
     <priority>0.7</priority>
   </url>
 
+
+  <!-- DeryCode Ads — PPC Advertising Platform -->
+  <url>
+    <loc>https://derycode-search-c.vercel.app/ads.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://derycode-search-c.vercel.app/icons/icon-512.png</image:loc>
+      <image:title>DeryCode Ads — PPC Advertising Platform</image:title>
+      <image:caption>Pay-per-click advertising on Uganda's AI Search Engine</image:caption>
+    </image:image>
+  </url>
+
   <!-- Language Variants -->
   <url>
     <loc>https://derycode-search-c.vercel.app/?lang=sw</loc>
