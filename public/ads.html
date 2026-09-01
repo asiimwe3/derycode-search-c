@@ -250,7 +250,34 @@ h2{font-size:18px;margin-bottom:10px;color:var(--text)}
 <div class="stat-card"><div class="stat-value" id="stat-clicks">0</div><div class="stat-label">Total Clicks</div></div>
 <div class="stat-card"><div class="stat-value" id="stat-impressions">0</div><div class="stat-label">Impressions</div></div>
 <div class="stat-card"><div class="stat-value" id="stat-revenue">UGX 0</div><div class="stat-label">Total Spent</div></div>
+
+<div class="wallet-card" style="background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:20px;margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+<div>
+<div style="font-size:12px;text-transform:uppercase;color:var(--text4);letter-spacing:0.5px;margin-bottom:4px;">Wallet Balance</div>
+<div id="walletBalance" style="font-size:28px;font-weight:700;color:var(--gold);">UGX 0</div>
+<div style="font-size:12px;color:var(--text3);margin-top:6px;">Deposited: <span id="totalDeposited">UGX 0</span> &nbsp;|&nbsp; Spent: <span id="totalSpent">UGX 0</span></div>
 </div>
+<button class="btn-add-funds" onclick="openPaymentModal()" style="background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1a1a;border:none;padding:12px 24px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;transition:transform 0.2s;">+ Add Funds</button>
+</div>
+
+<div id="wallet-transactions" style="margin-top:16px;">
+<h3 style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:10px;">Recent Transactions</h3>
+<table style="width:100%;font-size:13px;border-collapse:collapse;">
+<thead><tr style="text-align:left;color:var(--text4);border-bottom:1px solid var(--border);">
+<th style="padding:8px;">Reference</th>
+<th style="padding:8px;">Amount</th>
+<th style="padding:8px;">Method</th>
+<th style="padding:8px;">Status</th>
+<th style="padding:8px;">Date</th>
+</tr></thead>
+<tbody id="txnBody">
+<tr><td colspan="5" style="text-align:center;color:var(--text4);padding:16px;">No transactions yet</td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+
 <div class="card">
 <h2>How DeryCode Ads Work</h2>
 <p style="font-size:14px;line-height:1.6;color:var(--text3)">
@@ -722,5 +749,46 @@ loadDashboard();
     // ===== End Wallet & Payment Functions =====
 
 </script>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="payment-modal">
+<div class="payment-modal-content" style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:30px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;">
+<h2 style="color:var(--gold);margin-bottom:8px;">Add Funds to Your Wallet</h2>
+<p style="font-size:13px;color:var(--text3);margin-bottom:20px;">Pay via MTN MoMo, Airtel Money, or Card. Funds appear in your wallet instantly after payment confirmation.</p>
+
+<div style="display:grid;gap:14px;">
+<div>
+<label style="font-size:12px;color:var(--text4);display:block;margin-bottom:4px;">Email Address *</label>
+<input type="email" id="payEmail" placeholder="your@email.com" style="width:100%;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text1);font-size:14px;">
+</div>
+<div>
+<label style="font-size:12px;color:var(--text4);display:block;margin-bottom:4px;">Phone Number *</label>
+<input type="tel" id="payPhone" placeholder="+256 7XX XXX XXX" style="width:100%;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text1);font-size:14px;">
+</div>
+<div>
+<label style="font-size:12px;color:var(--text4);display:block;margin-bottom:4px;">Business Name (optional)</label>
+<input type="text" id="payBusiness" placeholder="Your business name" style="width:100%;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text1);font-size:14px;">
+</div>
+<div>
+<label style="font-size:12px;color:var(--text4);display:block;margin-bottom:4px;">Amount (UGX) *</label>
+<input type="number" id="payAmount" placeholder="50000" min="5000" step="1000" style="width:100%;background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text1);font-size:14px;">
+<div style="display:flex;gap:8px;margin-top:8px;">
+<button onclick="setAmount(50000)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">50K</button>
+<button onclick="setAmount(100000)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">100K</button>
+<button onclick="setAmount(200000)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">200K</button>
+<button onclick="setAmount(500000)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">500K</button>
+</div>
+</div>
+</div>
+
+<div id="payError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:14px;"></div>
+
+<div style="display:flex;gap:10px;margin-top:20px;">
+<button onclick="closePaymentModal()" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:12px;border-radius:8px;font-weight:600;cursor:pointer;">Cancel</button>
+<button onclick="initiatePayment()" style="flex:2;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#1a1a1a;border:none;padding:12px;border-radius:8px;font-weight:700;cursor:pointer;">Pay Now</button>
+</div>
+</div>
+</div>
+
 </body>
 </html>
