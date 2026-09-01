@@ -87,6 +87,133 @@ h2{font-size:18px;margin-bottom:10px;color:var(--text)}
 .cta-text{font-size:13px;color:var(--text3)}
 .footer{padding:20px;text-align:center;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:20px}
 @media(max-width:600px){.form-row{flex-direction:column}.payment-methods{grid-template-columns:1fr}}
+
+    /* Wallet & Payment Styles */
+    .wallet-card {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 2px solid #ffd700;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.15);
+    }
+    .wallet-balance {
+      font-size: 36px;
+      font-weight: 800;
+      color: #ffd700;
+    }
+    .wallet-label {
+      font-size: 13px;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn-add-funds {
+      background: linear-gradient(135deg, #ffd700, #ffb700);
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn-add-funds:hover { transform: scale(1.05); }
+    .payment-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .payment-modal.active { display: flex; }
+    .payment-modal-content {
+      background: #1a1a2e;
+      border: 2px solid #ffd700;
+      border-radius: 16px;
+      padding: 32px;
+      width: 90%;
+      max-width: 440px;
+    }
+    .payment-modal input, .payment-modal select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      background: #0f0f1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .payment-modal label {
+      font-size: 13px;
+      color: #aaa;
+      margin-top: 12px;
+      display: block;
+    }
+    .quick-amount {
+      display: inline-block;
+      padding: 8px 16px;
+      margin: 4px;
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #ffd700;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .quick-amount:hover { border-color: #ffd700; background: #1a1a2e; }
+    .txn-table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    .txn-table th {
+      text-align: left;
+      padding: 10px;
+      color: #ffd700;
+      font-size: 12px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #333;
+    }
+    .txn-table td {
+      padding: 10px;
+      border-bottom: 1px solid #222;
+      color: #ccc;
+      font-size: 13px;
+    }
+    .txn-status {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .txn-status.completed { background: #1a3a1a; color: #4ade80; }
+    .txn-status.pending { background: #3a3a1a; color: #fbbf24; }
+    .txn-status.failed { background: #3a1a1a; color: #f87171; }
+    .payment-methods {
+      display: flex;
+      gap: 8px;
+      margin: 8px 0;
+      flex-wrap: wrap;
+    }
+    .pm-badge {
+      padding: 6px 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #aaa;
+    }
+
 </style>
 </head>
 <body>
@@ -452,6 +579,140 @@ function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace
 
 // Init
 loadDashboard();
+
+    // ===== Wallet & Payment Functions =====
+    let advertiserEmail = '';
+
+    async function loadWallet() {
+      // Try to get email from campaign form or localStorage
+      advertiserEmail = localStorage.getItem('derycode_advertiser_email') || '';
+      if (!advertiserEmail) return;
+
+      try {
+        const res = await fetch('/api/search?payment=wallet&email=' + encodeURIComponent(advertiserEmail));
+        const data = await res.json();
+        const w = data.wallet || {};
+        document.getElementById('walletBalance').textContent = 'UGX ' + (w.balance || 0).toLocaleString();
+        document.getElementById('totalDeposited').textContent = 'UGX ' + (w.totalDeposited || 0).toLocaleString();
+        document.getElementById('totalSpent').textContent = 'UGX ' + (w.totalSpent || 0).toLocaleString();
+      } catch (e) { console.warn('Wallet load failed:', e); }
+    }
+
+    async function loadTransactions() {
+      if (!advertiserEmail) return;
+      try {
+        const res = await fetch('/api/search?payment=transactions&email=' + encodeURIComponent(advertiserEmail));
+        const data = await res.json();
+        const tbody = document.getElementById('txnBody');
+        const txns = data.transactions || [];
+        if (txns.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#666;">No transactions yet</td></tr>';
+          return;
+        }
+        tbody.innerHTML = txns.reverse().map(t => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;">${t.reference}</td>
+            <td>UGX ${(t.amount || 0).toLocaleString()}</td>
+            <td>${t.payment_method || 'PesaPal'}</td>
+            <td><span class="txn-status ${t.status}">${t.status}</span></td>
+            <td style="font-size:11px;">${new Date(t.createdAt || t.completedAt).toLocaleDateString()}</td>
+          </tr>
+        `).join('');
+      } catch (e) { console.warn('Transaction load failed:', e); }
+    }
+
+    function openPaymentModal() {
+      document.getElementById('paymentModal').classList.add('active');
+      if (advertiserEmail) document.getElementById('payEmail').value = advertiserEmail;
+    }
+
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.remove('active');
+      document.getElementById('payError').style.display = 'none';
+    }
+
+    function setAmount(amt) {
+      document.getElementById('payAmount').value = amt;
+    }
+
+    async function initiatePayment() {
+      const amount = document.getElementById('payAmount').value;
+      const email = document.getElementById('payEmail').value;
+      const phone = document.getElementById('payPhone').value;
+      const business = document.getElementById('payBusiness').value;
+      const errorDiv = document.getElementById('payError');
+
+      if (!amount || !email || !phone) {
+        errorDiv.textContent = 'Please fill in amount, email, and phone number';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      if (parseInt(amount) < 5000) {
+        errorDiv.textContent = 'Minimum top-up is UGX 5,000';
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      errorDiv.style.display = 'none';
+      localStorage.setItem('derycode_advertiser_email', email);
+
+      try {
+        const res = await fetch('/api/search?payment=initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount, email, phone, business })
+        });
+        const data = await res.json();
+
+        if (data.success && data.redirect_url) {
+          // Redirect to PesaPal checkout
+          window.location.href = data.redirect_url;
+        } else {
+          errorDiv.textContent = data.error || 'Payment failed to start';
+          errorDiv.style.display = 'block';
+        }
+      } catch (e) {
+        errorDiv.textContent = 'Connection error: ' + e.message;
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Check for payment success redirect
+    function checkPaymentSuccess() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('payment') === 'success') {
+        const orderTrackingId = params.get('OrderTrackingId');
+        const reference = params.get('OrderMerchantReference');
+        if (orderTrackingId) {
+          // Confirm the payment
+          fetch('/api/search?payment=confirm&orderTrackingId=' + orderTrackingId + '&reference=' + (reference || ''))
+            .then(r => r.json())
+            .then(data => {
+              if (data.complete) {
+                alert('Payment successful! UGX ' + (data.amount || 0).toLocaleString() + ' added to your wallet.');
+                loadWallet();
+                loadTransactions();
+              } else {
+                alert('Payment is being processed. Your wallet will be credited once confirmed.');
+                setTimeout(() => { loadWallet(); loadTransactions(); }, 5000);
+              }
+            })
+            .catch(() => alert('Payment is being processed. Please check back shortly.'));
+          // Clean URL
+          window.history.replaceState({}, '', '/ads.html');
+        }
+      }
+    }
+
+    // Load wallet and transactions on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadWallet();
+      loadTransactions();
+      checkPaymentSuccess();
+    });
+    // ===== End Wallet & Payment Functions =====
+
 </script>
 </body>
 </html>

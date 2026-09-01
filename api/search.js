@@ -102,14 +102,38 @@ async function serveAds(query) {
 async function trackClick(adId) {
   const store = await getCampaignStore();
   const campaign = store.campaigns.find(c => c.id === adId);
-  if (campaign && campaign.status === 'active' && campaign.budget > campaign.spent) {
-    campaign.clicks++;
-    campaign.spent += campaign.bid;
-    store.clicks.push({ campaignId: adId, timestamp: new Date().toISOString() });
-    await saveCampaignStore(store);
-    return campaign.url;
+  if (!campaign || campaign.status !== 'active') return null;
+
+  // Check wallet balance if advertiser email is set
+  if (campaign.advertiserEmail) {
+    const wallets = await getWallets();
+    const wallet = wallets[campaign.advertiserEmail];
+    if (!wallet || wallet.balance < campaign.bid) {
+      // Auto-pause campaign — insufficient funds
+      campaign.status = 'paused';
+      campaign.pausedReason = 'insufficient_wallet_balance';
+      await saveCampaignStore(store);
+      return null;
+    }
+    // Deduct from wallet
+    wallet.balance -= campaign.bid;
+    wallet.totalSpent = (wallet.totalSpent || 0) + campaign.bid;
+    await saveWallets(wallets);
   }
-  return null;
+
+  // Also check legacy budget
+  if (campaign.budget > 0 && campaign.spent >= campaign.budget) {
+    campaign.status = 'paused';
+    campaign.pausedReason = 'budget_exhausted';
+    await saveCampaignStore(store);
+    return null;
+  }
+
+  campaign.clicks++;
+  campaign.spent += campaign.bid;
+  store.clicks.push({ campaignId: adId, timestamp: new Date().toISOString() });
+  await saveCampaignStore(store);
+  return campaign.url;
 }
 
 // Handle ads API requests (action-based routing)
@@ -154,7 +178,8 @@ async function handleAdsRequest(req, res) {
       business: data.business || '', title: data.title || '', description: data.description || '',
       url: data.url || '', keywords: data.keywords || [], bid: data.bid || 500,
       budget: data.budget || 10000, spent: 0, impressions: 0, clicks: 0,
-      status: 'active', createdAt: new Date().toISOString()
+      status: 'active', createdAt: new Date().toISOString(),
+      advertiserEmail: data.advertiserEmail || ''
     };
     store.campaigns.push(campaign);
     await saveCampaignStore(store);
@@ -186,6 +211,300 @@ async function handleAdsRequest(req, res) {
   return true;
 }
 // ============ End DeryCode Ads ============
+
+// ============ PesaPal Payment Integration ============
+const PESAPAL_BASE = process.env.PESAPAL_ENV === 'sandbox'
+  ? 'https://cybqa.pesapal.com/v3'
+  : 'https://pay.pesapal.com/v3';
+const PESAPAL_KEY = process.env.PESAPAL_CONSUMER_KEY;
+const PESAPAL_SECRET = process.env.PESAPAL_CONSUMER_SECRET;
+const PESAPAL_IPN_ID = process.env.PESAPAL_IPN_ID;
+const SITE_URL = 'https://derycode-search-c.vercel.app';
+
+async function getPesaPalToken() {
+  const res = await fetch(`${PESAPAL_BASE}/api/Auth/RequestToken`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ consumer_key: PESAPAL_KEY, consumer_secret: PESAPAL_SECRET })
+  });
+  const data = await res.json();
+  return data.token;
+}
+
+// Wallet stored in Edge Config alongside campaigns
+async function getWallets() {
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      const res = await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/item?token=${edgeConfigToken}&key=wallets`);
+      if (res.ok) return await res.json();
+    } catch (e) {}
+  }
+  return {};
+}
+
+async function saveWallets(wallets) {
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ operation: 'upsert', key: 'wallets', value: JSON.stringify(wallets) }] })
+      });
+    } catch (e) {}
+  }
+}
+
+async function getTransactions() {
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      const res = await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/item?token=${edgeConfigToken}&key=transactions`);
+      if (res.ok) return await res.json();
+    } catch (e) {}
+  }
+  return [];
+}
+
+async function saveTransactions(transactions) {
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ operation: 'upsert', key: 'transactions', value: JSON.stringify(transactions) }] })
+      });
+    } catch (e) {}
+  }
+}
+
+async function handlePaymentRequest(req, res) {
+  const action = req.query.payment || '';
+
+  // Initiate payment
+  if (action === 'initiate' && req.method === 'POST') {
+    if (!PESAPAL_KEY || !PESAPAL_SECRET) {
+      res.status(500).json({ error: 'PesaPal credentials not configured' });
+      return true;
+    }
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const { amount, email, phone, first_name, last_name, business } = JSON.parse(body);
+
+    if (!amount || !email || !phone) {
+      res.status(400).json({ error: 'Missing required fields: amount, email, phone' });
+      return true;
+    }
+
+    try {
+      const reference = `ADSFUND-${Date.now()}`;
+      const token = await getPesaPalToken();
+
+      const orderRes = await fetch(`${PESAPAL_BASE}/api/Transactions/SubmitOrderRequest`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          id: reference,
+          currency: 'UGX',
+          amount: parseFloat(amount),
+          description: `DeryCode Ads Top-up - ${business || 'Advertiser'}`,
+          callback_url: `${SITE_URL}/ads.html?payment=success`,
+          notification_id: PESAPAL_IPN_ID,
+          billing_address: {
+            email_address: email,
+            phone_number: phone,
+            first_name: first_name || 'Advertiser',
+            last_name: last_name || business || 'DeryCode',
+            country_code: 'UG',
+          }
+        })
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderData.redirect_url) {
+        res.status(502).json({ error: orderData.error?.message || 'PesaPal order failed' });
+        return true;
+      }
+
+      // Record transaction
+      const transactions = await getTransactions();
+      transactions.push({
+        reference,
+        order_tracking_id: orderData.order_tracking_id,
+        amount: parseFloat(amount),
+        email,
+        phone,
+        business: business || '',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+      await saveTransactions(transactions);
+
+      res.status(200).json({
+        success: true,
+        redirect_url: orderData.redirect_url,
+        order_tracking_id: orderData.order_tracking_id,
+        reference
+      });
+      return true;
+    } catch (err) {
+      res.status(500).json({ error: 'Payment initiation failed: ' + err.message });
+      return true;
+    }
+  }
+
+  // IPN callback from PesaPal
+  if (action === 'ipn') {
+    try {
+      const notification = req.method === 'GET' ? req.query : req.body;
+      const { OrderTrackingId, OrderMerchantReference } = notification;
+
+      if (!OrderTrackingId && !OrderMerchantReference) {
+        res.status(400).json({ error: 'Missing reference' });
+        return true;
+      }
+
+      const token = await getPesaPalToken();
+      const statusRes = await fetch(
+        `${PESAPAL_BASE}/api/Transactions/GetTransactionStatus?orderTrackingId=${OrderTrackingId}`,
+        { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const statusData = await statusRes.json();
+      const paymentStatus = statusData.payment_status_description || 'UNKNOWN';
+      const reference = OrderMerchantReference || statusData.merchant_reference || '';
+
+      if (paymentStatus === 'Completed' && reference) {
+        // Credit the wallet
+        const transactions = await getTransactions();
+        const txn = transactions.find(t => t.reference === reference);
+        if (txn && txn.status !== 'completed') {
+          txn.status = 'completed';
+          txn.payment_method = statusData.payment_method || '';
+          txn.completedAt = new Date().toISOString();
+          await saveTransactions(transactions);
+
+          // Credit wallet (keyed by email)
+          const wallets = await getWallets();
+          const walletKey = txn.email;
+          if (!wallets[walletKey]) {
+            wallets[walletKey] = { balance: 0, totalDeposited: 0, totalSpent: 0, email: txn.email, business: txn.business };
+          }
+          wallets[walletKey].balance += txn.amount;
+          wallets[walletKey].totalDeposited += txn.amount;
+          await saveWallets(wallets);
+
+          // Auto-activate any paused campaigns for this advertiser
+          const store = await getCampaignStore();
+          for (const c of store.campaigns) {
+            if (c.advertiserEmail === txn.email && c.status === 'paused') {
+              c.status = 'active';
+            }
+          }
+          await saveCampaignStore(store);
+        }
+      }
+
+      res.status(200).json({ success: true, reference, status: paymentStatus });
+      return true;
+    } catch (err) {
+      res.status(200).json({ success: false, error: err.message });
+      return true;
+    }
+  }
+
+  // Confirm payment status
+  if (action === 'confirm') {
+    const { orderTrackingId, reference } = req.query;
+    if (!orderTrackingId) {
+      res.status(400).json({ error: 'Missing orderTrackingId' });
+      return true;
+    }
+    try {
+      const token = await getPesaPalToken();
+      const statusRes = await fetch(
+        `${PESAPAL_BASE}/api/Transactions/GetTransactionStatus?orderTrackingId=${orderTrackingId}`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }
+      );
+      const statusData = await statusRes.json();
+      const isComplete = statusData.payment_status_description === 'Completed';
+
+      // Update transaction if just completed
+      if (isComplete && reference) {
+        const transactions = await getTransactions();
+        const txn = transactions.find(t => t.reference === reference);
+        if (txn && txn.status !== 'completed') {
+          txn.status = 'completed';
+          txn.payment_method = statusData.payment_method || '';
+          txn.completedAt = new Date().toISOString();
+          await saveTransactions(transactions);
+
+          const wallets = await getWallets();
+          const walletKey = txn.email;
+          if (!wallets[walletKey]) {
+            wallets[walletKey] = { balance: 0, totalDeposited: 0, totalSpent: 0, email: txn.email, business: txn.business };
+          }
+          wallets[walletKey].balance += txn.amount;
+          wallets[walletKey].totalDeposited += txn.amount;
+          await saveWallets(wallets);
+
+          const store = await getCampaignStore();
+          for (const c of store.campaigns) {
+            if (c.advertiserEmail === txn.email && c.status === 'paused') {
+              c.status = 'active';
+            }
+          }
+          await saveCampaignStore(store);
+        }
+      }
+
+      res.status(200).json({
+        status: statusData.payment_status_description,
+        complete: isComplete,
+        amount: statusData.amount,
+        tracking_id: orderTrackingId
+      });
+      return true;
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+      return true;
+    }
+  }
+
+  // Get wallet balance
+  if (action === 'wallet') {
+    const email = req.query.email;
+    if (!email) {
+      res.status(400).json({ error: 'Missing email' });
+      return true;
+    }
+    const wallets = await getWallets();
+    const wallet = wallets[email] || { balance: 0, totalDeposited: 0, totalSpent: 0 };
+    res.status(200).json({ wallet });
+    return true;
+  }
+
+  // Get transaction history
+  if (action === 'transactions') {
+    const email = req.query.email;
+    const transactions = await getTransactions();
+    const filtered = email ? transactions.filter(t => t.email === email) : transactions;
+    res.status(200).json({ transactions: filtered.slice(-50), count: filtered.length });
+    return true;
+  }
+
+  return false;
+}
+// ============ End PesaPal Payment ============
 
 
 const MAX_QUERY_WORDS = 500;
@@ -268,6 +587,12 @@ export default async function handler(req, res) {
   if (req.query.ads === 'true' || (req.url && req.url.includes('/api/ads'))) {
     await handleAdsRequest(req, res);
     return;
+  }
+
+  // Route payment requests
+  if (req.query.payment) {
+    const handled = await handlePaymentRequest(req, res);
+    if (handled) return;
   }
   res.setHeader('Access-Control-Allow-Origin', '*');
   const q = req.query.q || '';
