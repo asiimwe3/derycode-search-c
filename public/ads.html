@@ -318,6 +318,10 @@ h2{font-size:18px;margin-bottom:10px;color:var(--text)}
 </select>
 </div>
 <div class="form-group">
+<label>Email *</label>
+<input type="email" id="cmp-email" placeholder="you@business.com" required>
+</div>
+<div class="form-group">
 <label>WhatsApp / Phone</label>
 <input type="text" id="cmp-phone" placeholder="+256 7XX XXX XXX">
 </div>
@@ -437,9 +441,10 @@ keywords:document.getElementById('cmp-keywords').value.split(',').map(k=>k.trim(
 bid:parseInt(document.getElementById('cmp-bid').value),
 budget:parseInt(document.getElementById('cmp-budget').value),
 category:document.getElementById('cmp-category').value,
+advertiserEmail:document.getElementById('cmp-email').value.trim(),
 phone:document.getElementById('cmp-phone').value.trim()
 };
-if(!data.business||!data.title||!data.description||!data.url||data.keywords.length===0){
+if(!data.business||!data.title||!data.description||!data.url||!data.advertiserEmail||data.keywords.length===0){
 toast('Please fill all required fields','error');return;
 }
 if(data.bid<500){toast('Minimum bid is UGX 500','error');return}
@@ -450,8 +455,9 @@ fetch('/api/search?action=create',{method:'POST',headers:{'Content-Type':'applic
 .then(res=>{
 if(res.success){
 toast('Campaign created successfully!');
+localStorage.setItem('derycode_advertiser_email',document.getElementById('cmp-email').value.trim());
 // Clear form
-['cmp-business','cmp-title','cmp-description','cmp-url','cmp-keywords','cmp-phone'].forEach(function(id){document.getElementById(id).value=''});
+['cmp-business','cmp-title','cmp-description','cmp-url','cmp-keywords','cmp-phone','cmp-email'].forEach(function(id){document.getElementById(id).value=''});
 document.getElementById('cmp-bid').value=1000;
 document.getElementById('cmp-budget').value=50000;
 // Show payment prompt
@@ -461,7 +467,7 @@ var phone=prompt('Enter your MTN MoMo phone number (e.g. 2567XXXXXXXX):');
 if(phone){
 var amount=prompt('Enter amount to top up (UGX):',data.budget);
 if(amount){
-addFunds(phone,parseInt(amount),res.campaign.id);
+addFunds(phone,parseInt(amount),res.id);
 }
 }
 }
@@ -624,6 +630,8 @@ loadDashboard();
     function openPaymentModal() {
       document.getElementById('paymentModal').classList.add('active');
       if (advertiserEmail) document.getElementById('payEmail').value = advertiserEmail;
+    var cmpEmail = document.getElementById('cmp-email');
+    if (cmpEmail && advertiserEmail) cmpEmail.value = advertiserEmail;
     }
 
     function closePaymentModal() {
