@@ -1570,11 +1570,12 @@ updateSection();
 checkAllDone();
 });
 
-// 2. Web results
+// 2. Web results + sponsored ads
 fetch('/api/search?q='+encodeURIComponent(q)+(deepSearch?'&deep=1':'')).then(function(r){return r.json()}).catch(function(){return{}}).then(function(data){
 data=data||{};
 var m=messages[idx];if(!m)return;
 if(data.knowledgePanel){m.knowledgePanel=data.knowledgePanel}
+if(data.ads&&data.ads.length>0){m.sponsoredAds=data.ads}
 if(data.results&&data.results.length>0){
 m.results=m.results.concat(data.results.filter(function(r){return!m.results.some(function(s){return s.url===r.url})}));
 }
