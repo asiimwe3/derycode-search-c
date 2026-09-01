@@ -88,6 +88,17 @@ export default async function handler(req, res) {
   const keywords = getKeywords(q);
   const deep = req.query.deep === '1' || req.query.deep === 'true';
   
+  // DeryCode Ads — fetch sponsored results
+  const adsPromise = (async () => {
+    try {
+      const adsMod = await import('./ads.js');
+      const adsHandler = adsMod.default;
+      const fakeRes = { _ads: null, setHeader: () => {}, status: () => ({ json: (d) => { fakeRes._ads = d; return fakeRes; } }), json: (d) => { fakeRes._ads = d; return fakeRes; } });
+      await adsHandler({ method: 'GET', query: { q, action: 'serve' } }, fakeRes);
+      return (fakeRes._ads && fakeRes._ads.ads) || [];
+    } catch (e) { return []; }
+  })();
+  
   const sources = [
     fetchDeryCodeSite(q),
     fetchStartpage(q),
@@ -177,6 +188,7 @@ export default async function handler(req, res) {
     const elapsed2 = ((Date.now() - startTime) / 1000).toFixed(2);
     return res.status(200).json({
       query: q, knowledgePanel,
+      ads: await adsPromise,
       results: final.slice(0, 30),
       count: final.length, sources: sourcesUsed, time: elapsed2,
       limits: { maxQueryWords: MAX_QUERY_WORDS },
@@ -185,10 +197,12 @@ export default async function handler(req, res) {
     });
   }
   
+  const adsResult = await adsPromise;
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   
   res.status(200).json({
     query: q, knowledgePanel,
+    ads: adsResult,
     results: deduped,
     count: deduped.length, sources: sourcesUsed, time: elapsed,
     limits: { maxQueryWords: MAX_QUERY_WORDS },

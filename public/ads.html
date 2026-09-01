@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DeryCode Ads — Advertiser Dashboard</title>
+<meta name="description" content="DeryCode Ads Platform — Advertise on Uganda's AI Search Engine. PPC advertising for East African businesses.">
+<meta name="theme-color" content="#0f0f14">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23d4af37'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+<style>
+:root{--bg:#0f0f14;--bg2:#15151c;--bg3:#1c1c25;--bg4:#22222e;--gold:#d4af37;--gold-dark:#b8941f;--text:#e8e8e8;--text3:#888;--border:rgba(255,255,255,0.08);--green:#4caf50;--red:#f44336;--yellow:#ffc107;--blue:#2196f3}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+a{color:var(--gold);text-decoration:none}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:8px;cursor:pointer}
+.header-logo{font-size:18px;font-weight:800;color:var(--gold)}
+.header-logo span{color:var(--text)}
+.header-right{display:flex;gap:12px;align-items:center}
+.back-link{font-size:14px;color:var(--text3)}
+.back-link:hover{color:var(--gold)}
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+h1{font-size:24px;margin-bottom:6px;color:var(--gold)}
+h2{font-size:18px;margin-bottom:10px;color:var(--text)}
+.subtitle{color:var(--text3);font-size:14px;margin-bottom:24px}
+.tab-bar{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto;border-bottom:1px solid var(--border)}
+.tab{padding:10px 16px;background:none;border:none;color:var(--text3);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab:hover{color:var(--text)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-value{font-size:28px;font-weight:800;color:var(--gold)}
+.stat-label{font-size:12px;color:var(--text3);margin-top:4px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--text)}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:var(--gold)}
+.form-group textarea{min-height:70px;resize:vertical}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+.hint{font-size:12px;color:var(--text3);margin-top:4px}
+.btn{padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{background:var(--gold-dark)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--gold)}
+.campaign-list{display:flex;flex-direction:column;gap:12px}
+.campaign-item{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.campaign-info{flex:1}
+.campaign-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.campaign-business{font-size:13px;color:var(--gold);margin-bottom:4px}
+.campaign-meta{font-size:12px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap}
+.campaign-meta span{display:inline-flex;align-items:center;gap:3px}
+.badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase}
+.badge-active{background:rgba(76,175,80,0.15);color:var(--green)}
+.badge-paused{background:rgba(255,193,7,0.15);color:var(--yellow)}
+.badge-inactive{background:rgba(244,67,54,0.15);color:var(--red)}
+.campaign-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--bg4);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.2s}
+.icon-btn:hover{border-color:var(--gold);color:var(--gold)}
+.icon-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state-icon{font-size:48px;margin-bottom:12px}
+.empty-state-text{font-size:15px}
+.payment-box{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.payment-methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.payment-method{padding:14px;border:1px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.2s}
+.payment-method:hover{border-color:var(--gold)}
+.payment-method.selected{border-color:var(--gold);background:rgba(212,175,55,0.05)}
+.payment-method-icon{font-size:24px;margin-bottom:6px}
+.payment-method-name{font-size:13px;font-weight:600}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s}
+.toast.show{opacity:1}
+.toast-success{background:var(--green);color:#fff}
+.toast-error{background:var(--red);color:#fff}
+.ad-preview{background:var(--bg2);border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:14px;margin-top:12px}
+.ad-preview-label{font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.ad-preview-title{font-size:15px;font-weight:600;color:#1a0d3b;margin-bottom:4px}
+.ad-preview-desc{font-size:13px;color:var(--text3);margin-bottom:4px}
+.ad-preview-url{font-size:12px;color:var(--gold)}
+.cta-box{background:linear-gradient(135deg,rgba(212,175,55,0.1),transparent);border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px}
+.cta-title{font-size:16px;font-weight:700;color:var(--gold);margin-bottom:6px}
+.cta-text{font-size:13px;color:var(--text3)}
+.footer{padding:20px;text-align:center;color:var(--text3);font-size:12px;border-top:1px solid var(--border);margin-top:20px}
+@media(max-width:600px){.form-row{flex-direction:column}.payment-methods{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+<div class="header-left" onclick="location.href='/'">
+<div class="header-logo">DeryCode <span>Ads</span></div>
+</div>
+<div class="header-right">
+<a href="/" class="back-link">← Back to Search</a>
+</div>
+</div>
+
+<div class="container">
+<h1>DeryCode Ads</h1>
+<p class="subtitle">Advertise on Uganda's AI Search Engine. Pay-per-click. Reach East African customers.</p>
+
+<div class="cta-box">
+<div class="cta-title">Start Advertising from UGX 50,000</div>
+<div class="cta-text">Create a campaign, pick your keywords, set your budget, and pay via MTN MoMo or Airtel Money.</div>
+</div>
+
+<div class="tab-bar">
+<button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+<button class="tab" onclick="switchTab('create')">Create Campaign</button>
+<button class="tab" onclick="switchTab('campaigns')">My Campaigns</button>
+<button class="tab" onclick="switchTab('analytics')">Analytics</button>
+<button class="tab" onclick="switchTab('pricing')">Pricing</button>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div id="tab-dashboard" class="tab-content active">
+<div class="stat-grid">
+<div class="stat-card"><div class="stat-value" id="stat-campaigns">0</div><div class="stat-label">Active Campaigns</div></div>
+<div class="stat-card"><div class="stat-value" id="stat-clicks">0</div><div class="stat-label">Total Clicks</div></div>
+<div class="stat-card"><div class="stat-value" id="stat-impressions">0</div><div class="stat-label">Impressions</div></div>
+<div class="stat-card"><div class="stat-value" id="stat-revenue">UGX 0</div><div class="stat-label">Total Spent</div></div>
+</div>
+<div class="card">
+<h2>How DeryCode Ads Work</h2>
+<p style="font-size:14px;line-height:1.6;color:var(--text3)">
+1. Create a campaign with your ad title, description, and URL<br><br>
+2. Choose keywords you want to target (e.g. "website design Uganda")<br><br>
+3. Set your bid (how much you pay per click) and monthly budget<br><br>
+4. When someone searches your keywords on DeryCode Search, your ad appears at the top with a "Sponsored" label<br><br>
+5. You only pay when someone clicks your ad. No impression charges.<br><br>
+6. Track performance in real-time with click-through rates, spending, and budget usage.
+</p>
+</div>
+</div>
+
+<!-- CREATE CAMPAIGN TAB -->
+<div id="tab-create" class="tab-content">
+<div class="card">
+<h2>Create New Campaign</h2>
+<div class="form-group">
+<label>Business Name *</label>
+<input type="text" id="cmp-business" placeholder="e.g. DeryCode Technologies">
+</div>
+<div class="form-group">
+<label>Ad Title * (shown in search results)</label>
+<input type="text" id="cmp-title" placeholder="e.g. Professional Website Development in Uganda">
+</div>
+<div class="form-group">
+<label>Ad Description *</label>
+<textarea id="cmp-description" placeholder="Short description shown under the title in search results"></textarea>
+</div>
+<div class="form-group">
+<label>Destination URL * (where clicks go)</label>
+<input type="text" id="cmp-url" placeholder="https://yourbusiness.com">
+</div>
+<div class="form-group">
+<label>Target Keywords * (comma-separated)</label>
+<textarea id="cmp-keywords" placeholder="website design uganda, web development kampala, software company uganda"></textarea>
+<div class="hint">Add keywords people would search to find your business</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Bid per Click (UGX) *</label>
+<input type="number" id="cmp-bid" value="1000" min="500" step="100">
+<div class="hint">Min UGX 500 per click</div>
+</div>
+<div class="form-group">
+<label>Monthly Budget (UGX) *</label>
+<input type="number" id="cmp-budget" value="50000" min="10000" step="5000">
+<div class="hint">Min UGX 10,000</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Category</label>
+<select id="cmp-category">
+<option value="general">General</option>
+<option value="technology">Technology / IT</option>
+<option value="real-estate">Real Estate</option>
+<option value="finance">Finance / Banking</option>
+<option value="education">Education</option>
+<option value="health">Health / Medical</option>
+<option value="retail">Retail / Shopping</option>
+<option value="services">Services</option>
+<option value="food">Food / Restaurant</option>
+<option value="travel">Travel / Tourism</option>
+</select>
+</div>
+<div class="form-group">
+<label>WhatsApp / Phone</label>
+<input type="text" id="cmp-phone" placeholder="+256 7XX XXX XXX">
+</div>
+</div>
+
+<div class="ad-preview">
+<div class="ad-preview-label">Ad Preview</div>
+<div class="ad-preview-title" id="preview-title">Your ad title appears here</div>
+<div class="ad-preview-desc" id="preview-desc">Your ad description appears here</div>
+<div class="ad-preview-url" id="preview-url">yourbusiness.com</div>
+</div>
+
+<button class="btn btn-gold" style="width:100%" onclick="createCampaign()">Create Campaign</button>
+</div>
+</div>
+
+<!-- CAMPAIGNS TAB -->
+<div id="tab-campaigns" class="tab-content">
+<div id="campaign-list-container">
+<div class="empty-state">
+<div class="empty-state-icon">📢</div>
+<div class="empty-state-text">No campaigns yet. Create your first campaign to start advertising.</div>
+</div>
+</div>
+</div>
+
+<!-- ANALYTICS TAB -->
+<div id="tab-analytics" class="tab-content">
+<div class="stat-grid">
+<div class="stat-card"><div class="stat-value" id="ana-campaigns">0</div><div class="stat-label">Total Campaigns</div></div>
+<div class="stat-card"><div class="stat-value" id="ana-active">0</div><div class="stat-label">Active</div></div>
+<div class="stat-card"><div class="stat-value" id="ana-clicks">0</div><div class="stat-label">Clicks</div></div>
+<div class="stat-card"><div class="stat-value" id="ana-ctr">0%</div><div class="stat-label">Average CTR</div></div>
+</div>
+<div id="analytics-detail" class="card">
+<h2>Campaign Breakdown</h2>
+<div id="analytics-list" style="display:flex;flex-direction:column;gap:8px">
+<p style="color:var(--text3);font-size:14px">Loading analytics...</p>
+</div>
+</div>
+</div>
+
+<!-- PRICING TAB -->
+<div id="tab-pricing" class="tab-content">
+<div class="card">
+<h2>Pricing — Simple & Transparent</h2>
+<p style="font-size:14px;color:var(--text3);margin-bottom:16px">Pay only when someone clicks your ad. No hidden fees.</p>
+<div class="stat-grid">
+<div class="stat-card"><div class="stat-value">UGX 500</div><div class="stat-label">Minimum bid per click</div></div>
+<div class="stat-card"><div class="stat-value">UGX 10K</div><div class="stat-label">Minimum monthly budget</div></div>
+<div class="stat-card"><div class="stat-value">3</div><div class="stat-label">Max sponsored results per search</div></div>
+<div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Impression charges (pay per click only)</div></div>
+</div>
+</div>
+<div class="card">
+<h2>Payment Methods</h2>
+<div class="payment-methods">
+<div class="payment-method">
+<div class="payment-method-icon">📱</div>
+<div class="payment-method-name">MTN MoMo</div>
+</div>
+<div class="payment-method">
+<div class="payment-method-icon">📲</div>
+<div class="payment-method-name">Airtel Money</div>
+</div>
+<div class="payment-method">
+<div class="payment-method-icon">💳</div>
+<div class="payment-method-name">Visa / Mastercard</div>
+</div>
+<div class="payment-method">
+<div class="payment-method-icon">🏦</div>
+<div class="payment-method-name">Bank Transfer</div>
+</div>
+</div>
+</div>
+<div class="card">
+<h2>Why Advertise on DeryCode Search?</h2>
+<p style="font-size:14px;line-height:1.6;color:var(--text3)">
+1. Only Ugandan/African search engine with built-in AI answers<br><br>
+2. 23 data sources — your ad appears alongside rich results<br><br>
+3. Knowledge panels for featured brands<br><br>
+4. Zero tracking — privacy-focused users trust DeryCode<br><br>
+5. Mobile-first design — 80% of Ugandan internet users are on mobile<br><br>
+6. PWA enabled — users can install DeryCode Search as an app
+</p>
+</div>
+</div>
+</div>
+
+<div class="footer">
+DeryCode Ads v1.0 — Part of DeryCode Search Engine<br>
+© 2026 DeryCode Technologies — Kampala, Uganda
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function switchTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById('tab-'+tab).classList.add('active');if(tab==='campaigns')loadCampaigns();if(tab==='analytics')loadAnalytics();if(tab==='dashboard')loadDashboard()}
+
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast toast-'+(type||'success')+' show';setTimeout(function(){t.classList.remove('show')},3000)}
+
+function fmtUGX(n){return 'UGX '+(n||0).toLocaleString()}
+
+// Ad preview live update
+document.getElementById('cmp-title').addEventListener('input',function(){document.getElementById('preview-title').textContent=this.value||'Your ad title appears here'});
+document.getElementById('cmp-description').addEventListener('input',function(){document.getElementById('preview-desc').textContent=this.value||'Your ad description appears here'});
+document.getElementById('cmp-url').addEventListener('input',function(){try{var u=new URL(this.value);document.getElementById('preview-url').textContent=u.hostname}catch(e){document.getElementById('preview-url').textContent=this.value||'yourbusiness.com'}});
+
+// Create campaign
+function createCampaign(){
+var data={
+business:document.getElementById('cmp-business').value.trim(),
+title:document.getElementById('cmp-title').value.trim(),
+description:document.getElementById('cmp-description').value.trim(),
+url:document.getElementById('cmp-url').value.trim(),
+keywords:document.getElementById('cmp-keywords').value.split(',').map(k=>k.trim()).filter(k=>k.length>0),
+bid:parseInt(document.getElementById('cmp-bid').value),
+budget:parseInt(document.getElementById('cmp-budget').value),
+category:document.getElementById('cmp-category').value,
+phone:document.getElementById('cmp-phone').value.trim()
+};
+if(!data.business||!data.title||!data.description||!data.url||data.keywords.length===0){
+toast('Please fill all required fields','error');return;
+}
+if(data.bid<500){toast('Minimum bid is UGX 500','error');return}
+if(data.budget<10000){toast('Minimum budget is UGX 10,000','error');return}
+
+fetch('/api/ads?action=create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+.then(r=>r.json())
+.then(res=>{
+if(res.success){
+toast('Campaign created successfully!');
+// Clear form
+['cmp-business','cmp-title','cmp-description','cmp-url','cmp-keywords','cmp-phone'].forEach(function(id){document.getElementById(id).value=''});
+document.getElementById('cmp-bid').value=1000;
+document.getElementById('cmp-budget').value=50000;
+// Show payment prompt
+setTimeout(function(){
+if(confirm('Campaign created! Would you like to add funds via MTN MoMo?')){
+var phone=prompt('Enter your MTN MoMo phone number (e.g. 2567XXXXXXXX):');
+if(phone){
+var amount=prompt('Enter amount to top up (UGX):',data.budget);
+if(amount){
+addFunds(phone,parseInt(amount),res.campaign.id);
+}
+}
+}
+},500);
+}else{toast(res.error||'Failed to create campaign','error')}
+})
+.catch(e=>toast('Network error','error'));
+}
+
+function addFunds(phone,amount,campaignId){
+fetch('/api/ads?action=payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,amount:amount,campaignId:campaignId})})
+.then(r=>r.json())
+.then(res=>{
+if(res.success){
+toast('Payment initiated: '+res.instructions);
+alert('Payment Instructions:\n\n'+res.instructions+'\n\nAmount: UGX '+amount+'\nPhone: '+phone+'\n\nYour campaign will be activated once payment is confirmed.');
+}else{toast(res.error||'Payment failed','error')}
+})
+.catch(e=>toast('Payment error','error'));
+}
+
+// Load campaigns
+function loadCampaigns(){
+fetch('/api/ads?action=list').then(r=>r.json()).then(res=>{
+var container=document.getElementById('campaign-list-container');
+if(!res.campaigns||res.campaigns.length===0){
+container.innerHTML='<div class="empty-state"><div class="empty-state-icon">📢</div><div class="empty-state-text">No campaigns yet. Create your first campaign to start advertising.</div></div>';
+return;
+}
+var html='<div class="campaign-list">';
+res.campaigns.forEach(function(c){
+var statusBadge=c.status==='active'?'<span class="badge badge-active">Active</span>':(c.status==='paused'?'<span class="badge badge-paused">Paused</span>':'<span class="badge badge-inactive">Inactive</span>');
+var budgetUsed=c.budget>0?((c.spent/c.budget)*100).toFixed(1):0;
+html+='<div class="campaign-item">';
+html+='<div class="campaign-info">';
+html+='<div class="campaign-title">'+esc(c.title)+'</div>';
+html+='<div class="campaign-business">'+esc(c.business)+'</div>';
+html+='<div class="campaign-meta">';
+html+='<span>'+statusBadge+'</span>';
+html+='<span>Clicks: <b>'+c.clicks+'</b></span>';
+html+='<span>Impressions: <b>'+c.impressions+'</b></span>';
+html+='<span>Spent: <b>'+fmtUGX(c.spent)+'</b></span>';
+html+='<span>Budget: <b>'+fmtUGX(c.budget)+'</b></span>';
+html+='<span>Bid: <b>'+fmtUGX(c.bid)+'/click</b></span>';
+html+='<span>'+budgetUsed+'% used</span>';
+html+='</div>';
+html+='</div>';
+html+='<div class="campaign-actions">';
+if(c.status==='active'){
+html+='<button class="icon-btn" onclick="toggleCampaign(\''+c.id+'\',\'paused\')" title="Pause">⏸</button>';
+}else{
+html+='<button class="icon-btn" onclick="toggleCampaign(\''+c.id+'\',\'active\')" title="Activate">▶</button>';
+}
+html+='<button class="icon-btn danger" onclick="deleteCampaign(\''+c.id+'\')" title="Delete">🗑</button>';
+html+='</div>';
+html+='</div>';
+});
+html+='</div>';
+container.innerHTML=html;
+}).catch(e=>{document.getElementById('campaign-list-container').innerHTML='<div class="empty-state"><div class="empty-state-text">Error loading campaigns</div></div>'});
+}
+
+function toggleCampaign(id,status){
+fetch('/api/ads?action=update&id='+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status})})
+.then(r=>r.json())
+.then(res=>{if(res.success){toast('Campaign '+status);loadCampaigns()}else{toast('Update failed','error')}})
+.catch(e=>toast('Network error','error'));
+}
+
+function deleteCampaign(id){
+if(!confirm('Delete this campaign? This cannot be undone.'))return;
+fetch('/api/ads?action=delete&id='+id,{method:'DELETE'})
+.then(r=>r.json())
+.then(res=>{if(res.success){toast('Campaign deleted');loadCampaigns()}else{toast('Delete failed','error')}})
+.catch(e=>toast('Network error','error'));
+}
+
+// Load analytics
+function loadAnalytics(){
+fetch('/api/ads?action=analytics').then(r=>r.json()).then(res=>{
+if(!res){return}
+document.getElementById('ana-campaigns').textContent=res.totalCampaigns||0;
+document.getElementById('ana-active').textContent=res.activeCampaigns||0;
+document.getElementById('ana-clicks').textContent=res.totalClicks||0;
+document.getElementById('ana-ctr').textContent=res.averageCTR||'0%';
+var list=document.getElementById('analytics-list');
+if(!res.campaigns||res.campaigns.length===0){
+list.innerHTML='<p style="color:var(--text3);font-size:14px">No campaigns to analyze.</p>';
+return;
+}
+var html='';
+res.campaigns.forEach(function(c){
+var ctr=c.impressions>0?((c.clicks/c.impressions)*100).toFixed(2)+'%':'0%';
+html+='<div style="padding:10px;background:var(--bg4);border-radius:8px;font-size:13px">';
+html+='<b style="color:var(--gold)">'+esc(c.business)+'</b> — '+esc(c.title)+'<br>';
+html+='<span style="color:var(--text3)">Clicks: '+c.clicks+' | Impressions: '+c.impressions+' | CTR: '+ctr+' | Spent: '+fmtUGX(c.spent)+'/'+fmtUGX(c.budget)+'</span>';
+html+='</div>';
+});
+list.innerHTML=html;
+}).catch(e=>{document.getElementById('analytics-list').innerHTML='<p style="color:var(--text3)">Error loading analytics</p>'});
+}
+
+// Load dashboard
+function loadDashboard(){
+fetch('/api/ads?action=analytics').then(r=>r.json()).then(res=>{
+if(!res){return}
+document.getElementById('stat-campaigns').textContent=res.activeCampaigns||0;
+document.getElementById('stat-clicks').textContent=res.totalClicks||0;
+document.getElementById('stat-impressions').textContent=res.totalImpressions||0;
+document.getElementById('stat-revenue').textContent='UGX '+(res.totalRevenue||0).toLocaleString();
+}).catch(e=>{});
+}
+
+function esc(s){return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>
