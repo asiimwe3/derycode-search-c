@@ -258,15 +258,9 @@ export default async function handler(req, res) {
   const keywords = getKeywords(q);
   const deep = req.query.deep === '1' || req.query.deep === 'true';
   
-  // DeryCode Ads — fetch sponsored results
+  // DeryCode Ads — fetch sponsored results inline
   const adsPromise = (async () => {
-    try {
-      const adsMod = await import('./ads.js');
-      const adsHandler = adsMod.default;
-      const fakeRes = { _ads: null, setHeader: () => {}, status: () => ({ json: (d) => { fakeRes._ads = d; return fakeRes; } }), json: (d) => { fakeRes._ads = d; return fakeRes; } });
-      await adsHandler({ method: 'GET', query: { q, action: 'serve' } }, fakeRes);
-      return (fakeRes._ads && fakeRes._ads.ads) || [];
-    } catch (e) { return []; }
+    try { return await serveAds(q); } catch (e) { return []; }
   })();
   
   const sources = [
