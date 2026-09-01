@@ -5,24 +5,36 @@
 
 // ============ DeryCode Ads — PPC Platform ============
 let campaignStore = null;
+let lastStoreFetch = 0;
+const STORE_TTL = 30000; // Cache store for 30 seconds
 
 async function getCampaignStore() {
-  if (campaignStore) return campaignStore;
+  // Return cached store if fresh
+  if (campaignStore && (Date.now() - lastStoreFetch) < STORE_TTL) return campaignStore;
   
-  let kv = null;
-  try {
-    const kvMod = await import('@vercel/kv');
-    kv = kvMod.kv;
-    const stored = await kv.get('derycode_ads_campaigns');
-    if (stored) { campaignStore = JSON.parse(stored); return campaignStore; }
-  } catch (e) { /* KV not available, use in-memory */ }
+  // Try Edge Config first
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      const res = await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/item?token=${edgeConfigToken}&key=campaigns`);
+      if (res.ok) {
+        const campaigns = await res.json();
+        const clicksRes = await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/item?token=${edgeConfigToken}&key=clicks`);
+        const clicks = clicksRes.ok ? await clicksRes.json() : [];
+        campaignStore = { campaigns: campaigns || [], clicks: clicks || [] };
+        lastStoreFetch = Date.now();
+        return campaignStore;
+      }
+    } catch (e) { /* Edge Config read failed, fall through to seed */ }
+  }
   
-  // Seed with default campaign
+  // Fallback: seed with default campaign
   campaignStore = {
     campaigns: [{
       id: 'seed-derycode-001',
       business: 'DeryCode Technologies',
-      title: 'DeryCode — Software Development Company in Uganda',
+      title: 'DeryCode \u2014 Software Development Company in Uganda',
       description: 'Custom software, web apps, mobile apps, blockchain & AI. DeryCode builds what off-the-shelf can\'t. Call +256 772 002 326',
       url: 'https://derycode.publicvm.com',
       keywords: ['website design uganda','software company uganda','web development uganda','mobile app development uganda','blockchain development uganda','seo uganda','derycode','software development kampala','app development uganda','erp software uganda','fintech uganda','ai chatbot uganda'],
@@ -36,16 +48,30 @@ async function getCampaignStore() {
     }],
     clicks: []
   };
-  
-  if (kv) { try { await kv.set('derycode_ads_campaigns', JSON.stringify(campaignStore)); } catch(e){} }
+  lastStoreFetch = Date.now();
   return campaignStore;
 }
 
 async function saveCampaignStore(store) {
   campaignStore = store;
-  let kv = null;
-  try { const kvMod = await import('@vercel/kv'); kv = kvMod.kv; } catch(e){}
-  if (kv) { try { await kv.set('derycode_ads_campaigns', JSON.stringify(store)); } catch(e){} }
+  lastStoreFetch = Date.now();
+  
+  const edgeConfigId = process.env.EDGE_CONFIG;
+  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
+  if (edgeConfigId && edgeConfigToken) {
+    try {
+      await fetch(`https://api.vercel.com/v1/edge-config/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [
+            { operation: 'upsert', key: 'campaigns', value: JSON.stringify(store.campaigns) },
+            { operation: 'upsert', key: 'clicks', value: JSON.stringify(store.clicks) }
+          ]
+        })
+      });
+    } catch (e) { /* Edge Config write failed, keep in-memory */ }
+  }
 }
 
 function matchKeywords(queryKeywords, campaignKeywords) {
