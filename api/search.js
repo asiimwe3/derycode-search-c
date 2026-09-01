@@ -491,6 +491,58 @@ async function handlePaymentRequest(req, res) {
     }
   }
 
+  // Register IPN URL with PesaPal
+  if (action === 'register_ipn') {
+    try {
+      const token = await getPesaPalToken();
+      const ipnUrl = `${SITE_URL}/api/search?payment=ipn`;
+      const regRes = await fetch(`${PESAPAL_BASE}/api/URLSetup/RegisterIPN`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          url: ipnUrl,
+          ipn_notification_type: 'GET'
+        })
+      });
+      const regData = await regRes.json();
+      res.status(200).json({
+        success: true,
+        ipn_url: ipnUrl,
+        ipn_id: regData.ipn_id,
+        status: regData.ipn_status_description,
+        raw: regData
+      });
+      return true;
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+      return true;
+    }
+  }
+
+  // List registered IPN URLs
+  if (action === 'list_ipn') {
+    try {
+      const token = await getPesaPalToken();
+      const listRes = await fetch(`${PESAPAL_BASE}/api/URLSetup/GetIPNList`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const listData = await listRes.json();
+      res.status(200).json(listData);
+      return true;
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+      return true;
+    }
+  }
+
   // Get wallet balance
   if (action === 'wallet') {
     const email = req.query.email;
