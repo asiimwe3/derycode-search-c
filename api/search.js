@@ -6,7 +6,7 @@
 // ============ DeryCode Ads — PPC Platform ============
 let campaignStore = null;
 let lastStoreFetch = 0;
-const STORE_TTL = 30000; // Cache store for 30 seconds
+const STORE_TTL = 5000; // Cache store for 5 seconds (short to avoid race conditions in serverless)
 
 async function getCampaignStore() {
   // Return cached store if fresh
@@ -91,6 +91,8 @@ function matchKeywords(queryKeywords, campaignKeywords) {
 }
 
 async function serveAds(query) {
+  // Force fresh read to avoid overwriting newer data with stale cache
+  campaignStore = null; lastStoreFetch = 0;
   const store = await getCampaignStore();
   const queryKeywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 2);
   const matched = store.campaigns.filter(c => 
@@ -173,6 +175,8 @@ async function handleAdsRequest(req, res) {
   }
   
   if (action === 'create' && req.method === 'POST') {
+    // Force fresh read to avoid race condition with serveAds
+    campaignStore = null; lastStoreFetch = 0;
     const store = await getCampaignStore();
     let body = '';
     for await (const chunk of req) body += chunk;
@@ -191,6 +195,7 @@ async function handleAdsRequest(req, res) {
   }
   
   if (action === 'update' && req.method === 'PUT') {
+    campaignStore = null; lastStoreFetch = 0;
     const store = await getCampaignStore();
     const c = store.campaigns.find(c => c.id === req.query.id);
     if (!c) { res.status(404).json({ error: 'Not found' }); return true; }
@@ -203,6 +208,7 @@ async function handleAdsRequest(req, res) {
   }
   
   if (action === 'delete' && req.method === 'DELETE') {
+    campaignStore = null; lastStoreFetch = 0;
     const store = await getCampaignStore();
     store.campaigns = store.campaigns.filter(c => c.id !== req.query.id);
     await saveCampaignStore(store);
