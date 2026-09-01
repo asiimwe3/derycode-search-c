@@ -2,6 +2,166 @@
 // Deep Search: 16 sources - surfaces what other engines hide
 // Relevance-scored, academic sources conditional
 
+
+// ============ DeryCode Ads — PPC Platform ============
+let campaignStore = null;
+
+async function getCampaignStore() {
+  if (campaignStore) return campaignStore;
+  
+  let kv = null;
+  try {
+    const kvMod = await import('@vercel/kv');
+    kv = kvMod.kv;
+    const stored = await kv.get('derycode_ads_campaigns');
+    if (stored) { campaignStore = JSON.parse(stored); return campaignStore; }
+  } catch (e) { /* KV not available, use in-memory */ }
+  
+  // Seed with default campaign
+  campaignStore = {
+    campaigns: [{
+      id: 'seed-derycode-001',
+      business: 'DeryCode Technologies',
+      title: 'DeryCode — Software Development Company in Uganda',
+      description: 'Custom software, web apps, mobile apps, blockchain & AI. DeryCode builds what off-the-shelf can\'t. Call +256 772 002 326',
+      url: 'https://derycode.publicvm.com',
+      keywords: ['website design uganda','software company uganda','web development uganda','mobile app development uganda','blockchain development uganda','seo uganda','derycode','software development kampala','app development uganda','erp software uganda','fintech uganda','ai chatbot uganda'],
+      bid: 1000,
+      budget: 100000,
+      spent: 0,
+      impressions: 0,
+      clicks: 0,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    }],
+    clicks: []
+  };
+  
+  if (kv) { try { await kv.set('derycode_ads_campaigns', JSON.stringify(campaignStore)); } catch(e){} }
+  return campaignStore;
+}
+
+async function saveCampaignStore(store) {
+  campaignStore = store;
+  let kv = null;
+  try { const kvMod = await import('@vercel/kv'); kv = kvMod.kv; } catch(e){}
+  if (kv) { try { await kv.set('derycode_ads_campaigns', JSON.stringify(store)); } catch(e){} }
+}
+
+function matchKeywords(queryKeywords, campaignKeywords) {
+  const qSet = new Set(queryKeywords.map(k => k.toLowerCase().trim()));
+  for (const ck of campaignKeywords) {
+    const ckLower = ck.toLowerCase().trim();
+    if (qSet.has(ckLower)) return true;
+    for (const qk of queryKeywords) {
+      if (qk.toLowerCase().includes(ckLower) || ckLower.includes(qk.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
+async function serveAds(query) {
+  const store = await getCampaignStore();
+  const queryKeywords = query.toLowerCase().split(/\s+/).filter(k => k.length > 2);
+  const matched = store.campaigns.filter(c => 
+    c.status === 'active' && c.budget > c.spent && matchKeywords(queryKeywords, c.keywords)
+  );
+  matched.sort((a, b) => b.bid - a.bid);
+  const top3 = matched.slice(0, 3);
+  for (const ad of top3) { ad.impressions++; }
+  await saveCampaignStore(store);
+  return top3;
+}
+
+async function trackClick(adId) {
+  const store = await getCampaignStore();
+  const campaign = store.campaigns.find(c => c.id === adId);
+  if (campaign && campaign.status === 'active' && campaign.budget > campaign.spent) {
+    campaign.clicks++;
+    campaign.spent += campaign.bid;
+    store.clicks.push({ campaignId: adId, timestamp: new Date().toISOString() });
+    await saveCampaignStore(store);
+    return campaign.url;
+  }
+  return null;
+}
+
+// Handle ads API requests (action-based routing)
+async function handleAdsRequest(req, res) {
+  const action = req.query.action || 'serve';
+  const q = req.query.q || '';
+  
+  if (action === 'click') {
+    const url = await trackClick(req.query.id);
+    if (url) { res.setHeader('Location', url); res.status(302).end(); return true; }
+    res.status(404).json({ error: 'Campaign not found or inactive' }); return true;
+  }
+  
+  if (action === 'list') {
+    const store = await getCampaignStore();
+    res.status(200).json({ campaigns: store.campaigns, totalClicks: store.clicks.length });
+    return true;
+  }
+  
+  if (action === 'analytics') {
+    const store = await getCampaignStore();
+    const id = req.query.id;
+    if (id) {
+      const c = store.campaigns.find(c => c.id === id);
+      if (c) { res.status(200).json({ campaign: c, ctr: c.impressions > 0 ? (c.clicks / c.impressions * 100).toFixed(2) + '%' : '0%' }); return true; }
+      res.status(404).json({ error: 'Campaign not found' }); return true;
+    }
+    const totalImpressions = store.campaigns.reduce((s, c) => s + c.impressions, 0);
+    const totalClicks = store.campaigns.reduce((s, c) => s + c.clicks, 0);
+    const totalSpent = store.campaigns.reduce((s, c) => s + c.spent, 0);
+    res.status(200).json({ totalImpressions, totalClicks, totalSpent, ctr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) + '%' : '0%', campaigns: store.campaigns.length });
+    return true;
+  }
+  
+  if (action === 'create' && req.method === 'POST') {
+    const store = await getCampaignStore();
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const data = JSON.parse(body);
+    const campaign = {
+      id: 'ad-' + Date.now(),
+      business: data.business || '', title: data.title || '', description: data.description || '',
+      url: data.url || '', keywords: data.keywords || [], bid: data.bid || 500,
+      budget: data.budget || 10000, spent: 0, impressions: 0, clicks: 0,
+      status: 'active', createdAt: new Date().toISOString()
+    };
+    store.campaigns.push(campaign);
+    await saveCampaignStore(store);
+    res.status(201).json({ success: true, id: campaign.id }); return true;
+  }
+  
+  if (action === 'update' && req.method === 'PUT') {
+    const store = await getCampaignStore();
+    const c = store.campaigns.find(c => c.id === req.query.id);
+    if (!c) { res.status(404).json({ error: 'Not found' }); return true; }
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const data = JSON.parse(body);
+    Object.assign(c, data);
+    await saveCampaignStore(store);
+    res.status(200).json({ success: true }); return true;
+  }
+  
+  if (action === 'delete' && req.method === 'DELETE') {
+    const store = await getCampaignStore();
+    store.campaigns = store.campaigns.filter(c => c.id !== req.query.id);
+    await saveCampaignStore(store);
+    res.status(200).json({ success: true }); return true;
+  }
+  
+  // Default: serve ads
+  const ads = await serveAds(q);
+  res.status(200).json({ ads, count: ads.length });
+  return true;
+}
+// ============ End DeryCode Ads ============
+
+
 const MAX_QUERY_WORDS = 500;
 
 // DeryCode website search — indexes derycode.publicvm.com
@@ -73,6 +233,16 @@ function isNoiseResult(result, query) {
 }
 
 export default async function handler(req, res) {
+  // Route ads-specific requests
+  if (req.query.action && req.query.action !== 'serve') {
+    const handled = await handleAdsRequest(req, res);
+    if (handled) return;
+  }
+  // Route /api/search?ads=true requests (standalone ads endpoint)
+  if (req.query.ads === 'true' || (req.url && req.url.includes('/api/ads'))) {
+    await handleAdsRequest(req, res);
+    return;
+  }
   res.setHeader('Access-Control-Allow-Origin', '*');
   const q = req.query.q || '';
   if (!q || q.trim().length === 0) return res.status(400).json({ error: 'Query is required' });

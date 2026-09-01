@@ -318,7 +318,7 @@ toast('Please fill all required fields','error');return;
 if(data.bid<500){toast('Minimum bid is UGX 500','error');return}
 if(data.budget<10000){toast('Minimum budget is UGX 10,000','error');return}
 
-fetch('/api/ads?action=create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+fetch('/api/search?action=create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
 .then(r=>r.json())
 .then(res=>{
 if(res.success){
@@ -345,7 +345,7 @@ addFunds(phone,parseInt(amount),res.campaign.id);
 }
 
 function addFunds(phone,amount,campaignId){
-fetch('/api/ads?action=payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,amount:amount,campaignId:campaignId})})
+fetch('/api/search?action=payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone,amount:amount,campaignId:campaignId})})
 .then(r=>r.json())
 .then(res=>{
 if(res.success){
@@ -358,7 +358,7 @@ alert('Payment Instructions:\n\n'+res.instructions+'\n\nAmount: UGX '+amount+'\n
 
 // Load campaigns
 function loadCampaigns(){
-fetch('/api/ads?action=list').then(r=>r.json()).then(res=>{
+fetch('/api/search?action=list').then(r=>r.json()).then(res=>{
 var container=document.getElementById('campaign-list-container');
 if(!res.campaigns||res.campaigns.length===0){
 container.innerHTML='<div class="empty-state"><div class="empty-state-icon">📢</div><div class="empty-state-text">No campaigns yet. Create your first campaign to start advertising.</div></div>';
@@ -398,7 +398,7 @@ container.innerHTML=html;
 }
 
 function toggleCampaign(id,status){
-fetch('/api/ads?action=update&id='+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status})})
+fetch('/api/search?action=update&id='+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status})})
 .then(r=>r.json())
 .then(res=>{if(res.success){toast('Campaign '+status);loadCampaigns()}else{toast('Update failed','error')}})
 .catch(e=>toast('Network error','error'));
@@ -406,7 +406,7 @@ fetch('/api/ads?action=update&id='+id,{method:'PUT',headers:{'Content-Type':'app
 
 function deleteCampaign(id){
 if(!confirm('Delete this campaign? This cannot be undone.'))return;
-fetch('/api/ads?action=delete&id='+id,{method:'DELETE'})
+fetch('/api/search?action=delete&id='+id,{method:'DELETE'})
 .then(r=>r.json())
 .then(res=>{if(res.success){toast('Campaign deleted');loadCampaigns()}else{toast('Delete failed','error')}})
 .catch(e=>toast('Network error','error'));
@@ -414,7 +414,7 @@ fetch('/api/ads?action=delete&id='+id,{method:'DELETE'})
 
 // Load analytics
 function loadAnalytics(){
-fetch('/api/ads?action=analytics').then(r=>r.json()).then(res=>{
+fetch('/api/search?action=analytics').then(r=>r.json()).then(res=>{
 if(!res){return}
 document.getElementById('ana-campaigns').textContent=res.totalCampaigns||0;
 document.getElementById('ana-active').textContent=res.activeCampaigns||0;
@@ -439,7 +439,7 @@ list.innerHTML=html;
 
 // Load dashboard
 function loadDashboard(){
-fetch('/api/ads?action=analytics').then(r=>r.json()).then(res=>{
+fetch('/api/search?action=analytics').then(r=>r.json()).then(res=>{
 if(!res){return}
 document.getElementById('stat-campaigns').textContent=res.activeCampaigns||0;
 document.getElementById('stat-clicks').textContent=res.totalClicks||0;
