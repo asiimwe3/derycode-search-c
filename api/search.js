@@ -58,12 +58,15 @@ async function saveCampaignStore(store) {
   lastStoreFetch = Date.now();
   
   const edgeConfigId = process.env.EDGE_CONFIG;
-  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
-  if (edgeConfigId && edgeConfigToken) {
+  const apiToken = process.env.VERCEL_API_TOKEN;
+  if (edgeConfigId && apiToken) {
     try {
-      await fetch(`https://edge-config.vercel.com/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+      await fetch(`https://api.vercel.com/v1/global-config/${edgeConfigId}/items`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          Authorization: `Bearer ${apiToken}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           items: [
             { operation: 'upsert', key: 'campaigns', value: JSON.stringify(store.campaigns) },
@@ -252,12 +255,12 @@ async function getWallets() {
 
 async function saveWallets(wallets) {
   const edgeConfigId = process.env.EDGE_CONFIG;
-  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
-  if (edgeConfigId && edgeConfigToken) {
+  const apiToken = process.env.VERCEL_API_TOKEN;
+  if (edgeConfigId && apiToken) {
     try {
-      await fetch(`https://edge-config.vercel.com/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+      await fetch(`https://api.vercel.com/v1/global-config/${edgeConfigId}/items`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: [{ operation: 'upsert', key: 'wallets', value: JSON.stringify(wallets) }] })
       });
     } catch (e) {}
@@ -283,12 +286,12 @@ async function getTransactions() {
 
 async function saveTransactions(transactions) {
   const edgeConfigId = process.env.EDGE_CONFIG;
-  const edgeConfigToken = process.env.EDGE_CONFIG_ACCESS_TOKEN;
-  if (edgeConfigId && edgeConfigToken) {
+  const apiToken = process.env.VERCEL_API_TOKEN;
+  if (edgeConfigId && apiToken) {
     try {
-      await fetch(`https://edge-config.vercel.com/${edgeConfigId}/items?token=${edgeConfigToken}`, {
+      await fetch(`https://api.vercel.com/v1/global-config/${edgeConfigId}/items`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: [{ operation: 'upsert', key: 'transactions', value: JSON.stringify(transactions) }] })
       });
     } catch (e) {}
